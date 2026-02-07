@@ -125,7 +125,7 @@ class NotificationService(val context: Context) {
         maybeAddCancelAction(builder, notification)
         if (geoCoordinates != null) {
             val (lat, lon) = geoCoordinates
-            val mapUri = Uri.parse("geo:$lat,$lon?q=$lat,$lon(Quake Detected)")
+            val mapUri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lon")
             val mapIntent = Intent(Intent.ACTION_VIEW).apply {
                 data = mapUri
             }
