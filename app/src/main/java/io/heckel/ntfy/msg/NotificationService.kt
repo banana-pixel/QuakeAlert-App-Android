@@ -97,8 +97,8 @@ class NotificationService(val context: Context) {
         }
         val title = when {
             distanceLabel == null -> baseTitle
-            distance > GATEKEEPER_DISTANCE_KM -> "$baseTitle (Far: ${distanceLabel}km)"
-            else -> "$baseTitle (⚠️ ${distanceLabel}km)"
+            distance > GATEKEEPER_DISTANCE_KM -> "Silent Alert: Quake (${distanceLabel}km)"
+            else -> "⚠️ DANGER: Quake (${distanceLabel}km) ⚠️"
         }
         val groupId = if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
         val channelId = toChannelId(groupId, displayPriority)
