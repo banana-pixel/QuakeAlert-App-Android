@@ -1,12 +1,19 @@
 package io.heckel.ntfy.app
 
 import android.app.Application
+import androidx.work.Constraints
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.google.android.material.color.DynamicColors
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.util.Log
+import io.heckel.ntfy.work.LocationWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import java.util.concurrent.TimeUnit
 
 class Application : Application() {
     val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -24,5 +31,25 @@ class Application : Application() {
         if (repository.getDynamicColorsEnabled()) {
             DynamicColors.applyToActivitiesIfAvailable(this)
         }
+        scheduleLocationWorker()
+    }
+
+    private fun scheduleLocationWorker() {
+        val constraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+        val workRequest = PeriodicWorkRequestBuilder<LocationWorker>(LOCATION_WORKER_INTERVAL_HOURS, TimeUnit.HOURS)
+            .setConstraints(constraints)
+            .addTag(LocationWorker.TAG)
+            .build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            LocationWorker.WORK_NAME_PERIODIC,
+            ExistingPeriodicWorkPolicy.KEEP,
+            workRequest
+        )
+    }
+
+    companion object {
+        private const val LOCATION_WORKER_INTERVAL_HOURS = 6L
     }
 }
