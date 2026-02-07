@@ -9,6 +9,7 @@ import io.heckel.ntfy.db.Notification
 import io.heckel.ntfy.util.deriveNotificationId
 import io.heckel.ntfy.util.joinTags
 import io.heckel.ntfy.util.toPriority
+import io.heckel.ntfy.util.Log
 import java.lang.reflect.Type
 
 class NotificationParser {
@@ -26,6 +27,10 @@ class NotificationParser {
                 message.event == ApiService.EVENT_MESSAGE_CLEAR
         if (!validEvent) {
             return null
+        }
+        val geoLocation = geoLocationFromTags(message.tags)
+        if (geoLocation != null) {
+            Log.d(TAG, "Detected Quake from TAGS: ${geoLocation.latitude}, ${geoLocation.longitude}")
         }
         val attachment = if (message.attachment?.url != null) {
             Attachment(
@@ -77,6 +82,16 @@ class NotificationParser {
         return NotificationWithTopic(topic, notification)
     }
 
+    private fun geoLocationFromTags(tags: List<String>?): GeoLocation? {
+        val geoTag = tags?.firstOrNull { tag -> tag.startsWith(TAG_GEO_PREFIX, ignoreCase = true) } ?: return null
+        val coordinates = geoTag.substringAfter(TAG_GEO_PREFIX, missingDelimiterValue = "")
+        val (latitude, longitude) = coordinates.split(",", limit = 2).map { it.trim() }
+            .takeIf { it.size == 2 } ?: return null
+        val latitudeValue = latitude.toDoubleOrNull() ?: return null
+        val longitudeValue = longitude.toDoubleOrNull() ?: return null
+        return GeoLocation(latitudeValue, longitudeValue)
+    }
+
     /**
      * Parse JSON array to Action list. The indirection via MessageAction is probably
      * not necessary, but for "good form".
@@ -103,4 +118,11 @@ class NotificationParser {
     }
 
     data class NotificationWithTopic(val topic: String, val notification: Notification)
+
+    companion object {
+        private const val TAG = "QuakeAlert"
+        private const val TAG_GEO_PREFIX = "geo:"
+    }
+
+    private data class GeoLocation(val latitude: Double, val longitude: Double)
 }

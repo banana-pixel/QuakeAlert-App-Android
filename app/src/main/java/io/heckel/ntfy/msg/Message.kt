@@ -14,6 +14,7 @@ data class Message(
     val topic: String,
     val priority: Int?,
     val tags: List<String>?,
+    @SerializedName("headers") val headers: Map<String, String>?,
     val click: String?,
     val icon: String?,
     val actions: List<MessageAction>?,
