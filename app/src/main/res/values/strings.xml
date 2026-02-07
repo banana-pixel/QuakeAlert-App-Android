@@ -367,6 +367,13 @@
     <string name="settings_notifications_insistent_max_priority_title">Keep alerting for highest priority</string>
     <string name="settings_notifications_insistent_max_priority_summary_enabled">Max priority notifications continuously alert until dismissed</string>
     <string name="settings_notifications_insistent_max_priority_summary_disabled">Max priority notifications only alert once</string>
+    <string name="settings_earthquake_alert_header">Earthquake Alert</string>
+    <string name="settings_earthquake_location_summary_title">Current location</string>
+    <string name="settings_earthquake_location_summary_format">Lat: %1$s, Lon: %2$s</string>
+    <string name="settings_earthquake_update_location_title">Update location</string>
+    <string name="settings_earthquake_update_location_summary">Use your current network location</string>
+    <string name="settings_earthquake_location_permission_missing">Location permission is required to update your coordinates.</string>
+    <string name="settings_earthquake_location_unavailable">Location is unavailable. Please try again.</string>
     <string name="settings_general_header">General</string>
     <string name="settings_appearance_header">Appearance</string>
     <string name="settings_general_default_base_url_title">Default server</string>

@@ -4,10 +4,15 @@ import android.Manifest
 import android.app.AlarmManager
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
 import android.provider.Settings
 import android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
 import android.text.TextUtils
@@ -38,6 +43,7 @@ import io.heckel.ntfy.db.User
 import io.heckel.ntfy.service.SubscriberServiceManager
 import io.heckel.ntfy.util.*
 import kotlinx.coroutines.Dispatchers
+import java.util.Locale
 import kotlinx.coroutines.launch
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.text.SimpleDateFormat
@@ -162,6 +168,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         private lateinit var repository: Repository
         private lateinit var serviceManager: SubscriberServiceManager
         private var autoDownloadSelection = AUTO_DOWNLOAD_SELECTION_NOT_SET
+        private var locationSummaryPreference: Preference? = null
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.main_preferences, rootKey)
@@ -325,6 +332,18 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                     Repository.AUTO_DELETE_THREE_MONTHS_SECONDS -> getString(R.string.settings_notifications_auto_delete_summary_three_months)
                     else -> getString(R.string.settings_notifications_auto_delete_summary_one_month) // Must match default const
                 }
+            }
+
+            // Earthquake alert location
+            val locationSummaryPrefId = context?.getString(R.string.settings_earthquake_location_summary_key) ?: return
+            locationSummaryPreference = findPreference(locationSummaryPrefId)
+            updateLocationSummary()
+
+            val updateLocationPrefId = context?.getString(R.string.settings_earthquake_update_location_key) ?: return
+            val updateLocation: Preference? = findPreference(updateLocationPrefId)
+            updateLocation?.onPreferenceClickListener = OnPreferenceClickListener {
+                requestLocationUpdate()
+                true
             }
 
             // Dark mode
@@ -840,6 +859,70 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
             }
         }
 
+        private fun updateLocationSummary() {
+            val latitude = repository.getUserLatitude()
+            val longitude = repository.getUserLongitude()
+            val latLabel = String.format(Locale.US, "%.2f", latitude)
+            val lonLabel = String.format(Locale.US, "%.2f", longitude)
+            locationSummaryPreference?.summary = getString(
+                R.string.settings_earthquake_location_summary_format,
+                latLabel,
+                lonLabel
+            )
+        }
+
+        private fun requestLocationUpdate() {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                fetchLocation()
+            } else {
+                requestPermissions(arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION), REQUEST_CODE_COARSE_LOCATION_PERMISSION)
+            }
+        }
+
+        private fun fetchLocation() {
+            val locationManager = requireContext().getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            if (!locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                Toast.makeText(requireContext(), getString(R.string.settings_earthquake_location_unavailable), Toast.LENGTH_LONG).show()
+                return
+            }
+            try {
+                val lastLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+                if (lastLocation != null) {
+                    updateLocation(lastLocation)
+                    return
+                }
+                @Suppress("DEPRECATION")
+                locationManager.requestSingleUpdate(
+                    LocationManager.NETWORK_PROVIDER,
+                    object : LocationListener {
+                        override fun onLocationChanged(location: Location) {
+                            updateLocation(location)
+                        }
+                    },
+                    Looper.getMainLooper()
+                )
+            } catch (exception: SecurityException) {
+                Toast.makeText(requireContext(), getString(R.string.settings_earthquake_location_permission_missing), Toast.LENGTH_LONG).show()
+            }
+        }
+
+        private fun updateLocation(location: Location) {
+            repository.setUserLatitude(location.latitude)
+            repository.setUserLongitude(location.longitude)
+            updateLocationSummary()
+        }
+
+        override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+            if (requestCode == REQUEST_CODE_COARSE_LOCATION_PERMISSION) {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    fetchLocation()
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.settings_earthquake_location_permission_missing), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
         fun updateExactAlarmsPref() {
             val context = context ?: return
             val exactAlarmsPrefId = context.getString(R.string.settings_advanced_exact_alarms_key)
@@ -1114,6 +1197,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         private const val TAG = "NtfySettingsActivity"
         private const val TITLE_TAG = "title"
         private const val REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION_FOR_AUTO_DOWNLOAD = 2586
+        private const val REQUEST_CODE_COARSE_LOCATION_PERMISSION = 2587
         private const val AUTO_DOWNLOAD_SELECTION_NOT_SET = -99L
         private const val BACKUP_EVERYTHING = "everything"
         private const val BACKUP_EVERYTHING_NO_USERS = "everything_no_users"

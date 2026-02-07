@@ -324,6 +324,32 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         }
     }
 
+    fun getUserLatitude(): Double {
+        if (!sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE)) {
+            return DEFAULT_USER_LATITUDE
+        }
+        return Double.fromBits(sharedPrefs.getLong(SHARED_PREFS_USER_LATITUDE, DEFAULT_USER_LATITUDE_BITS))
+    }
+
+    fun setUserLatitude(latitude: Double) {
+        sharedPrefs.edit {
+            putLong(SHARED_PREFS_USER_LATITUDE, latitude.toRawBits())
+        }
+    }
+
+    fun getUserLongitude(): Double {
+        if (!sharedPrefs.contains(SHARED_PREFS_USER_LONGITUDE)) {
+            return DEFAULT_USER_LONGITUDE
+        }
+        return Double.fromBits(sharedPrefs.getLong(SHARED_PREFS_USER_LONGITUDE, DEFAULT_USER_LONGITUDE_BITS))
+    }
+
+    fun setUserLongitude(longitude: Double) {
+        sharedPrefs.edit {
+            putLong(SHARED_PREFS_USER_LONGITUDE, longitude.toRawBits())
+        }
+    }
+
     fun setDarkMode(mode: Int) {
         if (mode == AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM) {
             sharedPrefs.edit {
@@ -624,6 +650,8 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_UNIFIED_PUSH_BASE_URL = "UnifiedPushBaseURL" // Legacy key required for migration to DefaultBaseURL
         const val SHARED_PREFS_DEFAULT_BASE_URL = "DefaultBaseURL"
         const val SHARED_PREFS_LAST_TOPICS = "LastTopics"
+        const val SHARED_PREFS_USER_LATITUDE = "UserLatitude"
+        const val SHARED_PREFS_USER_LONGITUDE = "UserLongitude"
 
         private const val LAST_TOPICS_COUNT = 3
 
@@ -663,6 +691,11 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
 
         const val WEBSOCKET_RECONNECT_REMIND_TIME_ALWAYS = 1L
         const val WEBSOCKET_RECONNECT_REMIND_TIME_NEVER = Long.MAX_VALUE
+
+        const val DEFAULT_USER_LATITUDE = -6.9175
+        const val DEFAULT_USER_LONGITUDE = 107.6191
+        private val DEFAULT_USER_LATITUDE_BITS = DEFAULT_USER_LATITUDE.toRawBits()
+        private val DEFAULT_USER_LONGITUDE_BITS = DEFAULT_USER_LONGITUDE.toRawBits()
 
         private const val TAG = "NtfyRepository"
         private var instance: Repository? = null
