@@ -22,6 +22,10 @@ import io.heckel.ntfy.util.*
 import java.util.*
 import androidx.core.net.toUri
 import kotlinx.coroutines.launch
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 class NotificationService(val context: Context) {
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -82,10 +86,23 @@ class NotificationService(val context: Context) {
     }
 
     private fun displayInternal(subscription: Subscription, notification: Notification, update: Boolean = false) {
-        val title = formatTitle(appBaseUrl, subscription, notification)
+        val baseTitle = formatTitle(appBaseUrl, subscription, notification)
+        val geoCoordinates = extractGeoCoordinates(notification.tags)
+        val distance = geoCoordinates?.let { (lat, lon) -> calculateDistance(USER_LAT, USER_LON, lat, lon) }
+        val distanceLabel = distance?.let { formatDistanceKm(it) }
+        val displayPriority = when {
+            distance == null -> notification.priority
+            distance > GATEKEEPER_DISTANCE_KM -> PRIORITY_MIN
+            else -> PRIORITY_MAX
+        }
+        val title = when {
+            distanceLabel == null -> baseTitle
+            distance > GATEKEEPER_DISTANCE_KM -> "$baseTitle (Far: ${distanceLabel}km)"
+            else -> "$baseTitle (⚠️ ${distanceLabel}km)"
+        }
         val groupId = if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
-        val channelId = toChannelId(groupId, notification.priority)
-        val insistent = notification.priority == PRIORITY_MAX &&
+        val channelId = toChannelId(groupId, displayPriority)
+        val insistent = displayPriority == PRIORITY_MAX &&
                 (repository.getInsistentMaxPriorityEnabled() || subscription.insistent == Repository.INSISTENT_MAX_PRIORITY_ENABLED)
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification)
@@ -107,7 +124,7 @@ class NotificationService(val context: Context) {
         maybeAddUserActions(builder, notification)
 
         maybeCreateNotificationGroup(groupId, subscriptionGroupName(subscription))
-        maybeCreateNotificationChannel(groupId, notification.priority)
+        maybeCreateNotificationChannel(groupId, displayPriority)
         maybePlayInsistentSound(groupId, insistent)
 
         notificationManager.notify(notification.notificationId, builder.build())
@@ -519,6 +536,31 @@ class NotificationService(val context: Context) {
         return message
     }
 
+    private fun extractGeoCoordinates(tags: String): Pair<Double, Double>? {
+        val geoTag = splitTags(tags).firstOrNull { it.startsWith(GEO_TAG_PREFIX) } ?: return null
+        val coordinates = geoTag.removePrefix(GEO_TAG_PREFIX).split(",")
+        if (coordinates.size != 2) {
+            return null
+        }
+        val lat = coordinates[0].toDoubleOrNull() ?: return null
+        val lon = coordinates[1].toDoubleOrNull() ?: return null
+        return Pair(lat, lon)
+    }
+
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val latDistance = Math.toRadians(lat2 - lat1)
+        val lonDistance = Math.toRadians(lon2 - lon1)
+        val sinLat = sin(latDistance / 2)
+        val sinLon = sin(lonDistance / 2)
+        val a = sinLat * sinLat + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sinLon * sinLon
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return EARTH_RADIUS_KM * c
+    }
+
+    private fun formatDistanceKm(distanceKm: Double): String {
+        return String.format(Locale.US, "%.1f", distanceKm)
+    }
+
     companion object {
         const val ACTION_VIEW = "view"
         const val ACTION_HTTP = "http"
@@ -533,6 +575,12 @@ class NotificationService(val context: Context) {
         const val BROADCAST_TYPE_USER_ACTION = "io.heckel.ntfy.USER_ACTION_RUN"
 
         private const val TAG = "NtfyNotifService"
+
+        private const val USER_LAT = -6.9175
+        private const val USER_LON = 107.6191
+        private const val GATEKEEPER_DISTANCE_KM = 300.0
+        private const val EARTH_RADIUS_KM = 6371.0
+        private const val GEO_TAG_PREFIX = "geo:"
 
         private const val DEFAULT_GROUP = "ntfy"
         private const val SUBSCRIPTION_GROUP_PREFIX = "ntfy-subscription-"
