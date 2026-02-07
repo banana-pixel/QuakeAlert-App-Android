@@ -538,7 +538,7 @@ class NotificationService(val context: Context) {
 
     private fun extractGeoCoordinates(tags: String): Pair<Double, Double>? {
         val geoTag = splitTags(tags).firstOrNull { it.startsWith(GEO_TAG_PREFIX) } ?: return null
-        val coordinates = geoTag.removePrefix(GEO_TAG_PREFIX).split(",")
+        val coordinates = geoTag.removePrefix(GEO_TAG_PREFIX).split(";")
         if (coordinates.size != 2) {
             return null
         }
