@@ -123,6 +123,15 @@ class NotificationService(val context: Context) {
         maybeAddBrowseAction(builder, notification)
         maybeAddDownloadAction(builder, notification)
         maybeAddCancelAction(builder, notification)
+        if (geoCoordinates != null) {
+            val (lat, lon) = geoCoordinates
+            val mapUri = Uri.parse("geo:$lat,$lon?q=$lat,$lon(Quake Detected)")
+            val mapIntent = Intent(Intent.ACTION_VIEW).apply {
+                data = mapUri
+            }
+            val mapPendingIntent = PendingIntent.getActivity(context, Random().nextInt(), mapIntent, PendingIntent.FLAG_IMMUTABLE)
+            builder.addAction(android.R.drawable.ic_dialog_map, "View on Map", mapPendingIntent)
+        }
         maybeAddUserActions(builder, notification)
 
         maybeCreateNotificationGroup(groupId, subscriptionGroupName(subscription))
