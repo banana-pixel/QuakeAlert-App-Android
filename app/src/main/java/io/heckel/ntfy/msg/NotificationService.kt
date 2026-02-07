@@ -88,7 +88,9 @@ class NotificationService(val context: Context) {
     private fun displayInternal(subscription: Subscription, notification: Notification, update: Boolean = false) {
         val baseTitle = formatTitle(appBaseUrl, subscription, notification)
         val geoCoordinates = extractGeoCoordinates(notification.tags)
-        val distance = geoCoordinates?.let { (lat, lon) -> calculateDistance(USER_LAT, USER_LON, lat, lon) }
+        val userLat = repository.getUserLatitude()
+        val userLon = repository.getUserLongitude()
+        val distance = geoCoordinates?.let { (lat, lon) -> calculateDistance(userLat, userLon, lat, lon) }
         val distanceLabel = distance?.let { formatDistanceKm(it) }
         val displayPriority = when {
             distance == null -> notification.priority
@@ -576,8 +578,6 @@ class NotificationService(val context: Context) {
 
         private const val TAG = "NtfyNotifService"
 
-        private const val USER_LAT = -6.9175
-        private const val USER_LON = 107.6191
         private const val GATEKEEPER_DISTANCE_KM = 300.0
         private const val EARTH_RADIUS_KM = 6371.0
         private const val GEO_TAG_PREFIX = "geo:"
