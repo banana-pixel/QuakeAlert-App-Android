@@ -29,9 +29,13 @@ class NotificationParser {
             return null
         }
         if (hasTag(message.tags, TAG_EARTHQUAKE)) {
-            val latitude = headerValue(message.headers, HEADER_EVENT_LAT)
-            val longitude = headerValue(message.headers, HEADER_EVENT_LON)
-            Log.d(TAG, "Detected Quake at: $latitude, $longitude")
+            val geoTag = message.tags?.firstOrNull { tag -> tag.startsWith(TAG_GEO_PREFIX, ignoreCase = true) }
+            val coordinates = geoTag?.substringAfter(TAG_GEO_PREFIX)?.split(",")?.map { it.trim() }
+            if (coordinates != null && coordinates.size == 2) {
+                val latitude = coordinates[0]
+                val longitude = coordinates[1]
+                Log.d(TAG, "Detected Quake from TAGS: $latitude, $longitude")
+            }
         }
         val attachment = if (message.attachment?.url != null) {
             Attachment(
@@ -87,10 +91,6 @@ class NotificationParser {
         return tags?.any { tag -> tag.equals(target, ignoreCase = true) } == true
     }
 
-    private fun headerValue(headers: Map<String, String>?, key: String): String? {
-        return headers?.entries?.firstOrNull { (name, _) -> name.equals(key, ignoreCase = true) }?.value
-    }
-
     /**
      * Parse JSON array to Action list. The indirection via MessageAction is probably
      * not necessary, but for "good form".
@@ -121,7 +121,6 @@ class NotificationParser {
     companion object {
         private const val TAG = "QuakeAlert"
         private const val TAG_EARTHQUAKE = "earthquake"
-        private const val HEADER_EVENT_LAT = "X-Event-Lat"
-        private const val HEADER_EVENT_LON = "X-Event-Lon"
+        private const val TAG_GEO_PREFIX = "geo:"
     }
 }
