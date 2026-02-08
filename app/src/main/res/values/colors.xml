@@ -149,6 +149,12 @@
     <color name="chip_background_color">#E8E8E8</color> <!-- Light gray background -->
     <color name="chip_background_checked">#BDBDBD</color> <!-- Darker when selected -->
 
+    <!-- Earthquake intensity badge colors -->
+    <color name="intensity_green">#2E7D32</color>
+    <color name="intensity_yellow">#F9A825</color>
+    <color name="intensity_orange">#EF6C00</color>
+    <color name="intensity_red">#C62828</color>
+
     <!-- Remove black status bar in Action mode: https://stackoverflow.com/a/79456725 -->
     <color name="abc_decor_view_status_guard" tools:override="true">@android:color/transparent</color>
     <color name="abc_decor_view_status_guard_light" tools:override="true">@android:color/transparent</color>
