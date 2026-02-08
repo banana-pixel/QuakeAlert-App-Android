@@ -1,6 +1,7 @@
 package io.heckel.ntfy.db
 
 import android.content.Context
+import android.os.Parcelable
 import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Embedded
@@ -25,6 +26,7 @@ import io.heckel.ntfy.service.NotAuthorizedException
 import io.heckel.ntfy.service.WebSocketNotSupportedException
 import io.heckel.ntfy.service.hasCause
 import kotlinx.coroutines.flow.Flow
+import kotlinx.parcelize.Parcelize
 import java.lang.reflect.Type
 import java.net.ConnectException
 
@@ -141,6 +143,7 @@ data class SubscriptionWithMetadata(
     val lastActive: Long
 )
 
+@Parcelize
 @Entity(primaryKeys = ["id", "subscriptionId"])
 data class Notification(
     @ColumnInfo(name = "id") val id: String,
@@ -160,7 +163,7 @@ data class Notification(
     @Embedded(prefix = "attachment_") val attachment: Attachment?,
     @ColumnInfo(name = "deleted") val deleted: Boolean,
     @Ignore val event: String = ApiService.EVENT_MESSAGE, // In-memory event type (message, message_delete, message_clear)
-) {
+) : Parcelable {
     constructor(
         id: String,
         subscriptionId: Long,
@@ -188,6 +191,7 @@ fun Notification.isMarkdown(): Boolean {
     return contentType == "text/markdown"
 }
 
+@Parcelize
 @Entity
 data class Attachment(
     @ColumnInfo(name = "name") val name: String, // Filename
@@ -197,7 +201,7 @@ data class Attachment(
     @ColumnInfo(name = "url") val url: String, // URL (mandatory, see ntfy server)
     @ColumnInfo(name = "contentUri") val contentUri: String?, // After it's downloaded, the content:// location
     @ColumnInfo(name = "progress") val progress: Int, // Progress during download, -1 if not downloaded
-) {
+) : Parcelable {
     @Ignore constructor(name: String, type: String?, size: Long?, expires: Long?, url: String) :
             this(name, type, size, expires, url, null, ATTACHMENT_PROGRESS_NONE)
 }
@@ -208,17 +212,19 @@ const val ATTACHMENT_PROGRESS_FAILED = -3
 const val ATTACHMENT_PROGRESS_DELETED = -4
 const val ATTACHMENT_PROGRESS_DONE = 100
 
+@Parcelize
 @Entity
 data class Icon(
     @ColumnInfo(name = "url") val url: String?, // URL (nullable to handle corrupt data from backup restore)
     @ColumnInfo(name = "contentUri") val contentUri: String?, // After it's downloaded, the content:// location
-) {
+) : Parcelable {
     @Ignore constructor(url: String) :
             this(url, null)
 
     fun hasValidUrl(): Boolean = !url.isNullOrEmpty()
 }
 
+@Parcelize
 @Entity
 data class Action(
     @ColumnInfo(name = "id") val id: String, // Synthetic ID to identify result, and easily pass via Broadcast and WorkManager
@@ -233,7 +239,7 @@ data class Action(
     @ColumnInfo(name = "extras") val extras: Map<String,String>?, // used in "broadcast" action
     @ColumnInfo(name = "progress") val progress: Int?, // used to indicate progress in popup
     @ColumnInfo(name = "error") val error: String?, // used to indicate errors in popup
-)
+) : Parcelable
 
 const val ACTION_PROGRESS_ONGOING = 1
 const val ACTION_PROGRESS_SUCCESS = 2

@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import io.heckel.ntfy.R
+import io.heckel.ntfy.app.AlertState
 import io.heckel.ntfy.db.*
 import io.heckel.ntfy.db.Notification
 import io.heckel.ntfy.ui.Colors
@@ -104,6 +105,12 @@ class NotificationService(val context: Context) {
             distance > alertRadiusKm -> "Silent Alert: Quake (${distanceLabel}km)"
             else -> "⚠️ DANGER: Quake (${distanceLabel}km) ⚠️"
         }
+
+        // Trigger global alert if it's a DANGER priority
+        if (displayPriority == PRIORITY_MAX) {
+            AlertState.setActive(true, notification)
+        }
+
         val groupId = if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
         val channelId = toChannelId(groupId, displayPriority)
         val insistent = displayPriority == PRIORITY_MAX &&

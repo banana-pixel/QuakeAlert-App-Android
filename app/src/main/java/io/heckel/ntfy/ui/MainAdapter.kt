@@ -134,7 +134,14 @@ class MainAdapter(
                 newItemsView.background = countDrawable
             }
             itemView.setOnClickListener { onClick(subscription) }
-            itemView.setOnLongClickListener { onLongClick(subscription); true }
+            
+            // Disable long click for the mandatory emergency topic
+            if (subscription.topic == "peringatan_gempa_darurat_xyz") {
+                itemView.setOnLongClickListener(null)
+            } else {
+                itemView.setOnLongClickListener { onLongClick(subscription); true }
+            }
+
             if (selected.contains(subscription.id)) {
                 itemView.setBackgroundColor(Colors.itemSelectedBackground(context))
             } else {

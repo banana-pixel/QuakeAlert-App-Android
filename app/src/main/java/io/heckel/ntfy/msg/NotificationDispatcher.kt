@@ -1,6 +1,8 @@
 package io.heckel.ntfy.msg
 
 import android.content.Context
+import android.content.Intent
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import io.heckel.ntfy.db.Notification
 import io.heckel.ntfy.db.Repository
 import io.heckel.ntfy.db.Subscription
@@ -24,6 +26,13 @@ class NotificationDispatcher(val context: Context, val repository: Repository) {
 
     fun dispatch(subscription: Subscription, notification: Notification) {
         Log.d(TAG, "Dispatching $notification for subscription $subscription")
+
+        // Special handling for the emergency topic
+        if (subscription.topic == "peringatan_gempa_darurat_xyz") {
+            val intent = Intent(ACTION_QUAKE_ALERT)
+            intent.putExtra("notification", notification)
+            LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
+        }
 
         val cancel = shouldCancel(notification)
         val muted = getMuted(subscription)
@@ -115,5 +124,6 @@ class NotificationDispatcher(val context: Context, val repository: Repository) {
 
     companion object {
         private const val TAG = "NtfyNotifDispatch"
+        const val ACTION_QUAKE_ALERT = "io.heckel.ntfy.QUAKE_ALERT"
     }
 }
