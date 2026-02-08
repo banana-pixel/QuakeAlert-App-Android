@@ -19,7 +19,6 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -29,6 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.text.HtmlCompat
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updatePadding
@@ -132,8 +132,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(R.layout.activity_main)
 
         Log.init(this) // Init logs in all entry points
@@ -143,6 +143,14 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val navController = navHostFragment.navController
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
         bottomNav.setupWithNavController(navController)
+
+        // Handle WindowInsets for BottomNavigationView
+        val rootLayout = findViewById<View>(R.id.main_root_layout)
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            bottomNav.updatePadding(bottom = systemBars.bottom)
+            insets
+        }
 
         // Dependencies that depend on Context
         workManager = WorkManager.getInstance(this)
@@ -285,7 +293,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 Log.d(TAG, "package:$packageName".toUri().toString())
                 startActivity(
                     Intent(
-                        Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
                         "package:$packageName".toUri()
                     )
                 )
