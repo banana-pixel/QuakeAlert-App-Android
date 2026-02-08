@@ -7,6 +7,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Typeface
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -15,7 +17,10 @@ import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.TextUtils
+import android.text.style.StyleSpan
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
@@ -43,10 +48,11 @@ import io.heckel.ntfy.db.User
 import io.heckel.ntfy.service.SubscriberServiceManager
 import io.heckel.ntfy.util.*
 import kotlinx.coroutines.Dispatchers
-import java.util.Locale
 import kotlinx.coroutines.launch
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -864,11 +870,22 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
             val longitude = repository.getUserLongitude()
             val latLabel = String.format(Locale.US, "%.2f", latitude)
             val lonLabel = String.format(Locale.US, "%.2f", longitude)
-            locationSummaryPreference?.summary = getString(
+            val cityName = repository.getUserCityName().takeIf { it.isNotBlank() }
+            val coordinates = getString(
                 R.string.settings_earthquake_location_summary_format,
                 latLabel,
                 lonLabel
             )
+            locationSummaryPreference?.summary = if (cityName == null) {
+                coordinates
+            } else {
+                SpannableStringBuilder().apply {
+                    append(cityName)
+                    setSpan(StyleSpan(Typeface.BOLD), 0, cityName.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    append(" ")
+                    append(coordinates)
+                }
+            }
         }
 
         private fun requestLocationUpdate() {
@@ -907,9 +924,41 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         }
 
         private fun updateLocation(location: Location) {
-            repository.setUserLatitude(location.latitude)
-            repository.setUserLongitude(location.longitude)
-            updateLocationSummary()
+            val latitude = location.latitude
+            val longitude = location.longitude
+            lifecycleScope.launch(Dispatchers.IO) {
+                val cityName = getCityName(latitude, longitude)
+                repository.setUserLatitude(latitude)
+                repository.setUserLongitude(longitude)
+                repository.setUserCityName(cityName)
+                val latLabel = String.format(Locale.US, "%.2f", latitude)
+                val lonLabel = String.format(Locale.US, "%.2f", longitude)
+                val locationLabel = cityName?.takeIf { it.isNotBlank() }
+                    ?: getString(R.string.settings_earthquake_location_summary_format, latLabel, lonLabel)
+                requireActivity().runOnUiThread {
+                    updateLocationSummary()
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.settings_earthquake_location_updated_toast, locationLabel),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }
+
+        private fun getCityName(latitude: Double, longitude: Double): String? {
+            if (!Geocoder.isPresent()) {
+                return null
+            }
+            return try {
+                val geocoder = Geocoder(requireContext(), Locale.getDefault())
+                @Suppress("DEPRECATION")
+                val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+                addresses?.firstOrNull()?.locality
+            } catch (exception: IOException) {
+                Log.w(TAG, "Failed to reverse geocode location", exception)
+                null
+            }
         }
 
         override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
