@@ -13,6 +13,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/> <!-- As of Android 13, we need to ask for permission to post notifications -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/> <!-- Allows to ignore battery optimization without going to the settings -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/> <!-- Needed for manual location update in settings -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/> <!-- Needed for manual location update in settings -->
 
     <!-- UnifiedPush "raise to foreground" requirement, see https://unifiedpush.org/developers/spec/android/#service-to-raise-to-the-foreground -->
     <queries>

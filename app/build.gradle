@@ -114,6 +114,9 @@ dependencies {
     // Firebase, sigh ... (only Google Play)
     playImplementation 'com.google.firebase:firebase-messaging:25.0.1'
 
+    // Google Play Services for Location
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+
     // RecyclerView
     implementation "androidx.recyclerview:recyclerview:1.4.0"
 
@@ -149,4 +152,7 @@ dependencies {
     // Used by Markdown library, R8 complains if these are not here
     implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.30"
     implementation "com.caverock:androidsvg:1.4"
+
+    // OpenStreetMap
+    implementation 'org.osmdroid:osmdroid-android:6.1.18'
 }
