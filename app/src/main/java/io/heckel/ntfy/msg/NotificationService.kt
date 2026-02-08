@@ -109,6 +109,13 @@ class NotificationService(val context: Context) {
         // Trigger global alert if it's a DANGER priority
         if (displayPriority == PRIORITY_MAX) {
             AlertState.setActive(true, notification)
+            val intent = Intent(ACTION_QUAKE_ALERT).apply {
+                putExtra("message", notification.message)
+                putExtra("title", title)
+                putExtra("distance", distanceLabel)
+                setPackage(context.packageName)
+            }
+            context.sendBroadcast(intent)
         }
 
         val groupId = if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
@@ -582,6 +589,7 @@ class NotificationService(val context: Context) {
     }
 
     companion object {
+        const val ACTION_QUAKE_ALERT = "io.heckel.ntfy.QUAKE_ALERT"
         const val ACTION_VIEW = "view"
         const val ACTION_HTTP = "http"
         const val ACTION_BROADCAST = "broadcast"

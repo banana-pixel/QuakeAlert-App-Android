@@ -56,21 +56,44 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/warning_alert_details"
+                android:id="@+id/warning_intensity_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
+                android:textColor="#FFFFFF"
+                android:textSize="48sp"
+                android:textStyle="bold"
+                tools:text="IX" />
+
+            <TextView
+                android:id="@+id/warning_alert_details"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:gravity="center"
                 android:textColor="#FFFFFF"
                 android:textSize="20sp"
-                tools:text="Magnitude 6.5\nDistance: 45km" />
+                tools:text="Location: 45km away\nMessage details here" />
 
-            <com.google.android.material.card.MaterialCardView
+            <Button
+                android:id="@+id/warning_safe_actions_button"
+                style="@style/Widget.MaterialComponents.Button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
+                android:layout_marginTop="24dp"
+                android:backgroundTint="#FFFFFF"
+                android:text="Safe Actions: Drop, Cover, Hold On"
+                android:textColor="#B71C1C" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/warning_safe_actions_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
                 app:cardBackgroundColor="#FFFFFF"
-                app:cardCornerRadius="12dp">
+                app:cardCornerRadius="12dp"
+                tools:visibility="visible">
 
                 <LinearLayout
                     android:layout_width="match_parent"
