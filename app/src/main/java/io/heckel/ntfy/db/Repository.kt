@@ -350,6 +350,20 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         }
     }
 
+    fun getUserCityName(): String {
+        return sharedPrefs.getString(SHARED_PREFS_USER_CITY_NAME, "").orEmpty()
+    }
+
+    fun setUserCityName(cityName: String?) {
+        sharedPrefs.edit {
+            if (cityName.isNullOrBlank()) {
+                remove(SHARED_PREFS_USER_CITY_NAME)
+            } else {
+                putString(SHARED_PREFS_USER_CITY_NAME, cityName)
+            }
+        }
+    }
+
     fun setDarkMode(mode: Int) {
         if (mode == AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM) {
             sharedPrefs.edit {
@@ -652,6 +666,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_LAST_TOPICS = "LastTopics"
         const val SHARED_PREFS_USER_LATITUDE = "UserLatitude"
         const val SHARED_PREFS_USER_LONGITUDE = "UserLongitude"
+        const val SHARED_PREFS_USER_CITY_NAME = "UserCityName"
 
         private const val LAST_TOPICS_COUNT = 3
 
