@@ -5,7 +5,6 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Bundle
 import android.view.View
-import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,6 +16,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.slider.Slider
 import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.db.Repository
@@ -58,9 +58,12 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         super.onViewCreated(view, savedInstanceState)
         val sharedPrefs = requireContext().getSharedPreferences(Repository.SHARED_PREFS_ID, 0)
         val valueView = view.findViewById<TextView>(R.id.alert_radius_value)
-        val seekBar = view.findViewById<SeekBar>(R.id.alert_radius_seekbar)
+        val slider = view.findViewById<Slider>(R.id.alert_radius_slider)
         tvLocationName = view.findViewById(R.id.tv_location_name)
         val btnRefresh = view.findViewById<MaterialButton>(R.id.btn_refresh_location)
+        val btnRecenter = view.findViewById<MaterialButton>(R.id.btn_recenter)
+        val btnZoomIn = view.findViewById<MaterialButton>(R.id.btn_zoom_in)
+        val btnZoomOut = view.findViewById<MaterialButton>(R.id.btn_zoom_out)
 
         mapView = view.findViewById(R.id.mapview)
         mapView.setTileSource(TileSourceFactory.MAPNIK)
@@ -72,9 +75,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val currentCity = repository.getUserCityName()
         
         if (currentCity.isNotEmpty()) {
-            tvLocationName.text = "Current Location: $currentCity"
+            tvLocationName.text = currentCity
         } else {
-            tvLocationName.text = "Current Location: $currentLat, $currentLon"
+            tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", currentLat, currentLon)
         }
 
         val mapController = mapView.controller
@@ -83,32 +86,40 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         mapController.setCenter(startPoint)
 
         val initialRadius = sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
-        val initialProgress = (initialRadius / STEP_KM).coerceIn(0, MAX_PROGRESS)
-        seekBar.max = MAX_PROGRESS
-        seekBar.progress = initialProgress
-        updateRadiusLabel(valueView, initialProgress)
+        val initialValue = (initialRadius / STEP_KM).toFloat().coerceIn(0f, MAX_PROGRESS.toFloat())
+        slider.value = initialValue
+        updateRadiusLabel(valueView, initialValue.toInt())
         updateMapCircle(initialRadius, startPoint)
 
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val radius = progress * STEP_KM
-                updateRadiusLabel(valueView, progress)
-                val center = GeoPoint(repository.getUserLatitude(), repository.getUserLongitude())
-                updateMapCircle(radius, center)
-                if (fromUser) {
-                    sharedPrefs.edit {
-                        putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius)
-                    }
+        slider.addOnChangeListener { _, value, fromUser ->
+            val progress = value.toInt()
+            val radius = progress * STEP_KM
+            updateRadiusLabel(valueView, progress)
+            val center = GeoPoint(repository.getUserLatitude(), repository.getUserLongitude())
+            updateMapCircle(radius, center)
+            if (fromUser) {
+                sharedPrefs.edit {
+                    putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius)
                 }
             }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
-        })
+        }
 
         btnRefresh.setOnClickListener {
             checkPermissionAndRefresh()
+        }
+
+        btnRecenter.setOnClickListener {
+            val lat = repository.getUserLatitude()
+            val lon = repository.getUserLongitude()
+            mapView.controller.animateTo(GeoPoint(lat, lon))
+        }
+
+        btnZoomIn.setOnClickListener {
+            mapView.controller.zoomIn()
+        }
+
+        btnZoomOut.setOnClickListener {
+            mapView.controller.zoomOut()
         }
     }
 
@@ -147,7 +158,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                     val newPoint = GeoPoint(lat, lon)
                     mapView.controller.animateTo(newPoint)
                     
-                    val radius = (view?.findViewById<SeekBar>(R.id.alert_radius_seekbar)?.progress ?: 0) * STEP_KM
+                    val slider = view?.findViewById<Slider>(R.id.alert_radius_slider)
+                    val radius = (slider?.value?.toInt() ?: 0) * STEP_KM
                     updateMapCircle(radius, newPoint)
                     
                     updateCityName(lat, lon)
@@ -176,9 +188,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             
             if (cityName != null) {
                 repository.setUserCityName(cityName)
-                tvLocationName.text = "Current Location: $cityName"
+                tvLocationName.text = cityName
             } else {
-                tvLocationName.text = "Current Location: $lat, $lon"
+                tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", lat, lon)
             }
         }
     }
@@ -186,9 +198,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private fun updateRadiusLabel(valueView: TextView, progress: Int) {
         val radius = progress * STEP_KM
         valueView.text = if (radius >= MAX_RADIUS_KM) {
-            "Radius: Global (All Quakes)"
+            "Alert Radius: Global"
         } else {
-            "Radius: ${radius} km"
+            "Alert Radius: ${radius} km"
         }
     }
 
