@@ -667,6 +667,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_USER_LATITUDE = "UserLatitude"
         const val SHARED_PREFS_USER_LONGITUDE = "UserLongitude"
         const val SHARED_PREFS_USER_CITY_NAME = "UserCityName"
+        const val SHARED_PREFS_ALERT_RADIUS = "alert_radius"
 
         private const val LAST_TOPICS_COUNT = 3
 
