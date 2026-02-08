@@ -77,12 +77,15 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
             reports.add(
                 QuakeReport(
                     id = item.optInt("id"),
-                    waktu_kejadian = item.optString("waktu_kejadian"),
-                    intensitas_maks = item.optString("intensitas_maks"),
+                    station_id = item.optString("station_id"),
                     lokasi = item.optString("lokasi"),
-                    deskripsi = item.optString("deskripsi"),
+                    waktu_kejadian = item.optString("waktu_kejadian"),
+                    durasi = item.optDouble("durasi"),
                     pga_maks = item.optString("pga_maks"),
-                    station_id = item.optString("station_id")
+                    intensitas_maks = item.optString("intensitas_maks"),
+                    deskripsi = item.optString("deskripsi"),
+                    latitude = item.optDouble("latitude"),
+                    longitude = item.optDouble("longitude")
                 )
             )
         }
