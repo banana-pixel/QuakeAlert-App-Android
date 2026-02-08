@@ -93,6 +93,9 @@ dependencies {
     implementation "androidx.constraintlayout:constraintlayout:2.2.1"
     implementation "androidx.activity:activity-ktx:1.12.3"
     implementation "androidx.fragment:fragment-ktx:1.8.9"
+    def nav_version = "2.8.9"
+    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
+    implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
     implementation "androidx.work:work-runtime-ktx:2.11.1"
     implementation 'androidx.preference:preference-ktx:1.2.1'
 

@@ -77,6 +77,9 @@ import java.util.concurrent.TimeUnit
 import androidx.core.view.size
 import androidx.core.view.get
 import androidx.core.net.toUri
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener {
     private val viewModel by viewModels<SubscriptionsViewModel> {
@@ -135,6 +138,11 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         Log.init(this) // Init logs in all entry points
         Log.d(TAG, "Create $this")
+
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as NavHostFragment
+        val navController = navHostFragment.navController
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        bottomNav.setupWithNavController(navController)
 
         // Dependencies that depend on Context
         workManager = WorkManager.getInstance(this)
