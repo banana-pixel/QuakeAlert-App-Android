@@ -90,16 +90,18 @@ class NotificationService(val context: Context) {
         val geoCoordinates = extractGeoCoordinates(notification.tags)
         val userLat = repository.getUserLatitude()
         val userLon = repository.getUserLongitude()
+        val sharedPrefs = context.getSharedPreferences(Repository.SHARED_PREFS_ID, Context.MODE_PRIVATE)
+        val alertRadiusKm = sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM).toDouble()
         val distance = geoCoordinates?.let { (lat, lon) -> calculateDistance(userLat, userLon, lat, lon) }
         val distanceLabel = distance?.let { formatDistanceKm(it) }
         val displayPriority = when {
             distance == null -> notification.priority
-            distance > GATEKEEPER_DISTANCE_KM -> PRIORITY_MIN
+            distance > alertRadiusKm -> PRIORITY_MIN
             else -> PRIORITY_MAX
         }
         val title = when {
             distanceLabel == null -> baseTitle
-            distance > GATEKEEPER_DISTANCE_KM -> "Silent Alert: Quake (${distanceLabel}km)"
+            distance > alertRadiusKm -> "Silent Alert: Quake (${distanceLabel}km)"
             else -> "⚠️ DANGER: Quake (${distanceLabel}km) ⚠️"
         }
         val groupId = if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
@@ -587,7 +589,7 @@ class NotificationService(val context: Context) {
 
         private const val TAG = "NtfyNotifService"
 
-        private const val GATEKEEPER_DISTANCE_KM = 300.0
+        private const val DEFAULT_ALERT_RADIUS_KM = 500
         private const val EARTH_RADIUS_KM = 6371.0
         private const val GEO_TAG_PREFIX = "geo:"
 
