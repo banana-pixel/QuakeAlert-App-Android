@@ -78,6 +78,7 @@ import androidx.core.view.size
 import androidx.core.view.get
 import androidx.core.net.toUri
 import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.NavigationUI
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
@@ -143,6 +144,16 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val navController = navHostFragment.navController
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
         bottomNav.setupWithNavController(navController)
+        bottomNav.setOnItemSelectedListener { item ->
+            val handled = NavigationUI.onNavDestinationSelected(item, navController)
+            if (handled) {
+                updateToolbarTitle(item.itemId)
+            }
+            handled
+        }
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+            updateToolbarTitle(destination.id)
+        }
 
         // Dependencies that depend on Context
         workManager = WorkManager.getInstance(this)
@@ -162,7 +173,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         toolbar.setNavigationIconTint(toolbarTextColor)
         toolbar.overflowIcon?.setTint(toolbarTextColor)
         setSupportActionBar(toolbar)
-        title = getString(R.string.main_action_bar_title)
+        updateToolbarTitle(navController.currentDestination?.id ?: bottomNav.selectedItemId)
         
         // Set system status bar appearance
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars =
@@ -379,6 +390,18 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
         }
+    }
+
+    private fun updateToolbarTitle(itemId: Int) {
+        val title = when (itemId) {
+            R.id.nav_history -> "Earthquake History"
+            R.id.nav_warning -> "Live Alert"
+            R.id.nav_settings -> "Settings"
+            R.id.nav_sensors -> "Sensors"
+            R.id.nav_chat -> "Chat"
+            else -> getString(R.string.main_action_bar_title)
+        }
+        supportActionBar?.title = title
     }
 
     override fun onResume() {

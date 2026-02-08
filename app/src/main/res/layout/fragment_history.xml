@@ -8,6 +8,7 @@
         android:id="@+id/history_recycler"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:paddingBottom="80dp"
         android:paddingVertical="8dp"
         android:clipToPadding="false" />
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
