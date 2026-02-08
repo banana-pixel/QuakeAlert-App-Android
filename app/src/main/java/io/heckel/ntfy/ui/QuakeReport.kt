@@ -7,5 +7,8 @@ data class QuakeReport(
     val lokasi: String,
     val deskripsi: String,
     val pga_maks: String,
-    val station_id: String
+    val station_id: String,
+    val durasi: Int,
+    val lintang: Double,
+    val bujur: Double
 )

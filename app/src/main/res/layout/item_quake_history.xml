@@ -13,6 +13,7 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <!-- Intensity Circle (Far Left) -->
         <TextView
             android:id="@+id/history_badge"
             android:layout_width="48dp"
@@ -26,54 +27,161 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <!-- Station ID (Top Right) -->
+        <TextView
+            android:id="@+id/history_station"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/badge_stat"
+            android:fontFamily="monospace"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:text="SEIS-01"
+            android:textColor="@color/md_theme_onSurfaceVariant"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- Location (Top Row, between badge and station) -->
         <TextView
             android:id="@+id/history_location"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:layout_marginEnd="8dp"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="Bandung, West Java"
             android:textColor="@color/md_theme_onSurface"
             android:textSize="16sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toStartOf="@id/history_station"
             app:layout_constraintStart_toEndOf="@id/history_badge"
-            app:layout_constraintTop_toTopOf="@id/history_badge" />
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/history_station"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="[SEIS-01]"
-            android:textColor="@color/md_theme_onSurfaceVariant"
-            android:textSize="12sp"
-            android:fontFamily="monospace"
-            app:layout_constraintBaseline_toBaselineOf="@id/history_location"
-            app:layout_constraintEnd_toEndOf="parent" />
-
+        <!-- Time -->
         <TextView
             android:id="@+id/history_time"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginEnd="8dp"
             android:text="08-02-2026 10:24:27 WIB"
             android:textColor="@color/md_theme_onSurfaceVariant"
             android:textSize="12sp"
-            app:layout_constraintEnd_toEndOf="@id/history_location"
-            app:layout_constraintStart_toStartOf="@id/history_location"
+            app:layout_constraintEnd_toStartOf="@id/history_map_container"
+            app:layout_constraintStart_toEndOf="@id/history_badge"
             app:layout_constraintTop_toBottomOf="@id/history_location" />
 
+        <!-- Map Thumbnail (Center Right) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/history_map_container"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/history_station"
+            app:layout_constraintVertical_bias="0.5">
+
+            <org.osmdroid.views.MapView
+                android:id="@+id/history_map"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clickable="false"
+                android:enabled="false" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Stat Badges (Smaller, between badge and map) -->
+        <LinearLayout
+            android:id="@+id/history_stats_badges_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toStartOf="@id/history_map_container"
+            app:layout_constraintStart_toEndOf="@id/history_badge"
+            app:layout_constraintTop_toBottomOf="@id/history_time">
+
+            <LinearLayout
+                android:id="@+id/history_pga_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/badge_stat"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/history_pga_label"
+                    android:textColor="@color/md_theme_onSurfaceVariant"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/history_pga_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="230.5"
+                    android:textColor="@color/md_theme_onSurface"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/history_dur_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/badge_stat"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/history_dur_label"
+                    android:textColor="@color/md_theme_onSurfaceVariant"
+                    android:textSize="10sp" />
+
+                <TextView
+                    android:id="@+id/history_dur_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="15s"
+                    android:textColor="@color/md_theme_onSurface"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Description -->
         <TextView
             android:id="@+id/history_description"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="8dp"
             android:text="Sulit berdiri, kerusakan ringan."
             android:textColor="@color/md_theme_onSurface"
             android:textSize="13sp"
             android:textStyle="italic"
-            app:layout_constraintEnd_toEndOf="@id/history_time"
-            app:layout_constraintStart_toStartOf="@id/history_time"
-            app:layout_constraintTop_toBottomOf="@id/history_time" />
+            app:layout_constraintEnd_toStartOf="@id/history_map_container"
+            app:layout_constraintStart_toEndOf="@id/history_badge"
+            app:layout_constraintTop_toBottomOf="@id/history_stats_badges_container" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>
