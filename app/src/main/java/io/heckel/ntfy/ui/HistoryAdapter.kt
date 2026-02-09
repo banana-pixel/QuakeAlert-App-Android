@@ -1,7 +1,9 @@
 package io.heckel.ntfy.ui
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Typeface
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -63,8 +65,21 @@ class HistoryAdapter(
         // "Static" & Performant Map
         holder.mapView.setBuiltInZoomControls(false)
         holder.mapView.setMultiTouchControls(false)
-        holder.mapView.isClickable = false
-        
+
+        // Task 1: Absolute Touch Lock
+        holder.mapView.setOnTouchListener { _, _ -> true }
+
+        // Task 2: Google Maps Intent
+        holder.mapView.setOnClickListener {
+            val gmmIntentUri = Uri.parse("geo:${item.latitude},${item.longitude}?q=${Uri.encode(item.lokasi)}")
+            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
+            mapIntent.setPackage("com.google.android.apps.maps")
+            context.startActivity(mapIntent)
+        }
+
+        // Task 3: Visual Polish
+        holder.mapView.isClickable = true
+
         holder.mapView.invalidate()
         holder.mapView.onPause() // Lifecycle Optimization
 
