@@ -10,7 +10,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.heckel.ntfy.R
-import io.heckel.ntfy.msg.SensorStation
+import io.heckel.ntfy.msg.Sensor
 import okhttp3.*
 import java.io.IOException
 
@@ -73,8 +73,8 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
                     val body = response.body?.string()
                     if (body != null) {
-                        val type = object : TypeToken<List<SensorStation>>() {}.type
-                        val stations: List<SensorStation> = gson.fromJson(body, type)
+                        val type = object : TypeToken<List<Sensor>>() {}.type
+                        val stations: List<Sensor> = gson.fromJson(body, type)
                         activity?.runOnUiThread {
                             adapter.submitList(stations)
                             swipeRefreshLayout.isRefreshing = false

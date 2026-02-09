@@ -27,7 +27,7 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Station" />
 
-        <!-- Station ID Badge (Now to the right of the name) -->
+        <!-- Station ID Badge -->
         <TextView
             android:id="@+id/sensor_station_id_badge"
             android:layout_width="wrap_content"
@@ -45,7 +45,23 @@
             app:layout_constraintTop_toTopOf="@id/sensor_station_name"
             tools:text="SEIS-01" />
 
-        <!-- Status Indicator (Now Far Right, Rounded Square) -->
+        <!-- Location String -->
+        <TextView
+            android:id="@+id/sensor_location"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:drawablePadding="4dp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textSize="12sp"
+            app:drawableStartCompat="@drawable/ic_location_on_red"
+            app:drawableTint="?attr/colorOnSurfaceVariant"
+            app:layout_constraintEnd_toStartOf="@id/sensor_status_badge"
+            app:layout_constraintStart_toStartOf="@id/sensor_station_name"
+            app:layout_constraintTop_toBottomOf="@id/sensor_station_id_badge"
+            tools:text="Bandung, Indonesia" />
+
+        <!-- Status Indicator (Far Right) -->
         <TextView
             android:id="@+id/sensor_status_badge"
             android:layout_width="wrap_content"
@@ -58,11 +74,9 @@
             android:textColor="@android:color/white"
             android:textSize="12sp"
             android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
-
-            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             tools:text="Online" />
 
         <!-- Last Ping -->
@@ -70,13 +84,13 @@
             android:id="@+id/sensor_last_ping"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginTop="4dp"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="12sp"
             app:layout_constraintEnd_toStartOf="@id/sensor_status_badge"
             app:layout_constraintStart_toStartOf="@id/sensor_station_name"
-            app:layout_constraintTop_toBottomOf="@id/sensor_station_name"
-            tools:text="Last ping: 2 mins ago" />
+            app:layout_constraintTop_toBottomOf="@id/sensor_location"
+            tools:text="Last ping: 2026-02-09 17:05:12 WIB" />
 
         <!-- Technical Detail Row (Badges) -->
         <LinearLayout
