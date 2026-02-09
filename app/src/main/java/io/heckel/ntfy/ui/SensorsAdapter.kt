@@ -26,7 +26,7 @@ class SensorsAdapter : ListAdapter<SensorStation, SensorsAdapter.SensorViewHolde
             val context = itemView.context
 
             // Header Section
-            stationName.text = "Station ${station.stationId}"
+            stationName.text = "Station"
             lastPing.text = "Last ping: ${station.lastPing}"
             stationIdBadge.text = station.stationId
 
