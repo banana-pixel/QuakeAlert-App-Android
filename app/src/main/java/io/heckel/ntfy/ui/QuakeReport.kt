@@ -9,6 +9,6 @@ data class QuakeReport(
     val pga_maks: String,
     val station_id: String,
     val durasi: Int,
-    val lintang: Double,
-    val bujur: Double
+    val latitude: Double,
+    val longitude: Double
 )

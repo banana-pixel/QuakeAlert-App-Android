@@ -84,8 +84,8 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
                     pga_maks = item.optString("pga_maks"),
                     station_id = item.optString("station_id"),
                     durasi = item.optInt("durasi"),
-                    lintang = item.optDouble("lintang"),
-                    bujur = item.optDouble("bujur")
+                    latitude = item.optDouble("latitude"),
+                    longitude = item.optDouble("longitude")
                 )
             )
         }
