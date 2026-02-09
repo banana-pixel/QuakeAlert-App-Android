@@ -80,6 +80,7 @@
             android:id="@+id/history_map_container"
             android:layout_width="80dp"
             android:layout_height="80dp"
+            android:layout_marginTop="8dp"
             app:cardCornerRadius="12dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
@@ -96,18 +97,17 @@
                 android:enabled="false" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Stat Badges (Smaller, between badge and map) -->
+        <!-- Stat Badges (PGA & DUR) -->
         <LinearLayout
             android:id="@+id/history_stats_badges_container"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="4dp"
             android:orientation="horizontal"
-            app:layout_constraintEnd_toStartOf="@id/history_map_container"
-            app:layout_constraintStart_toEndOf="@id/history_badge"
-            app:layout_constraintTop_toBottomOf="@id/history_time">
+            app:layout_constraintBottom_toTopOf="@id/history_description"
+            app:layout_constraintStart_toStartOf="@id/history_description"
+            app:layout_constraintTop_toBottomOf="@id/history_time"
+            app:layout_constraintVertical_bias="1.0">
 
             <LinearLayout
                 android:id="@+id/history_pga_badge"
@@ -173,15 +173,14 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:layout_marginTop="4dp"
             android:layout_marginEnd="8dp"
             android:text="Sulit berdiri, kerusakan ringan."
             android:textColor="@color/md_theme_onSurface"
             android:textSize="13sp"
             android:textStyle="italic"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/history_map_container"
-            app:layout_constraintStart_toEndOf="@id/history_badge"
-            app:layout_constraintTop_toBottomOf="@id/history_stats_badges_container" />
+            app:layout_constraintStart_toEndOf="@id/history_badge" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.cardview.widget.CardView>
