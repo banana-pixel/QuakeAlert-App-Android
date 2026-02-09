@@ -25,7 +25,7 @@
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:text="Station SEIS-01" />
+            tools:text="Station" />
 
         <!-- Station ID Badge (Now to the right of the name) -->
         <TextView
@@ -37,7 +37,7 @@
             android:backgroundTint="?attr/colorSurface"
             android:fontFamily="monospace"
             android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
+            android:paddingVertical="6dp"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="11sp"
             android:textStyle="bold"
@@ -60,7 +60,8 @@
             android:textSize="12sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintTop_toTopOf="@id/sensor_station_name"
+            app:layout_constraintBottom_toBottomOf="@id/sensor_station_name"
             tools:text="Online" />
 
         <!-- Last Ping -->
