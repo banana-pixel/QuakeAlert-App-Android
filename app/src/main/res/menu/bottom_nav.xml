@@ -1,23 +1,28 @@
-<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
+
     <item
         android:id="@+id/nav_history"
         android:icon="@drawable/ic_history"
         android:title="History" />
+
     <item
         android:id="@+id/nav_sensors"
-        android:icon="@drawable/ic_router"
+        android:icon="@drawable/ic_sensors"
         android:title="Sensors" />
+
     <item
         android:id="@+id/nav_warning"
-        android:icon="@drawable/ic_bolt_gray_24dp"
+        android:icon="@drawable/ic_warning"
         android:title="Warning" />
+
     <item
         android:id="@+id/nav_chat"
         android:icon="@drawable/ic_chat"
         android:title="Chat" />
+
     <item
         android:id="@+id/nav_settings"
         android:icon="@drawable/ic_settings"
         android:title="Settings" />
+
 </menu>

@@ -14,6 +14,9 @@ import io.heckel.ntfy.R
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 
 class HistoryAdapter(
     private val reports: MutableList<QuakeReport> = mutableListOf()
@@ -34,11 +37,11 @@ class HistoryAdapter(
         val item = reports[position]
         val context = holder.itemView.context
         val intensity = extractRomanNumeral(item.intensitas_maks)
-        
+
         holder.badgeText.text = intensity
         holder.locationText.text = item.lokasi
         holder.stationText.text = item.station_id
-        holder.timeText.text = item.waktu_kejadian
+        holder.timeText.text = convertUtcToLocal(item.waktu_kejadian)
         holder.descriptionText.text = item.deskripsi
 
         // Set PGA and DUR values
@@ -55,13 +58,13 @@ class HistoryAdapter(
         val marker = Marker(holder.mapView)
         marker.position = point
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-        
+
         // Use the red marker icon as requested
         val icon = ContextCompat.getDrawable(context, R.drawable.ic_location_on_red)
         marker.icon = icon
 
         holder.mapView.overlays.add(marker)
-        
+
         // "Static" & Performant Map
         holder.mapView.setBuiltInZoomControls(false)
         holder.mapView.setMultiTouchControls(false)
@@ -102,6 +105,24 @@ class HistoryAdapter(
     }
 
     override fun getItemCount(): Int = reports.size
+
+    private fun convertUtcToLocal(utcTimeString: String): String {
+        if (utcTimeString.isEmpty()) return "---"
+        return try {
+            // Input format from ESP32: "2026-02-09 13:11:53" (UTC)
+            val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            inputFormat.timeZone = TimeZone.getTimeZone("UTC")
+            val date = inputFormat.parse(utcTimeString)
+
+            // Output format: "09 Feb 2026, 21:05:15 WIB" (Dynamic Zone)
+            val outputFormat = SimpleDateFormat("dd MMM yyyy, HH:mm:ss z", Locale.getDefault())
+            outputFormat.timeZone = TimeZone.getDefault() // Detects WIB, WITA, etc.
+
+            if (date != null) outputFormat.format(date) else utcTimeString
+        } catch (e: Exception) {
+            utcTimeString
+        }
+    }
 
     private fun extractRomanNumeral(intensity: String): String {
         val trimmed = intensity.trim()

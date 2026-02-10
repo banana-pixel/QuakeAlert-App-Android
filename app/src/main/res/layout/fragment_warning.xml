@@ -38,7 +38,7 @@
         android:layout_height="match_parent"
         android:background="#B71C1C"
         android:visibility="gone"
-        tools:visibility="gone">
+        tools:visibility="visible">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -50,10 +50,22 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="⚠️ EARTHQUAKE ALERT ⚠️"
+                android:text="⚠️"
+                android:textSize="32sp"
                 android:textColor="#FFFFFF"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="EARTHQUAKE ALERT"
                 android:textSize="28sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:letterSpacing="0.08"
+                android:gravity="center"
+                android:layout_marginTop="4dp" />
+
 
             <TextView
                 android:id="@+id/warning_intensity_text"
@@ -73,7 +85,24 @@
                 android:gravity="center"
                 android:textColor="#FFFFFF"
                 android:textSize="20sp"
-                tools:text="Location: 45km away\nMessage details here" />
+                tools:text="Location: 45km away" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="12dp"
+                android:background="#FFFFFF"
+                android:alpha="0.3" />
+
+            <TextView
+                android:id="@+id/warning_alert_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="12dp"
+                android:textColor="#FFFFFF"
+                android:textSize="22sp"
+                android:textStyle="bold" />
 
             <Button
                 android:id="@+id/warning_safe_actions_button"
@@ -105,27 +134,35 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="SAFE ACTIONS"
-                        android:textColor="#B71C1C"
+                        android:textColor="#00094B"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
-                    <CheckBox
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="DROP to the ground"
-                        android:textSize="16sp" />
+                        android:text="• DROP to the ground"
+                        android:textColor="#000000"
+                        android:textSize="18sp"
+                        android:paddingTop="8dp" />
 
-                    <CheckBox
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="COVER your head and neck"
-                        android:textSize="16sp" />
 
-                    <CheckBox
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="HOLD ON until shaking stops"
-                        android:textSize="16sp" />
+                        android:text="• COVER your head and neck"
+                        android:textColor="#000000"
+                        android:textSize="18sp"
+                        android:paddingTop="8dp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="• HOLD ON until shaking stops"
+                        android:textColor="#000000"
+                        android:textSize="18sp"
+                        android:paddingTop="8dp" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

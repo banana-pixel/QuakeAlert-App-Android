@@ -12,9 +12,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.heckel.ntfy.R
 import io.heckel.ntfy.msg.Sensor
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
+import io.heckel.ntfy.util.convertUtcToLocal
 
 class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(DiffCallback) {
 
@@ -53,24 +51,6 @@ class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(Diff
             // Technical Badges
             rssiValue.text = sensor.rssi ?: "---"
             latencyValue.text = sensor.latency ?: "---"
-        }
-
-        private fun convertUtcToLocal(utcTimeString: String): String {
-            if (utcTimeString.isEmpty()) return "---"
-            return try {
-                // Matches the format from your server.py
-                val inputFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                inputFormat.timeZone = TimeZone.getTimeZone("UTC")
-                val date = inputFormat.parse(utcTimeString)
-
-                // Clean output: "09 Feb 2026, 17:47"
-                val outputFormat = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
-                outputFormat.timeZone = TimeZone.getDefault()
-
-                if (date != null) outputFormat.format(date) else utcTimeString
-            } catch (e: Exception) {
-                utcTimeString
-            }
         }
     }
 

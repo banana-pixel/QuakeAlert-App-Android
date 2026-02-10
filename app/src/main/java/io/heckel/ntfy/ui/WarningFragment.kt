@@ -15,6 +15,7 @@ import com.google.android.material.card.MaterialCardView
 import io.heckel.ntfy.R
 import io.heckel.ntfy.app.AlertState
 import io.heckel.ntfy.msg.NotificationService
+import io.heckel.ntfy.util.formatTimestampToLocal
 
 class WarningFragment : Fragment(R.layout.fragment_warning) {
 
@@ -22,6 +23,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     private lateinit var alertLayout: ScrollView
     private lateinit var radarIcon: ImageView
     private lateinit var alertDetails: TextView
+    private lateinit var alertTime: TextView
     private lateinit var intensityText: TextView
     private lateinit var safeActionsButton: Button
     private lateinit var safeActionsCard: MaterialCardView
@@ -37,11 +39,19 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == NotificationService.ACTION_QUAKE_ALERT) {
                 val message = intent.getStringExtra("message") ?: ""
-                val title = intent.getStringExtra("title") ?: ""
                 val distance = intent.getStringExtra("distance") ?: "Unknown"
+                val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis() / 1000)
 
                 intensityText.text = if (message.contains("IX")) "IX" else if (message.contains("VIII")) "VIII" else "VII"
-                alertDetails.text = "Location: $distance away\n$message"
+                
+                // Clean message to remove raw Waktu string and any empty lines resulting from it
+                val cleanMessage = message.split("\n")
+                    .filterNot { it.contains("Waktu:", ignoreCase = true) }
+                    .joinToString("\n")
+                    .trim()
+
+                alertDetails.text = "Location: $distance km away\n$cleanMessage"
+                alertTime.text = formatTimestampToLocal(timestamp)
 
                 AlertState.setActive(true)
                 scheduleReset()
@@ -56,6 +66,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         alertLayout = view.findViewById(R.id.warning_alert_layout)
         radarIcon = view.findViewById(R.id.warning_radar_icon)
         alertDetails = view.findViewById(R.id.warning_alert_details)
+        alertTime = view.findViewById(R.id.warning_alert_time)
         intensityText = view.findViewById(R.id.warning_intensity_text)
         safeActionsButton = view.findViewById(R.id.warning_safe_actions_button)
         safeActionsCard = view.findViewById(R.id.warning_safe_actions_card)
@@ -81,9 +92,25 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
 
         AlertState.latestAlert.observe(viewLifecycleOwner) { notification ->
             notification?.let {
-                alertDetails.text = it.message
+
+                val cleanMessage = it.message.split("\n")
+                    .filterNot { line -> line.contains("Waktu:", ignoreCase = true) }
+                    .joinToString("\n")
+                    .trim()
+
+                val distanceStr = AlertState.latestDistance.value
+                val distanceKm = distanceStr?.toDoubleOrNull()
+
+                alertDetails.text = if (distanceKm != null) {
+                    "Location: ${String.format("%.1f", distanceKm)} km away\n$cleanMessage"
+                } else {
+                    cleanMessage
+                }
+
+                alertTime.text = formatTimestampToLocal(it.timestamp)
             }
         }
+
 
         safeActionsButton.setOnClickListener {
             safeActionsCard.visibility = if (safeActionsCard.visibility == View.VISIBLE) View.GONE else View.VISIBLE
@@ -92,7 +119,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         shareButton.setOnClickListener {
             val sendIntent: Intent = Intent().apply {
                 action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, "EARTHQUAKE ALERT: ${alertDetails.text}")
+                putExtra(Intent.EXTRA_TEXT, "EARTHQUAKE ALERT: ${alertDetails.text}\nTime: ${alertTime.text}")
                 type = "text/plain"
             }
             val shareIntent = Intent.createChooser(sendIntent, null)
