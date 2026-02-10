@@ -7,18 +7,15 @@ import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import io.heckel.ntfy.R
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
-import android.view.MotionEvent
-
 
 class HistoryAdapter(
     private val reports: MutableList<QuakeReport> = mutableListOf()
@@ -37,13 +34,14 @@ class HistoryAdapter(
 
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
-        holder.mapView.overlays.clear()
+        Glide.with(holder.mapPreview).clear(holder.mapPreview)
+        holder.mapPreview.setImageDrawable(null)
+        holder.mapPreview.tag = null
     }
-
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = reports[position]
-        holder.mapView.tag = item
+        holder.mapPreview.tag = item
 
         val context = holder.itemView.context
         val intensity = extractRomanNumeral(item.intensitas_maks)
@@ -58,29 +56,12 @@ class HistoryAdapter(
         holder.pgaValue.text = item.pga_maks
         holder.durValue.text = context.getString(R.string.history_dur_value, item.durasi)
 
-        // Setup MapView
-        val point = GeoPoint(item.latitude, item.longitude)
-        holder.mapView.controller.setCenter(point)
-        holder.mapView.controller.setZoom(10.0)
-
-        // Add Marker
-        holder.mapView.overlays.clear()
-        val marker = Marker(holder.mapView)
-        marker.position = point
-        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-
-        // Use the red marker icon as requested
-        val icon = ContextCompat.getDrawable(context, R.drawable.ic_location_on_red)
-        marker.icon = icon
-
-        holder.mapView.overlays.add(marker)
-
-
-        // Task 3: Visual Polish
-//        holder.mapView.isClickable = true
-
-//        holder.mapView.invalidate()
-//        holder.mapView.onPause() // Lifecycle Optimization
+        // Load static OSM preview map for smooth RecyclerView scrolling.
+        val mapUrl = buildStaticMapUrl(item.latitude, item.longitude)
+        Glide.with(holder.mapPreview)
+            .load(mapUrl)
+            .centerCrop()
+            .into(holder.mapPreview)
 
         // Intensity Styling
         val intensityValue = romanToInt(intensity)
@@ -101,6 +82,12 @@ class HistoryAdapter(
     }
 
     override fun getItemCount(): Int = reports.size
+
+    private fun buildStaticMapUrl(latitude: Double, longitude: Double): String {
+        val latString = String.format(Locale.US, "%.6f", latitude)
+        val lonString = String.format(Locale.US, "%.6f", longitude)
+        return "https://staticmap.openstreetmap.de/staticmap.php?center=$latString,$lonString&zoom=10&size=320x320&markers=$latString,$lonString,red-pushpin"
+    }
 
     private fun convertUtcToLocal(utcTimeString: String): String {
         if (utcTimeString.isEmpty()) return "---"
@@ -154,37 +141,22 @@ class HistoryAdapter(
         val descriptionText: TextView = view.findViewById(R.id.history_description)
         val pgaValue: TextView = view.findViewById(R.id.history_pga_value)
         val durValue: TextView = view.findViewById(R.id.history_dur_value)
-        val mapView: MapView = view.findViewById(R.id.history_map)
+        val mapPreview: ImageView = view.findViewById(R.id.history_map_preview)
 
         init {
             stationText.typeface = Typeface.MONOSPACE
 
-            // One-time MapView config
-            mapView.setBuiltInZoomControls(false)
-            mapView.setMultiTouchControls(false)
-            mapView.setFlingEnabled(false)
-            mapView.setTilesScaledToDpi(true)
-            mapView.setUseDataConnection(false)
+            mapPreview.setOnClickListener { view ->
+                val quake = view.tag as? QuakeReport ?: return@setOnClickListener
+                val context = view.context
 
-            mapView.setScrollableAreaLimitDouble(null)
-            mapView.setZoomRounding(true)
-
-            mapView.setOnTouchListener { v, event ->
-                if (event.action == MotionEvent.ACTION_UP) {
-                    val quake = v.tag as? QuakeReport ?: return@setOnTouchListener true
-                    val context = v.context
-
-                    val uri = Uri.parse(
-                        "geo:${quake.latitude},${quake.longitude}?q=${Uri.encode(quake.lokasi)}"
-                    )
-                    val intent = Intent(Intent.ACTION_VIEW, uri)
-                    intent.setPackage("com.google.android.apps.maps")
-                    context.startActivity(intent)
-                }
-                true
+                val uri = Uri.parse(
+                    "geo:${quake.latitude},${quake.longitude}?q=${Uri.encode(quake.lokasi)}"
+                )
+                val intent = Intent(Intent.ACTION_VIEW, uri)
+                intent.setPackage("com.google.android.apps.maps")
+                context.startActivity(intent)
             }
-
         }
     }
-
 }
