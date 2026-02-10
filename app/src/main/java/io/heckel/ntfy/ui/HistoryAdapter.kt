@@ -17,6 +17,8 @@ import org.osmdroid.views.overlay.Marker
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+import android.view.MotionEvent
+
 
 class HistoryAdapter(
     private val reports: MutableList<QuakeReport> = mutableListOf()
@@ -33,8 +35,16 @@ class HistoryAdapter(
         return ViewHolder(view)
     }
 
+    override fun onViewRecycled(holder: ViewHolder) {
+        super.onViewRecycled(holder)
+        holder.mapView.overlays.clear()
+    }
+
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = reports[position]
+        holder.mapView.tag = item
+
         val context = holder.itemView.context
         val intensity = extractRomanNumeral(item.intensitas_maks)
 
@@ -65,26 +75,12 @@ class HistoryAdapter(
 
         holder.mapView.overlays.add(marker)
 
-        // "Static" & Performant Map
-        holder.mapView.setBuiltInZoomControls(false)
-        holder.mapView.setMultiTouchControls(false)
-
-        // Task 1: Absolute Touch Lock
-        holder.mapView.setOnTouchListener { _, _ -> true }
-
-        // Task 2: Google Maps Intent
-        holder.mapView.setOnClickListener {
-            val gmmIntentUri = Uri.parse("geo:${item.latitude},${item.longitude}?q=${Uri.encode(item.lokasi)}")
-            val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
-            mapIntent.setPackage("com.google.android.apps.maps")
-            context.startActivity(mapIntent)
-        }
 
         // Task 3: Visual Polish
-        holder.mapView.isClickable = true
+//        holder.mapView.isClickable = true
 
-        holder.mapView.invalidate()
-        holder.mapView.onPause() // Lifecycle Optimization
+//        holder.mapView.invalidate()
+//        holder.mapView.onPause() // Lifecycle Optimization
 
         // Intensity Styling
         val intensityValue = romanToInt(intensity)
@@ -162,6 +158,33 @@ class HistoryAdapter(
 
         init {
             stationText.typeface = Typeface.MONOSPACE
+
+            // One-time MapView config
+            mapView.setBuiltInZoomControls(false)
+            mapView.setMultiTouchControls(false)
+            mapView.setFlingEnabled(false)
+            mapView.setTilesScaledToDpi(true)
+            mapView.setUseDataConnection(false)
+
+            mapView.setScrollableAreaLimitDouble(null)
+            mapView.setZoomRounding(true)
+
+            mapView.setOnTouchListener { v, event ->
+                if (event.action == MotionEvent.ACTION_UP) {
+                    val quake = v.tag as? QuakeReport ?: return@setOnTouchListener true
+                    val context = v.context
+
+                    val uri = Uri.parse(
+                        "geo:${quake.latitude},${quake.longitude}?q=${Uri.encode(quake.lokasi)}"
+                    )
+                    val intent = Intent(Intent.ACTION_VIEW, uri)
+                    intent.setPackage("com.google.android.apps.maps")
+                    context.startActivity(intent)
+                }
+                true
+            }
+
         }
     }
+
 }

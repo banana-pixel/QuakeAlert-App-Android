@@ -68,7 +68,12 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         mapView = view.findViewById(R.id.mapview)
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
-        mapView.setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+        mapView.setBuiltInZoomControls(false)
+
+        mapView.setTilesScaledToDpi(true)
+        mapView.setFlingEnabled(true)
+        mapView.isHorizontalMapRepetitionEnabled = false
+        mapView.isVerticalMapRepetitionEnabled = false
 
         val currentLat = repository.getUserLatitude()
         val currentLon = repository.getUserLongitude()
@@ -214,9 +219,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
         mapCircle = Polygon().apply {
             points = Polygon.pointsAsCircle(center, radiusKm * 1000.0)
-            fillPaint.color = 0x33FF0000 // Semi-transparent red
+            fillPaint.color = 0x22FF0000
             outlinePaint.color = 0xFFFF0000.toInt()
-            outlinePaint.strokeWidth = 2f
+            outlinePaint.strokeWidth = 1.5f
         }
         mapView.overlays.add(mapCircle)
         mapView.invalidate()
