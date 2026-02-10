@@ -84,12 +84,12 @@
             app:layout_constraintTop_toBottomOf="@id/history_station"
             app:layout_constraintVertical_bias="0.5">
 
-            <org.osmdroid.views.MapView
-                android:id="@+id/history_map"
+            <ImageView
+                android:id="@+id/history_map_preview"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:clickable="false"
-                android:enabled="false" />
+                android:contentDescription="@string/history_location"
+                android:scaleType="centerCrop" />
         </com.google.android.material.card.MaterialCardView>
 
         <LinearLayout
