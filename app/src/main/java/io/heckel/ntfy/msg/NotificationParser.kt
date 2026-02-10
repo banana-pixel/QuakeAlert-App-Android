@@ -58,6 +58,7 @@ class NotificationParser {
                 body = a.body,
                 intent = a.intent,
                 extras = a.extras,
+                value = a.value,
                 progress = null,
                 error = null
             )
@@ -110,6 +111,7 @@ class NotificationParser {
                 body = a.body,
                 intent = a.intent,
                 extras = a.extras,
+                value = a.value,
                 progress = null,
                 error = null
             )
