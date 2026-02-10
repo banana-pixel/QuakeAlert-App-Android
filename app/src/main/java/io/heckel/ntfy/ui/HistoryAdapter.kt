@@ -3,7 +3,9 @@ package io.heckel.ntfy.ui
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.net.Uri
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,14 +14,25 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
+import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+import com.bumptech.glide.load.model.GlideUrl
+import com.bumptech.glide.load.model.LazyHeaders
 
 class HistoryAdapter(
     private val reports: MutableList<QuakeReport> = mutableListOf()
 ) : RecyclerView.Adapter<HistoryAdapter.ViewHolder>() {
+
+    companion object {
+        private const val TAG = "HistoryAdapter"
+    }
 
     fun updateData(newReports: List<QuakeReport>) {
         reports.clear()
@@ -56,11 +69,42 @@ class HistoryAdapter(
         holder.pgaValue.text = item.pga_maks
         holder.durValue.text = context.getString(R.string.history_dur_value, item.durasi)
 
-        // Load static OSM preview map for smooth RecyclerView scrolling.
+        // 1. Build the raw String URL using your Geoapify logic
         val mapUrl = buildStaticMapUrl(item.latitude, item.longitude)
-        Glide.with(holder.mapPreview)
-            .load(mapUrl)
+
+        // 2. Wrap it in a GlideUrl with a User-Agent header
+        val glideUrl = GlideUrl(mapUrl, LazyHeaders.Builder()
+            .addHeader("User-Agent", "QuakeAlert-Android/1.0")
+            .build())
+
+        // 3. Single Glide call to handle loading, placeholders, and logging
+        Glide.with(holder.mapPreview.context)
+            .load(glideUrl)
             .centerCrop()
+            .placeholder(android.R.drawable.ic_menu_gallery)
+            .error(R.drawable.ic_warning_amber_24dp)
+            .listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?,
+                    model: Any?,
+                    target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    Log.e(TAG, "Glide Load Failed for Geoapify URL: $mapUrl", e)
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable,
+                    model: Any,
+                    target: Target<Drawable>?,
+                    dataSource: DataSource,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    Log.d(TAG, "Glide Load Success for Geoapify URL: $mapUrl")
+                    return false
+                }
+            })
             .into(holder.mapPreview)
 
         // Intensity Styling
@@ -84,9 +128,15 @@ class HistoryAdapter(
     override fun getItemCount(): Int = reports.size
 
     private fun buildStaticMapUrl(latitude: Double, longitude: Double): String {
-        val latString = String.format(Locale.US, "%.6f", latitude)
-        val lonString = String.format(Locale.US, "%.6f", longitude)
-        return "https://staticmap.openstreetmap.de/staticmap.php?center=$latString,$lonString&zoom=10&size=320x320&markers=$latString,$lonString,red-pushpin"
+        val apiKey = BuildConfig.GEOAPIFY_API_KEY
+        // Geoapify uses lonlat order (Longitude first, then Latitude)
+        return "https://maps.geoapify.com/v1/staticmap?" +
+                "style=osm-bright-smooth" +
+                "&width=600&height=400" +
+                "&center=lonlat:$longitude,$latitude" +
+                "&zoom=14" +
+                "&marker=lonlat:$longitude,$latitude;type:material;color:%23ff0000;icon:bolt" +
+                "&apiKey=$apiKey"
     }
 
     private fun convertUtcToLocal(utcTimeString: String): String {

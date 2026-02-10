@@ -1,21 +1,37 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id 'com.google.devtools.ksp'
     id 'com.android.application'
     id 'kotlin-android'
     id 'kotlin-parcelize'
+    id 'com.google.devtools.ksp'
     id 'com.google.gms.google-services'
+    id 'com.google.android.libraries.mapsplatform.secrets-gradle-plugin'
+}
+
+secrets {
+    // Optionally specify a different file name containing your secrets.
+    // The plugin defaults to "local.properties"
+    propertiesFileName = "local.properties"
+
+    // A properties file at this path is expected to be kept in source control.
+    // (See http://code.google.com/p/android/issues/detail?id=51819)
+    defaultPropertiesFileName = "local.defaults.properties"
+
+    // Configure which keys should be ignored by the plugin by providing regular expressions.
+    // "sdk.dir" is ignored by default.
+    ignoreList.add("keyToIgnore") // Ignore the "keyToIgnore" key
+    ignoreList.add("sdk.*")       // Ignore all keys matching the regexp "sdk.*"
 }
 
 android {
     namespace "io.heckel.ntfy"
-    compileSdkVersion 36
+    compileSdk 36
 
     defaultConfig {
         applicationId "io.heckel.ntfy"
-        minSdkVersion 26
-        targetSdkVersion 36
+        minSdk 26
+        targetSdk 36
 
         versionCode 58
         versionName "1.22.2"
