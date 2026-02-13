@@ -14,16 +14,39 @@ object AlertState {
     private val _latestDistance = MutableLiveData<String?>("")
     val latestDistance: LiveData<String?> = _latestDistance
 
-    fun setActive(isActive: Boolean, notification: Notification? = null, distance: String? = null) {
+    fun setActive(isActive: Boolean) {
         _isAlertActive.postValue(isActive)
-        if (isActive) {
-            _latestAlert.postValue(notification)
-            if (distance != null) {
-                _latestDistance.postValue(distance)
-            }
-        } else {
+        if (!isActive) {
             _latestAlert.postValue(null)
             _latestDistance.postValue("")
         }
+    }
+
+    fun setAlertData(notification: Notification, distance: String?) {
+        _latestAlert.postValue(notification)
+        if (distance != null) _latestDistance.postValue(distance)
+        _isAlertActive.postValue(true)
+    }
+
+    fun setAlertFromRaw(message: String, distance: String, timestamp: Long) {
+        val tempNotification = Notification(
+            id = "temp_alert",
+            subscriptionId = 0L,
+            timestamp = timestamp,
+            message = message,
+            title = "Earthquake Alert",
+            priority = 5,
+            tags = "warning,quake",
+            click = "",
+            actions = null,
+            deleted = false,
+            icon = null,
+            notificationId = 0,
+            sequenceId = "0",
+            encoding = "",
+            contentType = "",
+            attachment = null
+        )
+        setAlertData(tempNotification, distance)
     }
 }

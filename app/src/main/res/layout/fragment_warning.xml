@@ -4,41 +4,54 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212">
+    android:background="#0A0A0A">
 
-    <!-- Scanning State -->
     <LinearLayout
         android:id="@+id/warning_scanning_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
         android:orientation="vertical"
-        android:visibility="visible">
+        android:visibility="gone">
 
-        <ImageView
-            android:id="@+id/warning_radar_icon"
-            android:layout_width="200dp"
-            android:layout_height="200dp"
-            android:src="@drawable/ic_radar" />
+        <FrameLayout
+            android:layout_width="240dp"
+            android:layout_height="240dp">
+            <ImageView
+                android:id="@+id/warning_radar_icon"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:alpha="0.8"
+                android:src="@drawable/ic_radar"
+                app:tint="#4CAF50" />
+        </FrameLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
-            android:text="System Scanning..."
+            android:layout_marginTop="24dp"
+            android:letterSpacing="0.1"
+            android:text="SENSORS ACTIVE"
             android:textColor="#4CAF50"
-            android:textSize="24sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Monitoring for seismic activity..."
+            android:textColor="#888888"
+            android:textSize="14sp" />
     </LinearLayout>
 
-    <!-- Alert State -->
     <ScrollView
         android:id="@+id/warning_alert_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#B71C1C"
-        android:visibility="gone"
-        tools:visibility="visible">
+        android:background="@drawable/gradient_emergency_red"
+        android:fillViewport="true"
+        android:visibility="visible"
+        tools:background="#B71C1C">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -47,52 +60,51 @@
             android:orientation="vertical"
             android:padding="24dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="⚠️"
-                android:textSize="32sp"
-                android:textColor="#FFFFFF"
-                android:gravity="center" />
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginTop="32dp"
+                 android:src="@drawable/alert_triangle"
+                app:tint="#FFFFFF" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:text="EARTHQUAKE ALERT"
-                android:textSize="28sp"
-                android:textStyle="bold"
                 android:textColor="#FFFFFF"
-                android:letterSpacing="0.08"
-                android:gravity="center"
-                android:layout_marginTop="4dp" />
-
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05" />
 
             <TextView
                 android:id="@+id/warning_intensity_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:text="VII"
                 android:textColor="#FFFFFF"
-                android:textSize="48sp"
-                android:textStyle="bold"
-                tools:text="IX" />
+                android:textSize="100sp"
+                android:includeFontPadding="false"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/warning_alert_details"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:gravity="center"
+                android:background="@drawable/shape_rounded_translucent"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:text="Estimated Distance: 45 km"
                 android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                tools:text="Location: 45km away" />
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
             <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="12dp"
+                android:layout_width="80dp"
+                android:layout_height="4dp"
+                android:layout_marginVertical="24dp"
                 android:background="#FFFFFF"
-                android:alpha="0.3" />
+                android:alpha="0.5" />
 
             <TextView
                 android:id="@+id/warning_alert_time"
@@ -100,18 +112,22 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="12dp"
+                android:alpha="0.9"
                 android:textColor="#FFFFFF"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Time: 21:05:15 WIB" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/warning_safe_actions_button"
-                style="@style/Widget.MaterialComponents.Button"
+                style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:backgroundTint="#FFFFFF"
-                android:text="Safe Actions: Drop, Cover, Hold On"
+                android:layout_height="72dp"
+                android:text="WHAT SHOULD I DO?"
+                android:textSize="18sp"
+                app:backgroundTint="#FFFFFF"
+                app:cornerRadius="16dp"
+                app:icon="@drawable/help_circle"
                 android:textColor="#B71C1C" />
 
             <com.google.android.material.card.MaterialCardView
@@ -120,70 +136,79 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:visibility="gone"
-                app:cardBackgroundColor="#FFFFFF"
-                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#CCFFFFFF"
+                app:cardCornerRadius="16dp"
+                app:strokeWidth="0dp"
                 tools:visibility="visible">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16dp">
+                    android:padding="20dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="SAFE ACTIONS"
-                        android:textColor="#00094B"
-                        android:textSize="18sp"
-                        android:textStyle="bold" />
+                        android:text="LIFE-SAVING ACTIONS"
+                        android:textColor="#B71C1C"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.1" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="• DROP to the ground"
+                        android:layout_marginTop="12dp"
+                        android:text="• DROP: Get down on your hands and knees."
                         android:textColor="#000000"
-                        android:textSize="18sp"
-                        android:paddingTop="8dp" />
-
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="• COVER your head and neck"
-                        android:textColor="#000000"
-                        android:textSize="18sp"
-                        android:paddingTop="8dp" />
+                        android:textSize="16sp" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="• HOLD ON until shaking stops"
+                        android:layout_marginTop="8dp"
+                        android:text="• COVER: Protect your head and neck under a sturdy table."
                         android:textColor="#000000"
-                        android:textSize="18sp"
-                        android:paddingTop="8dp" />
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="• HOLD ON: Stay there until the shaking stops."
+                        android:textColor="#000000"
+                        android:textSize="16sp" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <Button
-                android:id="@+id/warning_share_button"
-                style="@style/Widget.MaterialComponents.Button"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:backgroundTint="#FFFFFF"
-                android:text="Share Alert"
-                android:textColor="#B71C1C" />
+                android:layout_marginTop="32dp"
+                android:orientation="horizontal"
+                android:layout_marginStart="12dp">
 
-            <Button
-                android:id="@+id/warning_dismiss_button"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Dismiss"
-                android:textColor="#FFFFFF" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/warning_share_button"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Share"
+                    android:textColor="#FFFFFF"
+                    app:strokeColor="#FFFFFF" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/warning_dismiss_button"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Dismiss"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>

@@ -36,6 +36,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private lateinit var tvLocationName: TextView
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var mapCircle: Polygon? = null
+    private var centerMarker: org.osmdroid.views.overlay.Marker? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -56,7 +57,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val sharedPrefs = requireContext().getSharedPreferences(Repository.SHARED_PREFS_ID, 0)
+
+        // 1. FIND VIEWS FIRST
+        mapView = view.findViewById(R.id.mapview)
+        val scrollView = view.findViewById<androidx.core.widget.NestedScrollView>(R.id.nested_scroll_view)
         val valueView = view.findViewById<TextView>(R.id.alert_radius_value)
         val slider = view.findViewById<Slider>(R.id.alert_radius_slider)
         tvLocationName = view.findViewById(R.id.tv_location_name)
@@ -65,37 +69,61 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val btnZoomIn = view.findViewById<MaterialButton>(R.id.btn_zoom_in)
         val btnZoomOut = view.findViewById<MaterialButton>(R.id.btn_zoom_out)
 
-        mapView = view.findViewById(R.id.mapview)
+        // 2. CONFIGURE MAP BASICS
         mapView.setTileSource(TileSourceFactory.MAPNIK)
         mapView.setMultiTouchControls(true)
         mapView.setBuiltInZoomControls(false)
-
         mapView.setTilesScaledToDpi(true)
-        mapView.setFlingEnabled(true)
         mapView.isHorizontalMapRepetitionEnabled = false
         mapView.isVerticalMapRepetitionEnabled = false
 
+        // 3. APPLY LIMITS (No more black space!)
+        val worldBox = org.osmdroid.util.BoundingBox(85.0, 180.0, -85.0, -180.0)
+        mapView.setScrollableAreaLimitDouble(worldBox)
+        mapView.minZoomLevel = 3.0
+
+        // 4. ADD OVERLAYS (Scale Bar)
+        val scaleBarOverlay = org.osmdroid.views.overlay.ScaleBarOverlay(mapView).apply {
+            setAlignBottom(true)
+            setScaleBarOffset(20, 20)
+            setTextSize(12f * resources.displayMetrics.density)
+            setUnitsOfMeasure(org.osmdroid.views.overlay.ScaleBarOverlay.UnitsOfMeasure.metric)
+        }
+        mapView.overlays.add(scaleBarOverlay)
+
+        // 5. TOUCH & GESTURES
+        mapView.setOnTouchListener { v, event ->
+            v.parent.requestDisallowInterceptTouchEvent(true)
+            false
+        }
+
+        // 6. INITIAL DATA LOAD
         val currentLat = repository.getUserLatitude()
         val currentLon = repository.getUserLongitude()
         val currentCity = repository.getUserCityName()
-        
-        if (currentCity.isNotEmpty()) {
+        val startPoint = GeoPoint(currentLat, currentLon)
+
+        if (currentCity.isNotEmpty() && currentCity != "Unknown") {
             tvLocationName.text = currentCity
         } else {
+            // Show coordinates if city is empty or "Unknown"
             tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", currentLat, currentLon)
         }
 
-        val mapController = mapView.controller
-        mapController.setZoom(7.0)
-        val startPoint = GeoPoint(currentLat, currentLon)
-        mapController.setCenter(startPoint)
+        mapView.controller.setZoom(7.0)
+        mapView.controller.setCenter(startPoint)
 
+        // Setup Slider & Labels
+        val sharedPrefs = requireContext().getSharedPreferences(Repository.SHARED_PREFS_ID, 0)
         val initialRadius = sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
         val initialValue = (initialRadius / STEP_KM).toFloat().coerceIn(0f, MAX_PROGRESS.toFloat())
+
         slider.value = initialValue
         updateRadiusLabel(valueView, initialValue.toInt())
+        updateCenterMarker(startPoint)
         updateMapCircle(initialRadius, startPoint)
 
+        // Handle the slider moving
         slider.addOnChangeListener { _, value, fromUser ->
             val progress = value.toInt()
             val radius = progress * STEP_KM
@@ -103,29 +131,19 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             val center = GeoPoint(repository.getUserLatitude(), repository.getUserLongitude())
             updateMapCircle(radius, center)
             if (fromUser) {
-                sharedPrefs.edit {
-                    putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius)
-                }
+                sharedPrefs.edit { putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius) }
             }
         }
 
-        btnRefresh.setOnClickListener {
-            checkPermissionAndRefresh()
-        }
-
+        // Handle the buttons
+        btnRefresh.setOnClickListener { checkPermissionAndRefresh() }
         btnRecenter.setOnClickListener {
             val lat = repository.getUserLatitude()
             val lon = repository.getUserLongitude()
             mapView.controller.animateTo(GeoPoint(lat, lon))
         }
-
-        btnZoomIn.setOnClickListener {
-            mapView.controller.zoomIn()
-        }
-
-        btnZoomOut.setOnClickListener {
-            mapView.controller.zoomOut()
-        }
+        btnZoomIn.setOnClickListener { mapView.controller.zoomIn() }
+        btnZoomOut.setOnClickListener { mapView.controller.zoomOut() }
     }
 
     private fun checkPermissionAndRefresh() {
@@ -142,6 +160,23 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
     }
 
+    private fun updateCenterMarker(center: GeoPoint) {
+        if (centerMarker != null) {
+            mapView.overlays.remove(centerMarker)
+        }
+
+        centerMarker = org.osmdroid.views.overlay.Marker(mapView).apply {
+            position = center
+            setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
+            // Use a standard Android crosshair icon
+            icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_custom_crosshair)
+            setInfoWindow(null) // Disable the popup when clicked
+        }
+
+        mapView.overlays.add(centerMarker)
+        mapView.invalidate()
+    }
+
     private fun refreshLocation() {
         if (ContextCompat.checkSelfPermission(
                 requireContext(),
@@ -156,17 +191,19 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                 if (location != null) {
                     val lat = location.latitude
                     val lon = location.longitude
-                    
+
                     repository.setUserLatitude(lat)
                     repository.setUserLongitude(lon)
-                    
+
                     val newPoint = GeoPoint(lat, lon)
                     mapView.controller.animateTo(newPoint)
-                    
+
+                    updateCenterMarker(newPoint)
+
                     val slider = view?.findViewById<Slider>(R.id.alert_radius_slider)
                     val radius = (slider?.value?.toInt() ?: 0) * STEP_KM
                     updateMapCircle(radius, newPoint)
-                    
+
                     updateCityName(lat, lon)
                 } else {
                     Toast.makeText(requireContext(), "Could not get current location", Toast.LENGTH_SHORT).show()
@@ -182,19 +219,19 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                     val addresses = geocoder.getFromLocation(lat, lon, 1)
                     if (!addresses.isNullOrEmpty()) {
                         val address = addresses[0]
-                        address.locality ?: address.subAdminArea ?: address.adminArea ?: "Unknown"
-                    } else {
-                        null
-                    }
-                } catch (e: Exception) {
-                    null
-                }
+                        // REMOVED: ?: "Unknown" fallback here
+                        address.locality ?: address.subAdminArea ?: address.adminArea
+                    } else null
+                } catch (e: Exception) { null }
             }
-            
-            if (cityName != null) {
+
+            // Only save if we actually found a name
+            if (!cityName.isNullOrBlank()) {
                 repository.setUserCityName(cityName)
                 tvLocationName.text = cityName
             } else {
+                // If no name, clear the repo and show coordinates
+                repository.setUserCityName("")
                 tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", lat, lon)
             }
         }
@@ -213,16 +250,22 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         if (mapCircle != null) {
             mapView.overlays.remove(mapCircle)
         }
+
+        // Always ensure the marker is updated/added so it stays on top
+        updateCenterMarker(center)
+
         if (radiusKm >= MAX_RADIUS_KM) {
             mapView.invalidate()
             return
         }
+
         mapCircle = Polygon().apply {
             points = Polygon.pointsAsCircle(center, radiusKm * 1000.0)
             fillPaint.color = 0x22FF0000
-            outlinePaint.color = 0xFFFF0000.toInt()
-            outlinePaint.strokeWidth = 1.5f
+            outlinePaint.color = 0x88FF0000.toInt()
+            outlinePaint.strokeWidth = 8.0f
         }
+
         mapView.overlays.add(mapCircle)
         mapView.invalidate()
     }

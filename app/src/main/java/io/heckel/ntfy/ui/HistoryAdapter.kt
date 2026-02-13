@@ -80,9 +80,10 @@ class HistoryAdapter(
         // 3. Single Glide call to handle loading, placeholders, and logging
         Glide.with(holder.mapPreview.context)
             .load(glideUrl)
+            .timeout(30000)
             .centerCrop()
-            .placeholder(android.R.drawable.ic_menu_gallery)
-            .error(R.drawable.ic_warning_amber_24dp)
+            .placeholder(R.drawable.ic_map_logo)
+            .error(R.drawable.ic_map_logo)
             .listener(object : RequestListener<Drawable> {
                 override fun onLoadFailed(
                     e: GlideException?,
@@ -134,8 +135,8 @@ class HistoryAdapter(
                 "style=osm-bright-smooth" +
                 "&width=600&height=400" +
                 "&center=lonlat:$longitude,$latitude" +
-                "&zoom=14" +
-                "&marker=lonlat:$longitude,$latitude;type:material;color:%23ff0000;icon:bolt" +
+                "&zoom=7" +
+                "&marker=lonlat:$longitude,$latitude;type:material;color:%23ff0000;size:large;icon:bolt" +
                 "&apiKey=$apiKey"
     }
 

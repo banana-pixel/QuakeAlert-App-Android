@@ -108,7 +108,7 @@ class NotificationService(val context: Context) {
 
         // Trigger global alert if it's a DANGER priority
         if (displayPriority == PRIORITY_MAX) {
-            AlertState.setActive(true, notification, distanceLabel)
+            AlertState.setAlertData(notification, distanceLabel)
             val intent = Intent(ACTION_QUAKE_ALERT).apply {
                 putExtra("message", notification.message)
                 putExtra("title", title)

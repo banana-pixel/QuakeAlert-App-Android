@@ -32,7 +32,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private val refreshRunnable = object : Runnable {
         override fun run() {
             fetchData()
-            handler.postDelayed(this, 30000)
+            handler.postDelayed(this, 3000)
         }
     }
 
