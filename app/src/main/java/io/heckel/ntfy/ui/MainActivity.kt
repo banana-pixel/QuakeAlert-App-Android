@@ -190,7 +190,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         toolbar.overflowIcon?.setTint(toolbarTextColor)
 
         setSupportActionBar(toolbar)
-        
+
         val appBarConfiguration = AppBarConfiguration(
             setOf(
                 R.id.nav_history,

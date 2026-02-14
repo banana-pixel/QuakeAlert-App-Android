@@ -412,53 +412,59 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
     private fun setupPublishUI() {
         fab = findViewById(R.id.detail_fab)
         messageBar = findViewById(R.id.detail_message_bar)
-        messageBarText = messageBar.findViewById(R.id.message_bar_text)
-        messageBarPublishButton = messageBar.findViewById(R.id.message_bar_publish_button)
-        messageBarExpandButton = messageBar.findViewById(R.id.message_bar_expand_button)
 
-        // Message bar enabled: Show message bar, hide FAB
-        if (repository.getMessageBarEnabled()) {
-            fab.visibility = View.GONE
-            messageBar.visibility = View.VISIBLE
-
-            // Send button click
-            messageBarPublishButton.setOnClickListener {
-                publishMessage(messageBarText.text.toString()) // Allow publishing empty messages
-            }
-
-            // Expand button click opens the full dialog
-            messageBarExpandButton.setOnClickListener {
-                openPublishDialog(messageBarText.text.toString())
-            }
-
-            // Handle window insets for navigation bar and keyboard
-            val contentLayout = findViewById<View>(R.id.detail_content_layout)
-            ViewCompat.setOnApplyWindowInsetsListener(contentLayout) { view, insets ->
-                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-                // Use the larger of navigation bar or keyboard height
-                val bottomPadding = maxOf(systemBars.bottom, ime.bottom)
-                view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, bottomPadding)
-                insets
-            }
-        } else {
-            // Show FAB, hide message bar
-            fab.visibility = View.VISIBLE
-            messageBar.visibility = View.GONE
-
-            fab.setOnClickListener {
-                openPublishDialog("")
-            }
-
-            // Add bottom padding to FAB to account for navigation bar
-            ViewCompat.setOnApplyWindowInsetsListener(fab) { view, insets ->
-                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-                val layoutParams = view.layoutParams as androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
-                layoutParams.bottomMargin = systemBars.bottom + resources.getDimensionPixelSize(R.dimen.fab_margin)
-                view.layoutParams = layoutParams
-                insets
-            }
-        }
+        // Force both to GONE to disable sending messages entirely
+        fab.visibility = View.GONE
+        messageBar.visibility = View.GONE
+//        fab = findViewById(R.id.detail_fab)
+//        messageBar = findViewById(R.id.detail_message_bar)
+//        messageBarText = messageBar.findViewById(R.id.message_bar_text)
+//        messageBarPublishButton = messageBar.findViewById(R.id.message_bar_publish_button)
+//        messageBarExpandButton = messageBar.findViewById(R.id.message_bar_expand_button)
+//
+//        // Message bar enabled: Show message bar, hide FAB
+//        if (repository.getMessageBarEnabled()) {
+//            fab.visibility = View.GONE
+//            messageBar.visibility = View.VISIBLE
+//
+//            // Send button click
+//            messageBarPublishButton.setOnClickListener {
+//                publishMessage(messageBarText.text.toString()) // Allow publishing empty messages
+//            }
+//
+//            // Expand button click opens the full dialog
+//            messageBarExpandButton.setOnClickListener {
+//                openPublishDialog(messageBarText.text.toString())
+//            }
+//
+//            // Handle window insets for navigation bar and keyboard
+//            val contentLayout = findViewById<View>(R.id.detail_content_layout)
+//            ViewCompat.setOnApplyWindowInsetsListener(contentLayout) { view, insets ->
+//                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+//                val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+//                // Use the larger of navigation bar or keyboard height
+//                val bottomPadding = maxOf(systemBars.bottom, ime.bottom)
+//                view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, bottomPadding)
+//                insets
+//            }
+//        } else {
+//            // Show FAB, hide message bar
+//            fab.visibility = View.VISIBLE
+//            messageBar.visibility = View.GONE
+//
+//            fab.setOnClickListener {
+//                openPublishDialog("")
+//            }
+//
+//            // Add bottom padding to FAB to account for navigation bar
+//            ViewCompat.setOnApplyWindowInsetsListener(fab) { view, insets ->
+//                val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+//                val layoutParams = view.layoutParams as androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
+//                layoutParams.bottomMargin = systemBars.bottom + resources.getDimensionPixelSize(R.dimen.fab_margin)
+//                view.layoutParams = layoutParams
+//                insets
+//            }
+//        }
     }
 
     private fun openPublishDialog(initialMessage: String) {
