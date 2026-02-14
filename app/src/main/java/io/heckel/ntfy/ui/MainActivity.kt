@@ -81,6 +81,12 @@ import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import androidx.activity.OnBackPressedCallback
+import androidx.navigation.ui.AppBarConfiguration
+import androidx.navigation.ui.setupActionBarWithNavController
+
+
+
 
 class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener {
     private val viewModel by viewModels<SubscriptionsViewModel> {
@@ -145,6 +151,11 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
         bottomNav.setupWithNavController(navController) // Keep this for icon tinting
 
+
+
+
+
+
         // OVERRIDE CLICK LISTENER: Clear back stack on every tab switch
         // In MainActivity.kt inside onCreate()
 
@@ -177,8 +188,19 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         toolbar.setTitleTextColor(toolbarTextColor)
         toolbar.setNavigationIconTint(toolbarTextColor)
         toolbar.overflowIcon?.setTint(toolbarTextColor)
+
         setSupportActionBar(toolbar)
-        title = getString(R.string.main_action_bar_title)
+        
+        val appBarConfiguration = AppBarConfiguration(
+            setOf(
+                R.id.nav_history,
+                R.id.nav_sensors,
+                R.id.nav_warning,
+                R.id.nav_chat,
+                R.id.nav_settings
+            )
+        )
+        setupActionBarWithNavController(navController, appBarConfiguration)
 
         // Set system status bar appearance
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars =
@@ -394,6 +416,34 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         // Handle intent only once at the end of onCreate
         handleIntent(intent)
+
+        //Yeahhh
+
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+
+                    val currentDestination = navController.currentDestination
+
+                    // If there is something to pop inside current tab → pop it
+                    if (navController.previousBackStackEntry != null &&
+                        currentDestination?.id != navController.graph.startDestinationId
+                    ) {
+                        navController.popBackStack()
+                        return
+                    }
+
+                    // Otherwise exit app
+                    finishAffinity()
+                }
+            }
+        )
+
+
+
+
+
     }
 
     override fun onNewIntent(intent: Intent) {

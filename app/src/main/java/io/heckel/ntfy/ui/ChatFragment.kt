@@ -17,6 +17,7 @@ import org.json.JSONObject
 import java.net.URISyntaxException
 
 class ChatFragment : Fragment() {
+
     private var _binding: FragmentChatBinding? = null
     private val binding get() = _binding!!
 
@@ -36,7 +37,11 @@ class ChatFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        deviceId = Settings.Secure.getString(requireContext().contentResolver, Settings.Secure.ANDROID_ID)
+        deviceId = Settings.Secure.getString(
+            requireContext().contentResolver,
+            Settings.Secure.ANDROID_ID
+        )
+
         chatAdapter = ChatAdapter(deviceId)
 
         binding.chatRecyclerView.apply {
@@ -44,11 +49,11 @@ class ChatFragment : Fragment() {
             layoutManager = LinearLayoutManager(requireContext())
         }
 
-        initSocket()
-
         binding.chatSendButton.setOnClickListener {
             sendMessage()
         }
+
+        initSocket()
     }
 
     private fun initSocket() {
@@ -56,41 +61,51 @@ class ChatFragment : Fragment() {
             val opts = IO.Options().apply {
                 transports = arrayOf(WebSocket.NAME)
             }
+
             socket = IO.socket("https://quakealert.bananapixel.my.id", opts)
 
-            // Register socket.on("chat_history") BEFORE socket.connect()
             socket?.on("chat_history") { args ->
+                if (!isAdded || _binding == null) return@on
+
                 if (args.isNotEmpty()) {
                     val data = args[0] as JSONArray
                     val history = mutableListOf<ChatMessage>()
+
                     for (i in 0 until data.length()) {
-                        val obj = data.getJSONObject(i)
-                        val message = parseMessage(obj)
-                        if (message != null) {
-                            history.add(message)
-                        }
+                        parseMessage(data.getJSONObject(i))?.let { history.add(it) }
                     }
-                    activity?.runOnUiThread {
+
+                    view?.post {
+                        if (_binding == null) return@post
+
                         chatAdapter.submitList(history) {
                             if (history.isNotEmpty()) {
-                                binding.chatRecyclerView.scrollToPosition(history.size - 1)
+                                binding.chatRecyclerView
+                                    .scrollToPosition(history.size - 1)
                             }
                         }
                     }
                 }
             }
 
-            // Register socket.on("receive_message") BEFORE socket.connect()
             socket?.on("receive_message") { args ->
+                if (!isAdded || _binding == null) return@on
+
                 if (args.isNotEmpty()) {
-                    val data = args[0] as JSONObject
-                    val message = parseMessage(data)
+                    val message = parseMessage(args[0] as JSONObject)
+
                     if (message != null) {
-                        activity?.runOnUiThread {
-                            val currentList = chatAdapter.currentList.toMutableList()
+                        view?.post {
+                            if (_binding == null) return@post
+
+                            val currentList =
+                                chatAdapter.currentList.toMutableList()
+
                             currentList.add(message)
+
                             chatAdapter.submitList(currentList) {
-                                binding.chatRecyclerView.smoothScrollToPosition(chatAdapter.itemCount - 1)
+                                binding.chatRecyclerView
+                                    .smoothScrollToPosition(chatAdapter.itemCount - 1)
                             }
                         }
                     }
@@ -98,6 +113,7 @@ class ChatFragment : Fragment() {
             }
 
             socket?.connect()
+
         } catch (e: URISyntaxException) {
             e.printStackTrace()
         }
@@ -106,9 +122,9 @@ class ChatFragment : Fragment() {
     private fun parseMessage(obj: JSONObject): ChatMessage? {
         val senderId = obj.optString("senderId", "")
         val message = obj.optString("message", "")
-        if (senderId.isEmpty() || message.isEmpty()) {
-            return null
-        }
+
+        if (senderId.isEmpty() || message.isEmpty()) return null
+
         return ChatMessage(
             senderId = senderId,
             message = message,
@@ -118,21 +134,25 @@ class ChatFragment : Fragment() {
 
     private fun sendMessage() {
         val text = binding.chatInputEditText.text.toString().trim()
+
         if (text.isNotEmpty()) {
             val messageObj = JSONObject().apply {
                 put("senderId", deviceId)
                 put("message", text)
             }
+
             socket?.emit("send_message", messageObj)
             binding.chatInputEditText.text.clear()
         }
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
-        // Ensure that when the Fragment is destroyed, the socket properly disconnects
-        socket?.disconnect()
         socket?.off()
+        socket?.disconnect()
+        socket = null
+
         _binding = null
+        super.onDestroyView()
     }
 }
+
