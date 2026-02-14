@@ -22,6 +22,13 @@ import io.heckel.ntfy.R
 import io.heckel.ntfy.app.AlertState
 import io.heckel.ntfy.msg.NotificationService
 import io.heckel.ntfy.util.formatTimestampToLocal
+import io.heckel.ntfy.ui.DetailActivity
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import io.heckel.ntfy.app.Application as App
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class WarningFragment : Fragment(R.layout.fragment_warning) {
 
@@ -43,6 +50,8 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     private val timeUpdateHandler = Handler(Looper.getMainLooper())
     private var timeUpdateRunnable: Runnable? = null
     private var alertTimestamp: Long = 0L
+    private lateinit var viewLogsButton: FloatingActionButton // New Button variable
+
 
     private val quakeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -71,6 +80,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         safeActionsCard = view.findViewById(R.id.warning_safe_actions_card)
         shareButton = view.findViewById(R.id.warning_share_button)
         dismissButton = view.findViewById(R.id.warning_dismiss_button)
+        viewLogsButton = view.findViewById(R.id.btn_open_details)
 
         val pulseAnimation = AnimationUtils.loadAnimation(context, R.anim.pulse)
 
@@ -156,11 +166,13 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
 
     private fun setupListeners() {
         safeActionsButton.setOnClickListener {
-            safeActionsCard.visibility = if (safeActionsCard.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            safeActionsCard.visibility =
+                if (safeActionsCard.visibility == View.VISIBLE) View.GONE else View.VISIBLE
         }
 
         shareButton.setOnClickListener {
-            val shareText = "🚨 EARTHQUAKE ALERT 🚨\nIntensity: ${intensityText.text}\n${alertDetails.text}\nTime: ${alertTime.text}"
+            val shareText =
+                "🚨 EARTHQUAKE ALERT 🚨\nIntensity: ${intensityText.text}\n${alertDetails.text}\nTime: ${alertTime.text}"
             val sendIntent = Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, shareText)
@@ -172,6 +184,35 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         dismissButton.setOnClickListener {
             AlertState.setActive(false)
             resetHandler.removeCallbacks(resetRunnable)
+        }
+
+        viewLogsButton.setOnClickListener {
+            val topic = "peringatan_gempa_darurat_xyz"
+            val baseUrl = "quakealert.bananapixel.my.id"
+
+            // 1. ADD ANIMATION: Scale down slightly when clicked
+            viewLogsButton.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction {
+                viewLogsButton.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
+
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val repository = (requireActivity().application as App).repository
+                    val subscription = withContext(Dispatchers.IO) {
+                        repository.getSubscription("https://$baseUrl", topic)
+                    }
+
+                    val uriString = "ntfy://$baseUrl/$topic"
+                    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uriString)).apply {
+                        `package` = requireContext().packageName
+
+                        // 2. NAVIGATION FIX: Remove NEW_TASK/CLEAR_TOP
+                        // This keeps the WarningFragment in the history stack.
+                        if (subscription != null) {
+                            putExtra("subscription_id", subscription.id)
+                        }
+                    }
+                    startActivity(intent)
+                }
+            }.start()
         }
     }
 

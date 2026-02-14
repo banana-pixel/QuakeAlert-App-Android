@@ -77,6 +77,7 @@ import java.util.concurrent.TimeUnit
 import androidx.core.view.size
 import androidx.core.view.get
 import androidx.core.net.toUri
+import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -142,14 +143,21 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as NavHostFragment
         val navController = navHostFragment.navController
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
-        bottomNav.setupWithNavController(navController)
+        bottomNav.setupWithNavController(navController) // Keep this for icon tinting
 
-        // Handle WindowInsets for BottomNavigationView
-        val rootLayout = findViewById<View>(R.id.main_root_layout)
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { _, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            bottomNav.updatePadding(bottom = systemBars.bottom)
-            insets
+        // OVERRIDE CLICK LISTENER: Clear back stack on every tab switch
+        // In MainActivity.kt inside onCreate()
+
+        bottomNav.setOnItemSelectedListener { item ->
+            if (item.itemId != navController.currentDestination?.id) {
+                val navOptions = NavOptions.Builder()
+                    .setPopUpTo(navController.graph.startDestinationId, true)
+                    .setLaunchSingleTop(true)
+                    .setRestoreState(false)
+                    .build()
+                navController.navigate(item.itemId, null, navOptions)
+            }
+            true
         }
 
         // Dependencies that depend on Context
@@ -164,14 +172,14 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val statusBarColor = Colors.statusBarNormal(this, dynamicColors, darkMode)
         val toolbarTextColor = Colors.toolbarTextColor(this, dynamicColors, darkMode)
         toolbarLayout.setBackgroundColor(statusBarColor)
-        
+
         val toolbar = toolbarLayout.findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.toolbar)
         toolbar.setTitleTextColor(toolbarTextColor)
         toolbar.setNavigationIconTint(toolbarTextColor)
         toolbar.overflowIcon?.setTint(toolbarTextColor)
         setSupportActionBar(toolbar)
         title = getString(R.string.main_action_bar_title)
-        
+
         // Set system status bar appearance
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars =
             Colors.shouldUseLightStatusBar(dynamicColors, darkMode)
@@ -181,12 +189,17 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         fab.setOnClickListener {
             onSubscribeButtonClick()
         }
-        
-        // Add bottom padding to FAB to account for navigation bar
+
+        // Handle WindowInsets for FAB - Symmetrical 24dp margins on right and bottom
         ViewCompat.setOnApplyWindowInsetsListener(fab) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             val layoutParams = view.layoutParams as androidx.constraintlayout.widget.ConstraintLayout.LayoutParams
-            layoutParams.bottomMargin = systemBars.bottom
+
+            val marginPx = (24 * resources.displayMetrics.density).toInt()
+
+            layoutParams.marginEnd = marginPx
+            layoutParams.bottomMargin = systemBars.bottom + marginPx
+
             view.layoutParams = layoutParams
             insets
         }
@@ -212,7 +225,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             Colors.onPrimary(this)
         )
         mainList.adapter = adapter
-        
+
         // Apply window insets to ensure content is not covered by navigation bar
         mainList.clipToPadding = false
         ViewCompat.setOnApplyWindowInsetsListener(mainList) { v, insets ->
@@ -378,6 +391,37 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         // Permissions
         maybeRequestNotificationPermission()
+
+        // Handle intent only once at the end of onCreate
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.action == "OPEN_WARNING_PAGE") {
+            Log.d(TAG, "Intercepted OPEN_WARNING_PAGE action")
+
+            val message = intent.getStringExtra("message") ?: ""
+            val distance = intent.getStringExtra("distance") ?: ""
+
+            // 1. Activate the Red UI state
+            io.heckel.ntfy.app.AlertState.setActive(true)
+            io.heckel.ntfy.app.AlertState.setAlertFromRaw(message, distance, System.currentTimeMillis() / 1000)
+
+            // 2. Switch to the Warning Fragment and WIPE the history
+            val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as NavHostFragment
+            val navController = navHostFragment.navController
+
+            val navOptions = NavOptions.Builder()
+                .setPopUpTo(navController.graph.id, true)
+                .build()
+            navController.navigate(R.id.nav_warning, null, navOptions)
+        }
     }
 
     private fun maybeRequestNotificationPermission() {
@@ -502,13 +546,13 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main_action_bar, menu)
         this.menu = menu
-        
+
         // Tint menu icons based on theme
         val toolbarTextColor = Colors.toolbarTextColor(this, repository.getDynamicColorsEnabled(), isDarkThemeOn(this))
         for (i in 0 until menu.size) {
             menu[i].icon?.setTint(toolbarTextColor)
         }
-        
+
         showHideNotificationMenuItems()
         showHideConnectionErrorMenuItem(repository.getConnectionDetails())
         checkSubscriptionsMuted() // This is done here, because then we know that we've initialized the menu

@@ -29,7 +29,8 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 class NotificationService(val context: Context) {
-    private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private val notificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private val repository = Repository.getInstance(context)
     private val markwon = MarkwonFactory.createForNotification(context)
     private val appBaseUrl = context.getString(R.string.app_base_url)
@@ -40,7 +41,8 @@ class NotificationService(val context: Context) {
     }
 
     fun update(subscription: Subscription, notification: Notification) {
-        val active = notificationManager.activeNotifications.find { it.id == notification.notificationId } != null
+        val active =
+            notificationManager.activeNotifications.find { it.id == notification.notificationId } != null
         if (active) {
             Log.d(TAG, "Updating notification $notification")
             displayInternal(subscription, notification, update = true)
@@ -62,8 +64,16 @@ class NotificationService(val context: Context) {
     }
 
     fun createDefaultNotificationChannels() {
-        maybeCreateNotificationGroup(DEFAULT_GROUP, context.getString(R.string.channel_notifications_group_default_name))
-        ALL_PRIORITIES.forEach { priority -> maybeCreateNotificationChannel(DEFAULT_GROUP, priority) }
+        maybeCreateNotificationGroup(
+            DEFAULT_GROUP,
+            context.getString(R.string.channel_notifications_group_default_name)
+        )
+        ALL_PRIORITIES.forEach { priority ->
+            maybeCreateNotificationChannel(
+                DEFAULT_GROUP,
+                priority
+            )
+        }
     }
 
     fun createSubscriptionNotificationChannels(subscription: Subscription) {
@@ -86,14 +96,22 @@ class NotificationService(val context: Context) {
         return subscription.displayName ?: subscriptionTopicShortUrl(subscription)
     }
 
-    private fun displayInternal(subscription: Subscription, notification: Notification, update: Boolean = false) {
+    private fun displayInternal(
+        subscription: Subscription,
+        notification: Notification,
+        update: Boolean = false
+    ) {
         val baseTitle = formatTitle(appBaseUrl, subscription, notification)
         val geoCoordinates = extractGeoCoordinates(notification.tags)
         val userLat = repository.getUserLatitude()
         val userLon = repository.getUserLongitude()
-        val sharedPrefs = context.getSharedPreferences(Repository.SHARED_PREFS_ID, Context.MODE_PRIVATE)
-        val alertRadiusKm = sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM).toDouble()
-        val distance = geoCoordinates?.let { (lat, lon) -> calculateDistance(userLat, userLon, lat, lon) }
+        val sharedPrefs =
+            context.getSharedPreferences(Repository.SHARED_PREFS_ID, Context.MODE_PRIVATE)
+        val alertRadiusKm =
+            sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
+                .toDouble()
+        val distance =
+            geoCoordinates?.let { (lat, lon) -> calculateDistance(userLat, userLon, lat, lon) }
         val distanceLabel = distance?.let { formatDistanceKm(it) }
         val displayPriority = when {
             distance == null -> notification.priority
@@ -119,7 +137,8 @@ class NotificationService(val context: Context) {
             context.sendBroadcast(intent)
         }
 
-        val groupId = if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
+        val groupId =
+            if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
         val channelId = toChannelId(groupId, displayPriority)
         val insistent = displayPriority == PRIORITY_MAX &&
                 (repository.getInsistentMaxPriorityEnabled() || subscription.insistent == Repository.INSISTENT_MAX_PRIORITY_ENABLED)
@@ -132,7 +151,8 @@ class NotificationService(val context: Context) {
             .setOnlyAlertOnce(true) // Do not vibrate or play sound if already showing (updates!)
             .setAutoCancel(true) // Cancel when notification is clicked
         setStyleAndText(builder, subscription, notification) // Preview picture or big text style
-        setClickAction(builder, subscription, notification)
+        // Pass priority and distance so the click handler knows if it's a danger alert
+        setClickAction(builder, subscription, notification, displayPriority, distanceLabel)
         maybeSetDeleteIntent(builder, insistent)
         maybeSetSound(builder, insistent, update)
         maybeSetProgress(builder, notification)
@@ -146,7 +166,12 @@ class NotificationService(val context: Context) {
             val mapIntent = Intent(Intent.ACTION_VIEW).apply {
                 data = mapUri
             }
-            val mapPendingIntent = PendingIntent.getActivity(context, Random().nextInt(), mapIntent, PendingIntent.FLAG_IMMUTABLE)
+            val mapPendingIntent = PendingIntent.getActivity(
+                context,
+                Random().nextInt(),
+                mapIntent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
             builder.addAction(android.R.drawable.ic_dialog_map, "View on Map", mapPendingIntent)
         }
         maybeAddUserActions(builder, notification)
@@ -163,11 +188,20 @@ class NotificationService(val context: Context) {
             return
         }
         val intent = Intent(context, DeleteBroadcastReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(context, Random().nextInt(), intent, PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            Random().nextInt(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
         builder.setDeleteIntent(pendingIntent)
     }
 
-    private fun maybeSetSound(builder: NotificationCompat.Builder, insistent: Boolean, update: Boolean) {
+    private fun maybeSetSound(
+        builder: NotificationCompat.Builder,
+        insistent: Boolean,
+        update: Boolean
+    ) {
         // Note that the sound setting is ignored in Android => O (26) in favor of notification channels
         val hasSound = !update && !insistent
         if (hasSound) {
@@ -178,7 +212,11 @@ class NotificationService(val context: Context) {
         }
     }
 
-    private fun setStyleAndText(builder: NotificationCompat.Builder, subscription: Subscription, notification: Notification) {
+    private fun setStyleAndText(
+        builder: NotificationCompat.Builder,
+        subscription: Subscription,
+        notification: Notification
+    ) {
         val contentUri = notification.attachment?.contentUri
         val isSupportedImage = supportedImage(notification.attachment?.type)
         val subscriptionIcon = subscription.icon?.readBitmapFromUriOrNull(context)
@@ -188,19 +226,34 @@ class NotificationService(val context: Context) {
             try {
                 val attachmentBitmap = contentUri.readBitmapFromUri(context)
                 builder
-                    .setContentText(maybeAppendActionErrors(maybeMarkdown(formatMessage(notification), notification), notification))
+                    .setContentText(
+                        maybeAppendActionErrors(
+                            maybeMarkdown(
+                                formatMessage(notification),
+                                notification
+                            ), notification
+                        )
+                    )
                     .setLargeIcon(attachmentBitmap)
-                    .setStyle(NotificationCompat.BigPictureStyle()
-                        .bigPicture(attachmentBitmap)
-                        .bigLargeIcon(largeIcon)) // May be null
+                    .setStyle(
+                        NotificationCompat.BigPictureStyle()
+                            .bigPicture(attachmentBitmap)
+                            .bigLargeIcon(largeIcon)
+                    ) // May be null
             } catch (_: Exception) {
-                val message = maybeAppendActionErrors(formatMessageMaybeWithAttachmentInfos(notification), notification)
+                val message = maybeAppendActionErrors(
+                    formatMessageMaybeWithAttachmentInfos(notification),
+                    notification
+                )
                 builder
                     .setContentText(message)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             }
         } else {
-            val message = maybeAppendActionErrors(formatMessageMaybeWithAttachmentInfos(notification), notification)
+            val message = maybeAppendActionErrors(
+                formatMessageMaybeWithAttachmentInfos(notification),
+                notification
+            )
             builder
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))
@@ -217,24 +270,55 @@ class NotificationService(val context: Context) {
             attachment.name
         }
         if (attachment.progress in 0..99) {
-            return context.getString(R.string.notification_popup_file_downloading, attachmentInfos, attachment.progress, message)
+            return context.getString(
+                R.string.notification_popup_file_downloading,
+                attachmentInfos,
+                attachment.progress,
+                message
+            )
         }
         if (attachment.progress == ATTACHMENT_PROGRESS_DONE) {
-            return context.getString(R.string.notification_popup_file_download_successful, message, attachmentInfos)
+            return context.getString(
+                R.string.notification_popup_file_download_successful,
+                message,
+                attachmentInfos
+            )
         }
         if (attachment.progress == ATTACHMENT_PROGRESS_FAILED) {
-            return context.getString(R.string.notification_popup_file_download_failed, message, attachmentInfos)
+            return context.getString(
+                R.string.notification_popup_file_download_failed,
+                message,
+                attachmentInfos
+            )
         }
         return context.getString(R.string.notification_popup_file, message, attachmentInfos)
     }
 
-    private fun setClickAction(builder: NotificationCompat.Builder, subscription: Subscription, notification: Notification) {
+    private fun setClickAction(
+        builder: NotificationCompat.Builder,
+        subscription: Subscription,
+        notification: Notification,
+        priority: Int,
+        distance: String?
+    ) {
+        // If it's a high-intensity quake, go straight to the Warning Page
+        if (priority == PRIORITY_MAX) {
+            builder.setContentIntent(warningActivityIntent(subscription, notification, distance))
+            return
+        }
+
+        // Otherwise, keep the standard ntfy behavior
         if (notification.click == "") {
             builder.setContentIntent(detailActivityIntent(subscription))
         } else {
             try {
                 val uri = notification.click.toUri()
-                val viewIntent = PendingIntent.getActivity(context, Random().nextInt(), Intent(Intent.ACTION_VIEW, uri), PendingIntent.FLAG_IMMUTABLE)
+                val viewIntent = PendingIntent.getActivity(
+                    context,
+                    Random().nextInt(),
+                    Intent(Intent.ACTION_VIEW, uri),
+                    PendingIntent.FLAG_IMMUTABLE
+                )
                 builder.setContentIntent(viewIntent)
             } catch (_: Exception) {
                 builder.setContentIntent(detailActivityIntent(subscription))
@@ -251,54 +335,120 @@ class NotificationService(val context: Context) {
         }
     }
 
-    private fun maybeAddOpenAction(builder: NotificationCompat.Builder, notification: Notification) {
+    private fun maybeAddOpenAction(
+        builder: NotificationCompat.Builder,
+        notification: Notification
+    ) {
         if (!canOpenAttachment(notification.attachment)) {
             return
         }
         if (notification.attachment?.contentUri != null) {
             val contentUri = notification.attachment.contentUri.toUri()
             val intent = Intent(Intent.ACTION_VIEW, contentUri).apply {
-                setDataAndType(contentUri, notification.attachment.type ?: "application/octet-stream") // Required for Android <= P
+                setDataAndType(
+                    contentUri,
+                    notification.attachment.type ?: "application/octet-stream"
+                ) // Required for Android <= P
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            val pendingIntent = PendingIntent.getActivity(context, Random().nextInt(), intent, PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(NotificationCompat.Action.Builder(0, context.getString(R.string.notification_popup_action_open), pendingIntent).build())
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                Random().nextInt(),
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                NotificationCompat.Action.Builder(
+                    0,
+                    context.getString(R.string.notification_popup_action_open),
+                    pendingIntent
+                ).build()
+            )
         }
     }
 
-    private fun maybeAddBrowseAction(builder: NotificationCompat.Builder, notification: Notification) {
+    private fun maybeAddBrowseAction(
+        builder: NotificationCompat.Builder,
+        notification: Notification
+    ) {
         if (notification.attachment?.contentUri != null) {
             val intent = Intent(android.app.DownloadManager.ACTION_VIEW_DOWNLOADS).apply {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            val pendingIntent = PendingIntent.getActivity(context, Random().nextInt(), intent, PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(NotificationCompat.Action.Builder(0, context.getString(R.string.notification_popup_action_browse), pendingIntent).build())
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                Random().nextInt(),
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                NotificationCompat.Action.Builder(
+                    0,
+                    context.getString(R.string.notification_popup_action_browse),
+                    pendingIntent
+                ).build()
+            )
         }
     }
 
-    private fun maybeAddDownloadAction(builder: NotificationCompat.Builder, notification: Notification) {
-        if (notification.attachment?.contentUri == null && listOf(ATTACHMENT_PROGRESS_NONE, ATTACHMENT_PROGRESS_FAILED).contains(notification.attachment?.progress)) {
+    private fun maybeAddDownloadAction(
+        builder: NotificationCompat.Builder,
+        notification: Notification
+    ) {
+        if (notification.attachment?.contentUri == null && listOf(
+                ATTACHMENT_PROGRESS_NONE,
+                ATTACHMENT_PROGRESS_FAILED
+            ).contains(notification.attachment?.progress)
+        ) {
             val intent = Intent(context, UserActionBroadcastReceiver::class.java).apply {
                 putExtra(BROADCAST_EXTRA_TYPE, BROADCAST_TYPE_DOWNLOAD_START)
                 putExtra(BROADCAST_EXTRA_NOTIFICATION_ID, notification.id)
             }
-            val pendingIntent = PendingIntent.getBroadcast(context, Random().nextInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(NotificationCompat.Action.Builder(0, context.getString(R.string.notification_popup_action_download), pendingIntent).build())
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                Random().nextInt(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                NotificationCompat.Action.Builder(
+                    0,
+                    context.getString(R.string.notification_popup_action_download),
+                    pendingIntent
+                ).build()
+            )
         }
     }
 
-    private fun maybeAddCancelAction(builder: NotificationCompat.Builder, notification: Notification) {
+    private fun maybeAddCancelAction(
+        builder: NotificationCompat.Builder,
+        notification: Notification
+    ) {
         if (notification.attachment?.contentUri == null && notification.attachment?.progress in 0..99) {
             val intent = Intent(context, UserActionBroadcastReceiver::class.java).apply {
                 putExtra(BROADCAST_EXTRA_TYPE, BROADCAST_TYPE_DOWNLOAD_CANCEL)
                 putExtra(BROADCAST_EXTRA_NOTIFICATION_ID, notification.id)
             }
-            val pendingIntent = PendingIntent.getBroadcast(context, Random().nextInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(NotificationCompat.Action.Builder(0, context.getString(R.string.notification_popup_action_cancel), pendingIntent).build())
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                Random().nextInt(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                NotificationCompat.Action.Builder(
+                    0,
+                    context.getString(R.string.notification_popup_action_cancel),
+                    pendingIntent
+                ).build()
+            )
         }
     }
 
-    private fun maybeAddUserActions(builder: NotificationCompat.Builder, notification: Notification) {
+    private fun maybeAddUserActions(
+        builder: NotificationCompat.Builder,
+        notification: Notification
+    ) {
         notification.actions?.forEach { action ->
             val actionType = action.action.lowercase(Locale.getDefault())
             if (actionType == ACTION_VIEW) {
@@ -327,8 +477,15 @@ class NotificationService(val context: Context) {
             val intent = Intent(Intent.ACTION_VIEW, url.toUri()).apply {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             }
-            val pendingIntent = PendingIntent.getActivity(context, Random().nextInt(), intent, PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(NotificationCompat.Action.Builder(0, action.label, pendingIntent).build())
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                Random().nextInt(),
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                NotificationCompat.Action.Builder(0, action.label, pendingIntent).build()
+            )
         } catch (e: Exception) {
             Log.w(TAG, "Unable to add open user action", e)
         }
@@ -338,7 +495,11 @@ class NotificationService(val context: Context) {
      * HACK: Open the URL and CANCEL the notification (clear=true). This is a SPECIAL case with a horrible workaround.
      * We call our own activity ViewActionWithClearActivity and open the URL from there.
      */
-    private fun addViewUserActionWithClear(builder: NotificationCompat.Builder, notification: Notification, action: Action) {
+    private fun addViewUserActionWithClear(
+        builder: NotificationCompat.Builder,
+        notification: Notification,
+        action: Action
+    ) {
         try {
             val url = action.url ?: return
             val intent = Intent(context, ViewActionWithClearActivity::class.java).apply {
@@ -348,20 +509,36 @@ class NotificationService(val context: Context) {
                 putExtra(VIEW_ACTION_EXTRA_SUBSCRIPTION_ID, notification.subscriptionId)
                 putExtra(VIEW_ACTION_EXTRA_SEQUENCE_ID, notification.sequenceId)
             }
-            val pendingIntent = PendingIntent.getActivity(context, Random().nextInt(), intent, PendingIntent.FLAG_IMMUTABLE)
-            builder.addAction(NotificationCompat.Action.Builder(0, action.label, pendingIntent).build())
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                Random().nextInt(),
+                intent,
+                PendingIntent.FLAG_IMMUTABLE
+            )
+            builder.addAction(
+                NotificationCompat.Action.Builder(0, action.label, pendingIntent).build()
+            )
         } catch (e: Exception) {
             Log.w(TAG, "Unable to add open user action", e)
         }
     }
 
-    private fun addHttpBroadcastOrCopyUserAction(builder: NotificationCompat.Builder, notification: Notification, action: Action) {
+    private fun addHttpBroadcastOrCopyUserAction(
+        builder: NotificationCompat.Builder,
+        notification: Notification,
+        action: Action
+    ) {
         val intent = Intent(context, UserActionBroadcastReceiver::class.java).apply {
             putExtra(BROADCAST_EXTRA_TYPE, BROADCAST_TYPE_USER_ACTION)
             putExtra(BROADCAST_EXTRA_NOTIFICATION_ID, notification.id)
             putExtra(BROADCAST_EXTRA_ACTION_ID, action.id)
         }
-        val pendingIntent = PendingIntent.getBroadcast(context, Random().nextInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            Random().nextInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         val label = formatActionLabel(action)
         builder.addAction(NotificationCompat.Action.Builder(0, label, pendingIntent).build())
     }
@@ -378,7 +555,13 @@ class NotificationService(val context: Context) {
             val type = intent.getStringExtra(BROADCAST_EXTRA_TYPE) ?: return
             val notificationId = intent.getStringExtra(BROADCAST_EXTRA_NOTIFICATION_ID) ?: return
             when (type) {
-                BROADCAST_TYPE_DOWNLOAD_START -> DownloadManager.enqueue(context, notificationId, userAction = true, DownloadType.ATTACHMENT)
+                BROADCAST_TYPE_DOWNLOAD_START -> DownloadManager.enqueue(
+                    context,
+                    notificationId,
+                    userAction = true,
+                    DownloadType.ATTACHMENT
+                )
+
                 BROADCAST_TYPE_DOWNLOAD_CANCEL -> DownloadManager.cancel(context, notificationId)
                 BROADCAST_TYPE_USER_ACTION -> {
                     val actionId = intent.getStringExtra(BROADCAST_EXTRA_ACTION_ID) ?: return
@@ -405,14 +588,39 @@ class NotificationService(val context: Context) {
             putExtra(MainActivity.EXTRA_SUBSCRIPTION_ID, subscription.id)
             putExtra(MainActivity.EXTRA_SUBSCRIPTION_BASE_URL, subscription.baseUrl)
             putExtra(MainActivity.EXTRA_SUBSCRIPTION_TOPIC, subscription.topic)
-            putExtra(MainActivity.EXTRA_SUBSCRIPTION_DISPLAY_NAME, displayName(appBaseUrl, subscription))
+            putExtra(
+                MainActivity.EXTRA_SUBSCRIPTION_DISPLAY_NAME,
+                displayName(appBaseUrl, subscription)
+            )
             putExtra(MainActivity.EXTRA_SUBSCRIPTION_INSTANT, subscription.instant)
             putExtra(MainActivity.EXTRA_SUBSCRIPTION_MUTED_UNTIL, subscription.mutedUntil)
         }
         return TaskStackBuilder.create(context).run {
             addNextIntentWithParentStack(intent) // Add the intent, which inflates the back stack
-            getPendingIntent(Random().nextInt(), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE) // Get the PendingIntent containing the entire back stack
+            getPendingIntent(
+                Random().nextInt(),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            ) // Get the PendingIntent containing the entire back stack
         }
+    }
+
+    private fun warningActivityIntent(subscription: Subscription, notification: Notification, distance: String?): PendingIntent? {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            action = "OPEN_WARNING_PAGE"
+            putExtra("message", notification.message)
+            putExtra("distance", distance)
+            putExtra(MainActivity.EXTRA_SUBSCRIPTION_ID, subscription.id)
+
+            // SINGLE_TOP ensures we don't restart the app if it's already open
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+
+        return PendingIntent.getActivity(
+            context,
+            Random().nextInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
     }
 
     private fun maybeCreateNotificationChannel(group: String, priority: Int) {
@@ -421,10 +629,24 @@ class NotificationService(val context: Context) {
         val channelId = toChannelId(group, priority)
         val pause = 300L
         val channel = when (priority) {
-            PRIORITY_MIN -> NotificationChannel(channelId, context.getString(R.string.common_priority_min_name), NotificationManager.IMPORTANCE_MIN)
-            PRIORITY_LOW -> NotificationChannel(channelId, context.getString(R.string.common_priority_low_name), NotificationManager.IMPORTANCE_LOW)
+            PRIORITY_MIN -> NotificationChannel(
+                channelId,
+                context.getString(R.string.common_priority_min_name),
+                NotificationManager.IMPORTANCE_MIN
+            )
+
+            PRIORITY_LOW -> NotificationChannel(
+                channelId,
+                context.getString(R.string.common_priority_low_name),
+                NotificationManager.IMPORTANCE_LOW
+            )
+
             PRIORITY_HIGH -> {
-                val channel = NotificationChannel(channelId, context.getString(R.string.common_priority_high_name), NotificationManager.IMPORTANCE_HIGH)
+                val channel = NotificationChannel(
+                    channelId,
+                    context.getString(R.string.common_priority_high_name),
+                    NotificationManager.IMPORTANCE_HIGH
+                )
                 channel.enableVibration(true)
                 channel.vibrationPattern = longArrayOf(
                     pause, 100, pause, 100, pause, 100,
@@ -432,8 +654,13 @@ class NotificationService(val context: Context) {
                 )
                 channel
             }
+
             PRIORITY_MAX -> {
-                val channel = NotificationChannel(channelId, context.getString(R.string.common_priority_max_name), NotificationManager.IMPORTANCE_HIGH) // IMPORTANCE_MAX does not exist
+                val channel = NotificationChannel(
+                    channelId,
+                    context.getString(R.string.common_priority_max_name),
+                    NotificationManager.IMPORTANCE_HIGH
+                ) // IMPORTANCE_MAX does not exist
                 channel.enableLights(true)
                 channel.enableVibration(true)
                 channel.setBypassDnd(true)
@@ -447,7 +674,12 @@ class NotificationService(val context: Context) {
                 )
                 channel
             }
-            else -> NotificationChannel(channelId, context.getString(R.string.common_priority_default_name), NotificationManager.IMPORTANCE_DEFAULT)
+
+            else -> NotificationChannel(
+                channelId,
+                context.getString(R.string.common_priority_default_name),
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
         }
         channel.group = group
         notificationManager.createNotificationChannel(channel)
@@ -486,7 +718,9 @@ class NotificationService(val context: Context) {
                 Log.d(TAG, "Media player: Playing insistent alarm on alarm channel")
                 mediaPlayer.reset()
                 mediaPlayer.setDataSource(context, getInsistentSound(groupId))
-                mediaPlayer.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build())
+                mediaPlayer.setAudioAttributes(
+                    AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build()
+                )
                 mediaPlayer.isLooping = true
                 mediaPlayer.prepare()
                 mediaPlayer.start()
@@ -534,7 +768,11 @@ class NotificationService(val context: Context) {
                 Log.w(TAG, "Unable to start activity from URL $url", e)
                 val message = if (e is ActivityNotFoundException) url else e.message
                 Toast
-                    .makeText(this, getString(R.string.detail_item_cannot_open_url, message), Toast.LENGTH_LONG)
+                    .makeText(
+                        this,
+                        getString(R.string.detail_item_cannot_open_url, message),
+                        Toast.LENGTH_LONG
+                    )
                     .show()
             }
 
@@ -580,7 +818,8 @@ class NotificationService(val context: Context) {
         val lonDistance = Math.toRadians(lon2 - lon1)
         val sinLat = sin(latDistance / 2)
         val sinLon = sin(lonDistance / 2)
-        val a = sinLat * sinLat + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sinLon * sinLon
+        val a =
+            sinLat * sinLat + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sinLon * sinLon
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         return EARTH_RADIUS_KM * c
     }

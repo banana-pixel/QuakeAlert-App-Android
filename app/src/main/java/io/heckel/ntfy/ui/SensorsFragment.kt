@@ -64,7 +64,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
     private fun fetchData() {
         val startTime = System.currentTimeMillis()
-        startPulseAnimation(healthDot)
+        activity?.runOnUiThread { startPulseAnimation(healthDot) }
 
         val request = Request.Builder()
             .url("https://quakealert.bananapixel.my.id/stations")
@@ -72,46 +72,53 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                val latency = System.currentTimeMillis() - startTime
-                activity?.runOnUiThread {
-                    stopPulseAnimation(healthDot)
-                    updateHealthBar(false, latency)
-                    swipeRefreshLayout.isRefreshing = false
-                }
+                handleError(startTime)
             }
 
             override fun onResponse(call: Call, response: Response) {
                 val latency = System.currentTimeMillis() - startTime
                 response.use {
                     if (!response.isSuccessful) {
-                        activity?.runOnUiThread {
-                            stopPulseAnimation(healthDot)
-                            updateHealthBar(false, latency)
-                            swipeRefreshLayout.isRefreshing = false
-                        }
+                        handleError(startTime)
                         return
                     }
 
-                    val body = response.body?.string()
-                    if (body != null) {
-                        val type = object : TypeToken<List<Sensor>>() {}.type
-                        val stations: List<Sensor> = gson.fromJson(body, type)
-                        activity?.runOnUiThread {
-                            stopPulseAnimation(healthDot)
-                            updateHealthBar(true, latency)
-                            adapter.submitList(stations)
-                            swipeRefreshLayout.isRefreshing = false
+                    val bodyString = response.body?.string()
+
+                    // CRASH PREVENTION: Only parse if it looks like a JSON array
+                    if (bodyString != null && bodyString.trim().startsWith("[")) {
+                        try {
+                            val type = object : TypeToken<List<Sensor>>() {}.type
+                            val stations: List<Sensor> = gson.fromJson(bodyString, type)
+
+                            activity?.runOnUiThread {
+                                stopPulseAnimation(healthDot)
+                                updateHealthBar(true, latency)
+                                adapter.submitList(stations)
+                                swipeRefreshLayout.isRefreshing = false
+                            }
+                        } catch (e: Exception) {
+                            handleError(startTime)
                         }
                     } else {
-                        activity?.runOnUiThread {
-                            stopPulseAnimation(healthDot)
-                            updateHealthBar(false, latency)
-                            swipeRefreshLayout.isRefreshing = false
-                        }
+                        // This handles the case where Nginx sends back "404 Not Found"
+                        handleError(startTime)
                     }
                 }
             }
         })
+    }
+
+    // Simple helper to clean up your code
+    private fun handleError(startTime: Long) {
+        val latency = System.currentTimeMillis() - startTime
+        activity?.runOnUiThread {
+            if (isAdded) { // Ensure fragment is still attached to avoid crashes
+                stopPulseAnimation(healthDot)
+                updateHealthBar(false, latency)
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
     }
 
     private fun startPulseAnimation(view: View) {
