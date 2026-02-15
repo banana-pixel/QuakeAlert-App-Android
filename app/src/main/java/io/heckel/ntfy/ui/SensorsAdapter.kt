@@ -1,8 +1,7 @@
 package io.heckel.ntfy.ui
 
-import android.content.res.ColorStateList
 import android.graphics.Color
-import android.text.format.DateUtils // Import this
+import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,58 +27,59 @@ class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(Diff
         fun bind(sensor: Sensor) {
             val context = itemView.context
 
-            // --- 1. Header Section & Relative Time ---
-            stationName.text = "Station" // Consider using sensor.name if available
+            // --- 1. Header Section & Station Info ---
+            stationName.text = "Station" // Consider using sensor.name if added to model
             location.text = sensor.location ?: "Unknown"
             stationIdBadge.text = sensor.stationId ?: "N/A"
 
-            // NEW: Calculate "5 mins ago" dynamically
+            // --- 2. Dynamic Relative Time Calculation ---
             val lastPingSeconds = sensor.lastPing ?: 0L
+            val now = System.currentTimeMillis()
+            val lastPingMs = lastPingSeconds * 1000L // Use Long to prevent overflow
 
             if (lastPingSeconds > 0) {
-                val now = System.currentTimeMillis()
-                val lastPingMs = lastPingSeconds * 1000
                 val diffMs = now - lastPingMs
 
-                // Custom Logic: Show seconds if less than 1 minute
                 val timeText = when {
-                    diffMs < 0 -> "Just now" // Handle if server clock is slightly ahead
-                    diffMs < 60_000 -> "${diffMs / 1000}s ago" // e.g., "15s ago"
+                    diffMs < 0 -> "Just now"
+                    diffMs < 60_000 -> "${diffMs / 1000}s ago" // Show seconds for fresh pings
                     else -> DateUtils.getRelativeTimeSpanString(
                         lastPingMs,
                         now,
                         DateUtils.MINUTE_IN_MILLIS
                     ).toString()
                 }
-
                 lastPing.text = "Last ping: $timeText"
             } else {
                 lastPing.text = "Last ping: Never"
             }
 
-            // --- 2. Status Indicator (Online/Offline) ---
-            // You can keep using the server's status string, OR calculate it yourself based on time
-            // Example: Force offline if older than 5 mins (300,000ms)
-            val isLive = (System.currentTimeMillis() - (lastPingSeconds * 1000)) < 300_000
+            // --- 3. Status Badge Logic (Drawable Swapping) ---
+            // An item is online ONLY if server says so AND it pinged in the last 5 mins (300k ms)
+            val isOnline = sensor.status?.equals("online", ignoreCase = true) == true &&
+                    (now - lastPingMs) < 300_000
 
-            // Fallback to server status if you prefer
-            // val isOnline = sensor.status?.equals("online", ignoreCase = true) == true
+            // Update Text
+            statusBadge.text = if (isOnline) "Online" else "Offline"
 
-            val isOnline = isLive // Using the time-based calculation is usually more accurate
+            // Swap Background Drawables (No tinting needed)
+            val bgRes = if (isOnline)
+                R.drawable.bg_badge_3d_green_small
+            else
+                R.drawable.bg_badge_3d_red_small
 
-            val bgColor = if (isOnline) "#804CAF50" else "#80F44336" // Semi-transparent green/red
-            val statusText = if (isOnline) "Online" else "Offline"
+            statusBadge.setBackgroundResource(bgRes)
+
+            // Update Icons
             val iconRes = if (isOnline) R.drawable.ic_bolt_white_24dp else R.drawable.ic_warning_white_24dp
-
-            statusBadge.text = statusText
-            statusBadge.backgroundTintList = ColorStateList.valueOf(Color.parseColor(bgColor))
-
-            // Set icon
             val icon = ContextCompat.getDrawable(context, iconRes)
             statusBadge.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
             statusBadge.compoundDrawablePadding = 8
 
-            // --- 3. Technical Badges ---
+            // Ensure text color is white for 3D backgrounds
+            statusBadge.setTextColor(Color.WHITE)
+
+            // --- 4. Technical Badges ---
             rssiValue.text = sensor.rssi ?: "---"
             latencyValue.text = sensor.latency ?: "---"
         }
@@ -95,13 +95,20 @@ class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(Diff
         holder.bind(getItem(position))
     }
 
-    object DiffCallback : DiffUtil.ItemCallback<Sensor>() {
-        override fun areItemsTheSame(oldItem: Sensor, newItem: Sensor): Boolean {
-            return oldItem.stationId == newItem.stationId
-        }
+    companion object {
+        object DiffCallback : DiffUtil.ItemCallback<Sensor>() {
+            override fun areItemsTheSame(oldItem: Sensor, newItem: Sensor): Boolean {
+                return oldItem.stationId == newItem.stationId
+            }
 
-        override fun areContentsTheSame(oldItem: Sensor, newItem: Sensor): Boolean {
-            return oldItem == newItem
+            override fun areContentsTheSame(oldItem: Sensor, newItem: Sensor): Boolean {
+                // IMPORTANT: Must check status and lastPing to trigger badge updates
+                return oldItem.status == newItem.status &&
+                        oldItem.lastPing == newItem.lastPing &&
+                        oldItem.rssi == newItem.rssi &&
+                        oldItem.latency == newItem.latency &&
+                        oldItem.location == newItem.location
+            }
         }
     }
 }

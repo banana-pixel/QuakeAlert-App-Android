@@ -1,7 +1,7 @@
 package io.heckel.ntfy.ui
 
 import android.content.Intent
-import android.content.res.ColorStateList
+import android.graphics.Color
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
@@ -43,22 +43,30 @@ class HistoryAdapter(
         holder.descriptionText.text = item.description
         holder.pgaValue.text = item.pga
         holder.durValue.text = "${item.durasi}s"
-        holder.stationIdText.text = item.station_id // REAL Station ID
+        holder.stationIdText.text = item.station_id
 
-        // 2. Clean the Badge Text
-        val cleanRoman = item.intensity.split(" ").firstOrNull() ?: "I"
+        // 2. Clean the Badge Text (Extract "X+" from "X+ (Ekstrem)")
+        val cleanRoman = item.intensity.split(" ").firstOrNull()?.uppercase() ?: "I"
         holder.badgeText.text = cleanRoman
 
-        // 3. Apply Colors based on Intensity
-        val colorRes = getIntensityColor(cleanRoman)
-        val color = ContextCompat.getColor(context, colorRes)
-        holder.badgeText.backgroundTintList = ColorStateList.valueOf(color)
+        // 3. Apply 3D Background Drawables based on Intensity
+        // Instead of tinting, we swap the whole drawable to keep 3D effects
+        val bgRes = when (cleanRoman) {
+            "I", "II" -> R.drawable.bg_circle_3d_green
+            "III", "IV" -> R.drawable.bg_circle_3d_yellow
+            "V", "VI", "VII" -> R.drawable.bg_circle_3d_orange
+            "VIII", "IX", "X", "X+" -> R.drawable.bg_circle_3d_red
+            else -> R.drawable.bg_circle_3d_red
+        }
+        holder.badgeText.setBackgroundResource(bgRes)
 
-        // 4. Text Contrast
-        if (colorRes == R.color.intensity_yellow) {
+        // 4. Handle Text Color for Visibility
+        if (cleanRoman == "III" || cleanRoman == "IV") {
+            // Black text is more readable on yellow
             holder.badgeText.setTextColor(ContextCompat.getColor(context, android.R.color.black))
         } else {
-            holder.badgeText.setTextColor(ContextCompat.getColor(context, android.R.color.white))
+            // White text for green, orange, and red
+            holder.badgeText.setTextColor(Color.WHITE)
         }
 
         // 5. Map Image Binding
@@ -77,16 +85,6 @@ class HistoryAdapter(
 
     override fun getItemCount(): Int = reports.size
 
-    private fun getIntensityColor(roman: String): Int {
-        return when (roman.uppercase()) {
-            "I", "II" -> R.color.intensity_green
-            "III", "IV" -> R.color.intensity_yellow
-            "V", "VI", "VII" -> R.color.intensity_orange
-            "VIII", "IX", "X", "X+" -> R.color.intensity_red
-            else -> R.color.intensity_red
-        }
-    }
-
     private fun convertLongToDate(time: Long): String {
         val date = Date(time)
         val format = SimpleDateFormat("dd MMM yyyy, HH:mm:ss z", Locale.getDefault())
@@ -101,9 +99,7 @@ class HistoryAdapter(
         val mapPreview: ImageView = view.findViewById(R.id.history_map_preview)
         val pgaValue: TextView = view.findViewById(R.id.history_pga_value)
         val durValue: TextView = view.findViewById(R.id.history_dur_value)
-
-        // FIX: Match the ID from your XML (history_station)
-        val stationIdText: TextView = view.findViewById(R.id.history_station)
+        val stationIdText: TextView = view.findViewById(R.id.history_station) // Corrected ID
 
         init {
             itemView.setOnClickListener { v ->

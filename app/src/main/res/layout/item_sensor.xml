@@ -1,125 +1,126 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
-    android:layout_marginVertical="8dp"
-    app:cardBackgroundColor="?attr/colorSurfaceVariant"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="8dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/card_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:background="@drawable/bg_card_3d_light_blue"
+        android:padding="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Station Name -->
         <TextView
             android:id="@+id/sensor_station_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="?attr/colorOnSurface"
+            android:text="Station"
+            android:textColor="#01579B"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="Station" />
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Station ID Badge -->
         <TextView
             android:id="@+id/sensor_station_id_badge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:background="@drawable/badge_stat"
             android:fontFamily="monospace"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="11sp"
+            android:text="SEIS-01"
+            android:textColor="#0288D1"
+            android:textSize="14sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="@id/sensor_station_name"
             app:layout_constraintStart_toEndOf="@id/sensor_station_name"
-            app:layout_constraintTop_toTopOf="@id/sensor_station_name"
-            tools:text="SEIS-01" />
+            app:layout_constraintTop_toTopOf="@id/sensor_station_name" />
 
-        <!-- Location String -->
         <TextView
             android:id="@+id/sensor_location"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:drawablePadding="4dp"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:text="Bandung, Indonesia"
+            android:textColor="#546E7A"
             android:textSize="12sp"
+            android:textStyle="bold"
             app:drawableStartCompat="@drawable/ic_location_on_red"
-            app:drawableTint="?attr/colorOnSurfaceVariant"
+            app:drawableTint="#546E7A"
             app:layout_constraintEnd_toStartOf="@id/sensor_status_badge"
             app:layout_constraintStart_toStartOf="@id/sensor_station_name"
-            app:layout_constraintTop_toBottomOf="@id/sensor_station_id_badge"
-            tools:text="Bandung, Indonesia" />
+            app:layout_constraintTop_toBottomOf="@id/sensor_station_id_badge" />
 
-        <!-- Status Indicator (Far Right) -->
         <TextView
             android:id="@+id/sensor_status_badge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@drawable/badge_rounded_square"
-            android:backgroundTint="#804CAF50"
+            android:background="@drawable/bg_badge_3d_green_small"
+
+            android:backgroundTint="@null"
+
             android:gravity="center"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="16dp"
-            android:textColor="@android:color/white"
+            android:minWidth="70dp"
+
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="10dp"
+
+            android:text="Online"
+            android:textColor="#FFFFFF"
             android:textSize="12sp"
             android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="Online" />
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Last Ping -->
         <TextView
             android:id="@+id/sensor_last_ping"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textSize="12sp"
+            android:layout_marginTop="8dp"
+            android:text="Last ping: 2026-02-09 17:05:12 WIB"
+            android:textColor="#78909C"
+            android:textSize="11sp"
             app:layout_constraintEnd_toStartOf="@id/sensor_status_badge"
             app:layout_constraintStart_toStartOf="@id/sensor_station_name"
-            app:layout_constraintTop_toBottomOf="@id/sensor_location"
-            tools:text="Last ping: 2026-02-09 17:05:12 WIB" />
+            app:layout_constraintTop_toBottomOf="@id/sensor_location" />
 
-        <!-- Technical Detail Row (Badges) -->
         <LinearLayout
             android:id="@+id/sensor_stats_badges_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="16dp"
             android:orientation="horizontal"
             app:layout_constraintStart_toStartOf="@id/sensor_station_name"
             app:layout_constraintTop_toBottomOf="@id/sensor_last_ping">
 
-            <!-- Signal (RSSI) Badge -->
             <LinearLayout
                 android:id="@+id/sensor_rssi_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/badge_stat"
-                android:backgroundTint="?attr/colorSurface"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/bg_badge_3d_white"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp">
+                android:minWidth="60dp"
+                android:paddingHorizontal="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="9dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="RSSI"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="#9E9E9E"
                     android:textSize="9sp"
                     android:textStyle="bold" />
 
@@ -127,29 +128,29 @@
                     android:id="@+id/sensor_rssi_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="?attr/colorOnSurface"
+                    android:text="-53 dBm"
+                    android:textColor="#424242"
                     android:textSize="12sp"
-                    android:textStyle="bold"
-                    tools:text="-53 dBm" />
+                    android:textStyle="bold" />
             </LinearLayout>
 
-            <!-- Latency Badge -->
             <LinearLayout
                 android:id="@+id/sensor_latency_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/badge_stat"
-                android:backgroundTint="?attr/colorSurface"
+                android:background="@drawable/bg_badge_3d_white"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp">
+                android:minWidth="60dp"
+                android:paddingHorizontal="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="9dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="LATENCY"
-                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textColor="#9E9E9E"
                     android:textSize="9sp"
                     android:textStyle="bold" />
 
@@ -157,12 +158,12 @@
                     android:id="@+id/sensor_latency_value"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:textColor="?attr/colorOnSurface"
+                    android:text="24ms"
+                    android:textColor="#424242"
                     android:textSize="12sp"
-                    android:textStyle="bold"
-                    tools:text="24ms" />
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-</androidx.cardview.widget.CardView>
+</androidx.constraintlayout.widget.ConstraintLayout>
