@@ -126,4 +126,9 @@
         <item name="android:windowEnterAnimation">@anim/slide_in_bottom</item>
         <item name="android:windowExitAnimation">@anim/slide_out_bottom</item>
     </style>
+
+    <style name="Theme.App.NoNavIndicator" parent="Widget.Material3.BottomNavigationView">
+        <item name="itemActiveIndicatorStyle">@null</item>
+    </style>
+
 </resources>

@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0A0A">
+    android:background="#000000">
 
     <LinearLayout
         android:id="@+id/warning_scanning_layout"
@@ -50,8 +50,7 @@
         android:layout_height="match_parent"
         android:background="@drawable/gradient_emergency_red"
         android:fillViewport="true"
-        android:visibility="visible"
-        tools:background="#B71C1C">
+        android:visibility="visible">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -64,7 +63,7 @@
                 android:layout_width="64dp"
                 android:layout_height="64dp"
                 android:layout_marginTop="32dp"
-                 android:src="@drawable/alert_triangle"
+                android:src="@drawable/alert_triangle"
                 app:tint="#FFFFFF" />
 
             <TextView
@@ -209,14 +208,15 @@
                     android:text="Dismiss"
                     android:textColor="#FFFFFF" />
 
-
             </LinearLayout>
 
-        </LinearLayout>
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="100dp" /> </LinearLayout>
     </ScrollView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btn_open_details"
+        android:id="@+id/bottom_floating_ui"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"

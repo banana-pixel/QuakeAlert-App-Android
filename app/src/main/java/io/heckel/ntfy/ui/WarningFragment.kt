@@ -22,7 +22,6 @@ import io.heckel.ntfy.R
 import io.heckel.ntfy.app.AlertState
 import io.heckel.ntfy.msg.NotificationService
 import io.heckel.ntfy.util.formatTimestampToLocal
-import io.heckel.ntfy.ui.DetailActivity
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import io.heckel.ntfy.app.Application as App
 import androidx.lifecycle.lifecycleScope
@@ -42,6 +41,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     private lateinit var safeActionsCard: MaterialCardView
     private lateinit var shareButton: Button
     private lateinit var dismissButton: Button
+    private lateinit var viewLogsButton: FloatingActionButton
 
     private var backgroundAnimator: ValueAnimator? = null
     private val resetHandler = Handler(Looper.getMainLooper())
@@ -50,8 +50,6 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     private val timeUpdateHandler = Handler(Looper.getMainLooper())
     private var timeUpdateRunnable: Runnable? = null
     private var alertTimestamp: Long = 0L
-    private lateinit var viewLogsButton: FloatingActionButton // New Button variable
-
 
     private val quakeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -69,9 +67,19 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 1. Initialize all views
+        // --- FIXED IDs TO MATCH FINAL XML ---
+
+        // 1. Scanning Layout: Uses the standard ID again
         scanningLayout = view.findViewById(R.id.warning_scanning_layout)
+
+        // 2. Alert Layout: Uses the standard ID again
         alertLayout = view.findViewById(R.id.warning_alert_layout)
+
+        // 3. FAB: Uses the "Magic ID" so MainActivity lifts it above the Nav Bar
+        viewLogsButton = view.findViewById(R.id.bottom_floating_ui)
+
+        // ------------------------------------
+
         radarIcon = view.findViewById(R.id.warning_radar_icon)
         alertDetails = view.findViewById(R.id.warning_alert_details)
         alertTime = view.findViewById(R.id.warning_alert_time)
@@ -80,11 +88,9 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         safeActionsCard = view.findViewById(R.id.warning_safe_actions_card)
         shareButton = view.findViewById(R.id.warning_share_button)
         dismissButton = view.findViewById(R.id.warning_dismiss_button)
-        viewLogsButton = view.findViewById(R.id.btn_open_details)
 
         val pulseAnimation = AnimationUtils.loadAnimation(context, R.anim.pulse)
 
-        // 2. The Source of Truth: Observers
         AlertState.isAlertActive.observe(viewLifecycleOwner) { active ->
             updateVisibility(active, pulseAnimation)
         }
@@ -101,22 +107,17 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             }
         }
 
-        // 3. Button Click Listeners
         setupListeners()
 
-        // 4. Manual Sync (Fail-safe for re-entry)
         val savedNotification = AlertState.latestAlert.value
         val isCurrentlyActive = AlertState.isAlertActive.value ?: false
 
         if (isCurrentlyActive && savedNotification != null) {
-            Log.d("QUAKE_FIX", "Found existing alert data on re-entry. Force-syncing UI.")
             updateAlertContent(
                 savedNotification.message,
                 AlertState.latestDistance.value,
                 savedNotification.timestamp
             )
-        } else {
-            Log.d("QUAKE_FIX", "No active alert found or data is null on re-entry.")
         }
     }
 
@@ -130,18 +131,11 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             .filterNot { it.contains("Waktu:", ignoreCase = true) }
             .joinToString("\n").trim()
 
-        // --- NEW LOGIC START ---
-        // 1. Find the line that says "Intensitas : [Roman Numeral]"
-        // This Regex looks for "Intensitas" followed by space/colon, then capture the Roman Numeral
         val intensityRegex = "Intensitas\\s*:\\s*([IVX]+)".toRegex(RegexOption.IGNORE_CASE)
         val match = intensityRegex.find(cleanMessage)
-
-        // 2. Extract the number (e.g., "V", "III", "IX"). Default to "?" if not found.
         val extractedIntensity = match?.groupValues?.get(1) ?: "?"
 
         intensityText.text = extractedIntensity
-        // --- NEW LOGIC END ---
-
         alertDetails.text = if (!distance.isNullOrBlank()) {
             "Location: $distance km away\n$cleanMessage"
         } else {
@@ -154,7 +148,11 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             scanningLayout.visibility = View.GONE
             alertLayout.visibility = View.VISIBLE
             radarIcon.clearAnimation()
-            startBackgroundWarningAnimation(alertLayout)
+
+            // NOTE: We comment this out because setting background color
+            // will override your nice Red Gradient drawable.
+            // startBackgroundWarningAnimation(alertLayout)
+
         } else {
             scanningLayout.visibility = View.VISIBLE
             alertLayout.visibility = View.GONE
@@ -171,8 +169,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         }
 
         shareButton.setOnClickListener {
-            val shareText =
-                "🚨 EARTHQUAKE ALERT 🚨\nIntensity: ${intensityText.text}\n${alertDetails.text}\nTime: ${alertTime.text}"
+            val shareText = "🚨 EARTHQUAKE ALERT 🚨\nIntensity: ${intensityText.text}\n${alertDetails.text}\nTime: ${alertTime.text}"
             val sendIntent = Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, shareText)
@@ -190,10 +187,8 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             val topic = "peringatan_gempa_darurat_xyz"
             val baseUrl = "quakealert.bananapixel.my.id"
 
-            // 1. ADD ANIMATION: Scale down slightly when clicked
             viewLogsButton.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction {
                 viewLogsButton.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
-
                 viewLifecycleOwner.lifecycleScope.launch {
                     val repository = (requireActivity().application as App).repository
                     val subscription = withContext(Dispatchers.IO) {
@@ -203,9 +198,6 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                     val uriString = "ntfy://$baseUrl/$topic"
                     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uriString)).apply {
                         `package` = requireContext().packageName
-
-                        // 2. NAVIGATION FIX: Remove NEW_TASK/CLEAR_TOP
-                        // This keeps the WarningFragment in the history stack.
                         if (subscription != null) {
                             putExtra("subscription_id", subscription.id)
                         }
@@ -217,6 +209,8 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     }
 
     private fun startBackgroundWarningAnimation(view: View) {
+        // Disabled to preserve gradient background
+        /*
         if (backgroundAnimator != null) return
         val colorFrom = ContextCompat.getColor(requireContext(), R.color.intensity_red)
         val colorTo = ColorUtils.setAlphaComponent(colorFrom, 160)
@@ -227,6 +221,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             addUpdateListener { animator -> view.setBackgroundColor(animator.animatedValue as Int) }
             start()
         }
+        */
     }
 
     private fun stopBackgroundWarningAnimation() {
@@ -243,21 +238,14 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         timeUpdateRunnable = object : Runnable {
             override fun run() {
                 if (alertTimestamp > 0) {
-                    // 1. Get the "Relative" time (e.g. "5 minutes ago")
                     val timeAgo = android.text.format.DateUtils.getRelativeTimeSpanString(
                         alertTimestamp * 1000L,
                         System.currentTimeMillis(),
                         android.text.format.DateUtils.MINUTE_IN_MILLIS
                     )
-
-                    // 2. Get the "Absolute" time (e.g. "21:05 WIB")
-                    // We use the utility function you already have imported
                     val exactTime = formatTimestampToLocal(alertTimestamp)
-
-                    // 3. Combine them
                     alertTime.text = "$exactTime\n($timeAgo)"
                 }
-                // Repeat every 60 seconds
                 timeUpdateHandler.postDelayed(this, 60 * 1000L)
             }
         }

@@ -43,7 +43,9 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         super.onViewCreated(view, savedInstanceState)
 
         swipeRefreshLayout = view.findViewById(R.id.sensors_swipe_refresh)
-        val recyclerView: RecyclerView = view.findViewById(R.id.sensors_recycler_view)
+
+        // FIX: Change R.id.sensors_recycler_view to R.id.recycler_view
+        val recyclerView: RecyclerView = view.findViewById(R.id.recycler_view)
         recyclerView.adapter = adapter
 
         // Initialize Views

@@ -88,6 +88,7 @@ import android.graphics.Color
 import android.content.res.ColorStateList
 import androidx.constraintlayout.widget.ConstraintLayout
 import io.heckel.ntfy.db.ConnectionState
+import android.view.ViewGroup
 
 class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener {
     private val viewModel by viewModels<SubscriptionsViewModel> {
@@ -170,6 +171,13 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 navController.navigate(item.itemId, null, navOptions)
             }
             true
+        }
+
+        navController.addOnDestinationChangedListener { _, _, _ ->
+            // We use .post to wait for the views to be fully drawn/measured
+            bottomNav.post {
+                applyBottomInset(bottomNav)
+            }
         }
 
         // Dependencies that depend on Context
@@ -1042,6 +1050,55 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             }
         }
     }
+
+    private fun applyBottomInset(bottomNav: View) {
+        // 1. Find the current fragment and its root view
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment
+        val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
+        val fragmentView = currentFragment?.view ?: return
+
+        // 2. Calculate the base space needed for the Navigation Bar
+        val navSpace = bottomNav.height + bottomNav.marginTop + bottomNav.marginBottom + 20
+
+        // 3. Handle the Floating UI (the Chat Input Bar)
+        val floatingUi = fragmentView.findViewById<View>(R.id.bottom_floating_ui)
+
+        // We start with the navigation bar height as our base padding
+        var totalBottomPadding = navSpace
+
+        floatingUi?.let { ui ->
+            // LIFT: Push the input bar up so it sits on top of the Nav Bar
+            val params = ui.layoutParams as ViewGroup.MarginLayoutParams
+            params.bottomMargin = navSpace
+            ui.layoutParams = params
+
+            // STACK: Once the UI is measured, add its height to the list padding
+            ui.post {
+                // We add the height of the input bar + some extra padding (16dp)
+                val uiHeightWithMargin = ui.height + (16 * resources.displayMetrics.density).toInt()
+                totalBottomPadding += uiHeightWithMargin
+
+                // Apply the final combined padding to the RecyclerView
+                applyToRecyclerView(fragmentView, totalBottomPadding)
+            }
+        } ?: run {
+            // If there is no floating UI, just apply the navigation padding
+            applyToRecyclerView(fragmentView, totalBottomPadding)
+        }
+    }
+
+    private fun applyToRecyclerView(rootView: View, padding: Int) {
+        val recyclerView = rootView.findViewById<RecyclerView>(R.id.recycler_view)
+        recyclerView?.let { rv ->
+            rv.clipToPadding = false
+            rv.setPadding(rv.paddingLeft, rv.paddingTop, rv.paddingRight, padding)
+        }
+    }
+
+    // Helper extensions to get margins easily without crashing
+    val View.marginTop: Int get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
+    val View.marginBottom: Int get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
+
     companion object {
         const val TAG = "NtfyMainActivity"
         const val EXTRA_SUBSCRIPTION_ID = "subscriptionId"

@@ -63,7 +63,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
         // 1. FIND VIEWS
         mapView = view.findViewById(R.id.mapview)
-        bottomPanel = view.findViewById(R.id.bottom_panel)
+        bottomPanel = view.findViewById(R.id.bottom_floating_ui)
         val valueView = view.findViewById<TextView>(R.id.alert_radius_value)
         val slider = view.findViewById<SeekBar>(R.id.alert_radius_slider) // Correct Type
         tvLocationName = view.findViewById(R.id.tv_location_name)

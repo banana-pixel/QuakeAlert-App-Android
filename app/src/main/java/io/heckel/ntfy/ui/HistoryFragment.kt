@@ -25,7 +25,7 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val recyclerView = view.findViewById<RecyclerView>(R.id.history_recycler)
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recycler_view)
         swipeRefreshLayout = view.findViewById(R.id.history_swipe_refresh)
 
         historyAdapter = HistoryAdapter()

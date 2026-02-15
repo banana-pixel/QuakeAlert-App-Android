@@ -44,18 +44,19 @@ class ChatFragment : Fragment() {
         deviceId = Settings.Secure.getString(requireContext().contentResolver, Settings.Secure.ANDROID_ID)
         chatAdapter = ChatAdapter(deviceId)
 
-        binding.chatRecyclerView.apply {
+        // CHANGED: chatRecyclerView -> recyclerView
+        binding.recyclerView.apply {
             adapter = chatAdapter
             layoutManager = LinearLayoutManager(requireContext())
         }
 
-        // 1. Observe Room Database (Single Source of Truth)
-        // This makes chat work OFFLINE instantly.
+        // 1. Observe Room Database
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.  chatMessages.collectLatest { messages ->
+            viewModel.chatMessages.collectLatest { messages ->
                 chatAdapter.submitList(messages) {
                     if (messages.isNotEmpty()) {
-                        binding.chatRecyclerView.scrollToPosition(messages.size - 1)
+                        // CHANGED: chatRecyclerView -> recyclerView
+                        binding.recyclerView.scrollToPosition(messages.size - 1)
                     }
                 }
             }
