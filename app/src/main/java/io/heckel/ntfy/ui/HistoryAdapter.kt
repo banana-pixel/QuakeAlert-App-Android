@@ -43,8 +43,9 @@ class HistoryAdapter(
         holder.descriptionText.text = item.description
         holder.pgaValue.text = item.pga
         holder.durValue.text = "${item.durasi}s"
+        holder.stationIdText.text = item.station_id // REAL Station ID
 
-        // 2. Clean the Badge Text (Show only IV, V, X+, etc.)
+        // 2. Clean the Badge Text
         val cleanRoman = item.intensity.split(" ").firstOrNull() ?: "I"
         holder.badgeText.text = cleanRoman
 
@@ -53,9 +54,8 @@ class HistoryAdapter(
         val color = ContextCompat.getColor(context, colorRes)
         holder.badgeText.backgroundTintList = ColorStateList.valueOf(color)
 
-        // 4. Fix 'black' reference and Text Contrast
+        // 4. Text Contrast
         if (colorRes == R.color.intensity_yellow) {
-            // Use android.R.color.black to avoid unresolved reference errors
             holder.badgeText.setTextColor(ContextCompat.getColor(context, android.R.color.black))
         } else {
             holder.badgeText.setTextColor(ContextCompat.getColor(context, android.R.color.white))
@@ -77,14 +77,13 @@ class HistoryAdapter(
 
     override fun getItemCount(): Int = reports.size
 
-    // Helper to pick color based on Roman Numeral
     private fun getIntensityColor(roman: String): Int {
         return when (roman.uppercase()) {
             "I", "II" -> R.color.intensity_green
             "III", "IV" -> R.color.intensity_yellow
             "V", "VI", "VII" -> R.color.intensity_orange
             "VIII", "IX", "X", "X+" -> R.color.intensity_red
-            else -> R.color.intensity_red // Default to red for safety
+            else -> R.color.intensity_red
         }
     }
 
@@ -103,6 +102,9 @@ class HistoryAdapter(
         val pgaValue: TextView = view.findViewById(R.id.history_pga_value)
         val durValue: TextView = view.findViewById(R.id.history_dur_value)
 
+        // FIX: Match the ID from your XML (history_station)
+        val stationIdText: TextView = view.findViewById(R.id.history_station)
+
         init {
             itemView.setOnClickListener { v ->
                 val quake = v.tag as? QuakeData ?: return@setOnClickListener
@@ -114,7 +116,6 @@ class HistoryAdapter(
                 try {
                     context.startActivity(intent)
                 } catch (e: Exception) {
-                    // Fallback if Maps app is not installed
                     val webIntent = Intent(Intent.ACTION_VIEW, uri)
                     context.startActivity(webIntent)
                 }
