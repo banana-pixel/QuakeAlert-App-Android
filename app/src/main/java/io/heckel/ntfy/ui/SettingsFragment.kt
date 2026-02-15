@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Bundle
 import android.view.View
+import android.widget.SeekBar // Import SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -16,7 +17,6 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.slider.Slider
 import io.heckel.ntfy.BuildConfig
 import io.heckel.ntfy.R
 import io.heckel.ntfy.db.Repository
@@ -29,6 +29,7 @@ import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polygon
 import java.util.Locale
+import android.graphics.Point
 
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private lateinit var repository: Repository
@@ -48,6 +49,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
     }
 
+    private lateinit var bottomPanel: View
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
@@ -58,11 +61,11 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 1. FIND VIEWS FIRST
+        // 1. FIND VIEWS
         mapView = view.findViewById(R.id.mapview)
-        val scrollView = view.findViewById<androidx.core.widget.NestedScrollView>(R.id.nested_scroll_view)
+        bottomPanel = view.findViewById(R.id.bottom_panel)
         val valueView = view.findViewById<TextView>(R.id.alert_radius_value)
-        val slider = view.findViewById<Slider>(R.id.alert_radius_slider)
+        val slider = view.findViewById<SeekBar>(R.id.alert_radius_slider) // Correct Type
         tvLocationName = view.findViewById(R.id.tv_location_name)
         val btnRefresh = view.findViewById<MaterialButton>(R.id.btn_refresh_location)
         val btnRecenter = view.findViewById<MaterialButton>(R.id.btn_recenter)
@@ -77,19 +80,19 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         mapView.isHorizontalMapRepetitionEnabled = false
         mapView.isVerticalMapRepetitionEnabled = false
 
-        // 3. APPLY LIMITS (No more black space!)
+        // 3. APPLY LIMITS
         val worldBox = org.osmdroid.util.BoundingBox(85.0, 180.0, -85.0, -180.0)
         mapView.setScrollableAreaLimitDouble(worldBox)
         mapView.minZoomLevel = 3.0
 
-        // 4. ADD OVERLAYS (Scale Bar)
-        val scaleBarOverlay = org.osmdroid.views.overlay.ScaleBarOverlay(mapView).apply {
-            setAlignBottom(true)
-            setScaleBarOffset(20, 20)
-            setTextSize(12f * resources.displayMetrics.density)
-            setUnitsOfMeasure(org.osmdroid.views.overlay.ScaleBarOverlay.UnitsOfMeasure.metric)
-        }
-        mapView.overlays.add(scaleBarOverlay)
+//        // 4. ADD OVERLAYS (Scale Bar)
+//        val scaleBarOverlay = org.osmdroid.views.overlay.ScaleBarOverlay(mapView).apply {
+//            setAlignBottom(true)
+//            setScaleBarOffset(20, 20)
+//            setTextSize(12f * resources.displayMetrics.density)
+//            setUnitsOfMeasure(org.osmdroid.views.overlay.ScaleBarOverlay.UnitsOfMeasure.metric)
+//        }
+//        mapView.overlays.add(scaleBarOverlay)
 
         // 5. TOUCH & GESTURES
         mapView.setOnTouchListener { v, event ->
@@ -106,44 +109,79 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         if (currentCity.isNotEmpty() && currentCity != "Unknown") {
             tvLocationName.text = currentCity
         } else {
-            // Show coordinates if city is empty or "Unknown"
             tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", currentLat, currentLon)
         }
 
         mapView.controller.setZoom(7.0)
-        mapView.controller.setCenter(startPoint)
+        mapView.post { animateToOffset(startPoint) }
 
-        // Setup Slider & Labels
+        // --- SLIDER LOGIC UPDATED FOR SEEKBAR ---
         val sharedPrefs = requireContext().getSharedPreferences(Repository.SHARED_PREFS_ID, 0)
         val initialRadius = sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
-        val initialValue = (initialRadius / STEP_KM).toFloat().coerceIn(0f, MAX_PROGRESS.toFloat())
 
-        slider.value = initialValue
-        updateRadiusLabel(valueView, initialValue.toInt())
+        // Convert radius back to progress steps (0-50)
+        val initialProgress = (initialRadius / STEP_KM).coerceIn(0, MAX_PROGRESS)
+
+        slider.progress = initialProgress // Use .progress instead of .value
+        updateRadiusLabel(valueView, initialProgress)
         updateCenterMarker(startPoint)
         updateMapCircle(initialRadius, startPoint)
 
         // Handle the slider moving
-        slider.addOnChangeListener { _, value, fromUser ->
-            val progress = value.toInt()
-            val radius = progress * STEP_KM
-            updateRadiusLabel(valueView, progress)
-            val center = GeoPoint(repository.getUserLatitude(), repository.getUserLongitude())
-            updateMapCircle(radius, center)
-            if (fromUser) {
-                sharedPrefs.edit { putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius) }
+        slider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                val radius = progress * STEP_KM
+                updateRadiusLabel(valueView, progress)
+
+                // Only update visual circle while dragging
+                val center = GeoPoint(repository.getUserLatitude(), repository.getUserLongitude())
+                updateMapCircle(radius, center)
+
+                if (fromUser) {
+                    sharedPrefs.edit { putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius) }
+                }
             }
-        }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+        // ----------------------------------------
 
         // Handle the buttons
         btnRefresh.setOnClickListener { checkPermissionAndRefresh() }
+        // UPDATED: Use the new helper for manual Recenter
         btnRecenter.setOnClickListener {
             val lat = repository.getUserLatitude()
             val lon = repository.getUserLongitude()
-            mapView.controller.animateTo(GeoPoint(lat, lon))
+            animateToOffset(GeoPoint(lat, lon))
         }
         btnZoomIn.setOnClickListener { mapView.controller.zoomIn() }
         btnZoomOut.setOnClickListener { mapView.controller.zoomOut() }
+    }
+
+    private fun animateToOffset(target: GeoPoint) {
+        // 1. Calculate the offset (half the height of the bottom panel)
+        val offsetPixels = bottomPanel.height / 2
+
+        if (offsetPixels > 0) {
+            val projection = mapView.projection
+
+            // 2. Translate the target GeoPoint to screen pixels
+            val targetPointPixels = projection.toPixels(target, null)
+
+            // 3. Create a new pixel point that is 'offsetPixels' LOWER (South)
+            // This forces the map center to be below the target, pushing the target UP.
+            val newCenterPixels = Point(targetPointPixels.x, targetPointPixels.y + offsetPixels)
+
+            // 4. Convert back to GeoPoint
+            val newCenterGeoPoint = projection.fromPixels(newCenterPixels.x, newCenterPixels.y)
+
+            // 5. Animate to the adjusted center
+            mapView.controller.animateTo(newCenterGeoPoint)
+        } else {
+            // Fallback if view isn't laid out yet
+            mapView.controller.animateTo(target)
+        }
     }
 
     private fun checkPermissionAndRefresh() {
@@ -168,9 +206,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         centerMarker = org.osmdroid.views.overlay.Marker(mapView).apply {
             position = center
             setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
-            // Use a standard Android crosshair icon
             icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_custom_crosshair)
-            setInfoWindow(null) // Disable the popup when clicked
+            setInfoWindow(null)
         }
 
         mapView.overlays.add(centerMarker)
@@ -196,12 +233,15 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                     repository.setUserLongitude(lon)
 
                     val newPoint = GeoPoint(lat, lon)
-                    mapView.controller.animateTo(newPoint)
+
+                    // USE THE HELPER HERE
+                    animateToOffset(newPoint)
 
                     updateCenterMarker(newPoint)
 
-                    val slider = view?.findViewById<Slider>(R.id.alert_radius_slider)
-                    val radius = (slider?.value?.toInt() ?: 0) * STEP_KM
+                    val slider = view?.findViewById<SeekBar>(R.id.alert_radius_slider)
+                    val progress = slider?.progress ?: 0
+                    val radius = progress * STEP_KM
                     updateMapCircle(radius, newPoint)
 
                     updateCityName(lat, lon)
@@ -219,18 +259,15 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                     val addresses = geocoder.getFromLocation(lat, lon, 1)
                     if (!addresses.isNullOrEmpty()) {
                         val address = addresses[0]
-                        // REMOVED: ?: "Unknown" fallback here
                         address.locality ?: address.subAdminArea ?: address.adminArea
                     } else null
                 } catch (e: Exception) { null }
             }
 
-            // Only save if we actually found a name
             if (!cityName.isNullOrBlank()) {
                 repository.setUserCityName(cityName)
                 tvLocationName.text = cityName
             } else {
-                // If no name, clear the repo and show coordinates
                 repository.setUserCityName("")
                 tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", lat, lon)
             }
@@ -240,9 +277,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private fun updateRadiusLabel(valueView: TextView, progress: Int) {
         val radius = progress * STEP_KM
         valueView.text = if (radius >= MAX_RADIUS_KM) {
-            "Alert Radius: Global"
+            "Global"
         } else {
-            "Alert Radius: ${radius} km"
+            "${radius} km"
         }
     }
 
@@ -251,7 +288,6 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             mapView.overlays.remove(mapCircle)
         }
 
-        // Always ensure the marker is updated/added so it stays on top
         updateCenterMarker(center)
 
         if (radiusKm >= MAX_RADIUS_KM) {

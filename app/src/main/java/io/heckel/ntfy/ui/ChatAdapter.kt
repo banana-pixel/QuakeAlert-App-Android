@@ -8,6 +8,8 @@ import androidx.recyclerview.widget.RecyclerView
 import io.heckel.ntfy.databinding.ItemChatMeBinding
 import io.heckel.ntfy.databinding.ItemChatOtherBinding
 import io.heckel.ntfy.msg.ChatMessage
+import java.text.SimpleDateFormat
+import java.util.*
 
 class ChatAdapter(private val currentUserId: String) : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(DiffCallback) {
 
@@ -21,6 +23,15 @@ class ChatAdapter(private val currentUserId: String) : ListAdapter<ChatMessage, 
             override fun areContentsTheSame(oldItem: ChatMessage, newItem: ChatMessage): Boolean =
                 oldItem == newItem
         }
+    }
+
+    // Custom helper to format the time exactly as: 14 Feb 2026, 18:34
+    private fun formatChatTime(timestamp: Long): String {
+        // Convert seconds (from server) to milliseconds (for Android)
+        val date = Date(timestamp * 1000)
+        val pattern = "d MMM yyyy, HH:mm"
+        val formatter = SimpleDateFormat(pattern, Locale.getDefault())
+        return formatter.format(date)
     }
 
     override fun getItemViewType(position: Int): Int {
@@ -39,19 +50,25 @@ class ChatAdapter(private val currentUserId: String) : ListAdapter<ChatMessage, 
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = getItem(position)
-        if (holder is MyMessageViewHolder) holder.bind(message)
-        else if (holder is OtherMessageViewHolder) holder.bind(message)
+        val formattedTime = formatChatTime(message.timestamp) // Process time here
+
+        when (holder) {
+            is MyMessageViewHolder -> holder.bind(message, formattedTime)
+            is OtherMessageViewHolder -> holder.bind(message, formattedTime)
+        }
     }
 
     class MyMessageViewHolder(private val binding: ItemChatMeBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: ChatMessage) {
+        fun bind(message: ChatMessage, formattedTime: String) {
             binding.chatMessageText.text = message.message
+            binding.chatTimeText.text = formattedTime // Set the text
         }
     }
 
     class OtherMessageViewHolder(private val binding: ItemChatOtherBinding) : RecyclerView.ViewHolder(binding.root) {
-        fun bind(message: ChatMessage) {
+        fun bind(message: ChatMessage, formattedTime: String) {
             binding.chatMessageText.text = message.message
+            binding.chatTimeText.text = formattedTime // Set the text
         }
     }
 }

@@ -64,10 +64,15 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
     private fun fetchData() {
         val startTime = System.currentTimeMillis()
-        activity?.runOnUiThread { startPulseAnimation(healthDot) }
+
+        // Only start animation if we are actually refreshing manually or it's the first load
+        // (Optional optimization: avoids flickering on auto-refresh)
+        if (swipeRefreshLayout.isRefreshing) {
+            activity?.runOnUiThread { startPulseAnimation(healthDot) }
+        }
 
         val request = Request.Builder()
-            .url("https://quakealert.bananapixel.my.id/stations")
+            .url("https://quakealert.bananapixel.my.id/stations") // Your URL
             .build()
 
         client.newCall(request).enqueue(object : Callback {
@@ -85,23 +90,32 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
                     val bodyString = response.body?.string()
 
-                    // CRASH PREVENTION: Only parse if it looks like a JSON array
                     if (bodyString != null && bodyString.trim().startsWith("[")) {
                         try {
                             val type = object : TypeToken<List<Sensor>>() {}.type
                             val stations: List<Sensor> = gson.fromJson(bodyString, type)
 
                             activity?.runOnUiThread {
+                                if (!isAdded) return@runOnUiThread // Crash prevention
+
                                 stopPulseAnimation(healthDot)
                                 updateHealthBar(true, latency)
-                                adapter.submitList(stations)
+
+                                // --- THE FIX IS HERE ---
+                                adapter.submitList(stations) {
+                                    // This block runs AFTER the list is updated.
+                                    // We force the list to redraw immediately.
+                                    // This triggers 'onBindViewHolder' again, which recalculates
+                                    // "System.currentTimeMillis() - lastPing"
+                                    adapter.notifyDataSetChanged()
+                                }
+
                                 swipeRefreshLayout.isRefreshing = false
                             }
                         } catch (e: Exception) {
                             handleError(startTime)
                         }
                     } else {
-                        // This handles the case where Nginx sends back "404 Not Found"
                         handleError(startTime)
                     }
                 }
