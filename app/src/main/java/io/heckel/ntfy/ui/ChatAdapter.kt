@@ -7,16 +7,18 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import io.heckel.ntfy.databinding.ItemChatMeBinding
 import io.heckel.ntfy.databinding.ItemChatOtherBinding
-import io.heckel.ntfy.msg.ChatMessage
+// REMOVE the .msg import and ONLY keep the .db one
+import io.heckel.ntfy.db.ChatMessage
 import java.text.SimpleDateFormat
 import java.util.*
 
-class ChatAdapter(private val currentUserId: String) : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(DiffCallback) {
+class ChatAdapter(private val myDeviceId: String) : ListAdapter<ChatMessage, RecyclerView.ViewHolder>(DiffCallback) {
 
     companion object {
         private const val VIEW_TYPE_ME = 1
         private const val VIEW_TYPE_OTHER = 2
 
+        // Fixed the DiffCallback reference
         private object DiffCallback : DiffUtil.ItemCallback<ChatMessage>() {
             override fun areItemsTheSame(oldItem: ChatMessage, newItem: ChatMessage): Boolean =
                 oldItem.timestamp == newItem.timestamp && oldItem.senderId == newItem.senderId
@@ -25,32 +27,33 @@ class ChatAdapter(private val currentUserId: String) : ListAdapter<ChatMessage, 
         }
     }
 
-    // Custom helper to format the time exactly as: 14 Feb 2026, 18:34
+    // Inside ChatAdapter.kt
+
     private fun formatChatTime(timestamp: Long): String {
-        // Convert seconds (from server) to milliseconds (for Android)
-        val date = Date(timestamp * 1000)
+        // FIX: Multiply by 1000L to convert seconds to milliseconds
+        // The 'L' forces it to be a Long calculation so it doesn't overflow
+        val date = Date(timestamp * 1000L)
+
         val pattern = "d MMM yyyy, HH:mm"
-        val formatter = SimpleDateFormat(pattern, Locale.getDefault())
-        return formatter.format(date)
+        return SimpleDateFormat(pattern, Locale.getDefault()).format(date)
     }
 
     override fun getItemViewType(position: Int): Int {
-        return if (getItem(position).senderId == currentUserId) VIEW_TYPE_ME else VIEW_TYPE_OTHER
+        // Use myDeviceId here to distinguish messages
+        return if (getItem(position).senderId == myDeviceId) VIEW_TYPE_ME else VIEW_TYPE_OTHER
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return if (viewType == VIEW_TYPE_ME) {
-            val binding = ItemChatMeBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-            MyMessageViewHolder(binding)
+            MyMessageViewHolder(ItemChatMeBinding.inflate(LayoutInflater.from(parent.context), parent, false))
         } else {
-            val binding = ItemChatOtherBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-            OtherMessageViewHolder(binding)
+            OtherMessageViewHolder(ItemChatOtherBinding.inflate(LayoutInflater.from(parent.context), parent, false))
         }
     }
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val message = getItem(position)
-        val formattedTime = formatChatTime(message.timestamp) // Process time here
+        val formattedTime = formatChatTime(message.timestamp)
 
         when (holder) {
             is MyMessageViewHolder -> holder.bind(message, formattedTime)
@@ -61,14 +64,14 @@ class ChatAdapter(private val currentUserId: String) : ListAdapter<ChatMessage, 
     class MyMessageViewHolder(private val binding: ItemChatMeBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(message: ChatMessage, formattedTime: String) {
             binding.chatMessageText.text = message.message
-            binding.chatTimeText.text = formattedTime // Set the text
+            binding.chatTimeText.text = formattedTime
         }
     }
 
     class OtherMessageViewHolder(private val binding: ItemChatOtherBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(message: ChatMessage, formattedTime: String) {
             binding.chatMessageText.text = message.message
-            binding.chatTimeText.text = formattedTime // Set the text
+            binding.chatTimeText.text = formattedTime
         }
     }
 }

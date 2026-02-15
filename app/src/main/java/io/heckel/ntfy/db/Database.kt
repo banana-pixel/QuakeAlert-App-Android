@@ -304,7 +304,7 @@ data class LogEntry(
 }
 
 @androidx.room.Database(
-    version = 18,
+    version = 20,
     entities = [
         Subscription::class,
         Notification::class,
@@ -312,7 +312,9 @@ data class LogEntry(
         LogEntry::class,
         CustomHeader::class,
         TrustedCertificate::class,
-        ClientCertificate::class
+        ClientCertificate::class,
+        QuakeData::class,
+        ChatMessage::class
    ]
 )
 @TypeConverters(Converters::class)
@@ -324,6 +326,8 @@ abstract class Database : RoomDatabase() {
     abstract fun logDao(): LogDao
     abstract fun trustedCertificateDao(): TrustedCertificateDao
     abstract fun clientCertificateDao(): ClientCertificateDao
+    abstract fun quakeHistoryDao(): QuakeHistoryDao
+    abstract fun chatMessageDao(): ChatMessageDao
 
     companion object {
         @Volatile
@@ -350,6 +354,7 @@ abstract class Database : RoomDatabase() {
                     .addMigrations(MIGRATION_15_16)
                     .addMigrations(MIGRATION_16_17)
                     .addMigrations(MIGRATION_17_18)
+                    .addMigrations(MIGRATION_18_19)
                     .fallbackToDestructiveMigration(true)
                     .build()
                 this.instance = instance
@@ -488,6 +493,13 @@ abstract class Database : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE Notification ADD COLUMN sequenceId TEXT NOT NULL DEFAULT ''")
                 db.execSQL("UPDATE Notification SET sequenceId = id WHERE sequenceId = ''")
+            }
+        }
+
+        private val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS quake_history (id TEXT NOT NULL, magnitude REAL NOT NULL, place TEXT NOT NULL, time INTEGER NOT NULL, url TEXT NOT NULL, tsunami INTEGER NOT NULL, PRIMARY KEY(id))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, message TEXT NOT NULL, sender TEXT NOT NULL, timestamp INTEGER NOT NULL)")
             }
         }
     }

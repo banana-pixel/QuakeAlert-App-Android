@@ -12,15 +12,30 @@ import io.heckel.ntfy.up.Distributor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
+import kotlinx.coroutines.flow.Flow
 
 class SubscriptionsViewModel(private val repository: Repository) : ViewModel() {
-    fun list(): LiveData<List<Subscription>> {
-        return repository.getSubscriptionsLiveData()
+
+    // --- QUAKE LOGIC ---
+    val quakes: Flow<List<QuakeData>> = repository.quakes
+
+    fun refreshQuakes(context: Context) = viewModelScope.launch {
+        repository.fetchQuakes(context)
     }
 
-    fun listIdsWithInstantStatus(): LiveData<Set<Pair<Long, Boolean>>> {
-        return repository.getSubscriptionIdsWithInstantStatusLiveData()
+    // --- CHAT LOGIC (The Missing Piece) ---
+    // This resolves the 'Unresolved reference chatMessages' in ChatFragment
+    val chatMessages: Flow<List<ChatMessage>> = repository.chatMessages
+
+    fun saveChatMessages(messages: List<ChatMessage>) = viewModelScope.launch {
+        repository.saveChatMessages(messages)
     }
+
+    // --- SUBSCRIPTION LOGIC ---
+    fun list(): LiveData<List<Subscription>> = repository.getSubscriptionsLiveData()
+
+    fun listIdsWithInstantStatus(): LiveData<Set<Pair<Long, Boolean>>> =
+        repository.getSubscriptionIdsWithInstantStatusLiveData()
 
     fun add(subscription: Subscription) = viewModelScope.launch(Dispatchers.IO) {
         repository.addSubscription(subscription)
@@ -33,15 +48,12 @@ class SubscriptionsViewModel(private val repository: Repository) : ViewModel() {
             distributor.sendUnregistered(subscription.upAppId, subscription.upConnectorToken)
         }
         repository.removeSubscription(subscription)
+
         if (subscription.icon != null) {
             val resolver = context.applicationContext.contentResolver
-            try {
-                resolver.delete(subscription.icon.toUri(), null, null)
-            } catch (_: Exception) {
-                // Don't care
-            }
+            try { resolver.delete(subscription.icon.toUri(), null, null) } catch (_: Exception) { }
         }
-        // Unsubscribe from Firebase if this is the default ntfy.sh server
+
         val appBaseUrl = context.getString(R.string.app_base_url)
         if (subscription.baseUrl == appBaseUrl) {
             val messenger = FirebaseMessenger()

@@ -13,8 +13,15 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.map
 import io.heckel.ntfy.msg.ApiService
+import io.heckel.ntfy.ui.QuakeReport
+import io.heckel.ntfy.util.HttpUtil
 import io.heckel.ntfy.util.Log
 import io.heckel.ntfy.util.validUrl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -26,12 +33,108 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     private val clientCertificateDao = database.clientCertificateDao()
     private val customHeaderDao = database.customHeaderDao()
 
+    // Quake and Chat DAOs
+    private val quakeDao = database.quakeHistoryDao()
+    private val chatDao = database.chatMessageDao()
+
     private val connectionDetails = ConcurrentHashMap<String, ConnectionDetails>()
     private val connectionDetailsLiveData = MutableLiveData<Map<String, ConnectionDetails>>(connectionDetails)
-    private val connectionForceReconnectVersions = ConcurrentHashMap<String, Long>() // Base URL -> Number of times "Retry" was pressed
 
-    // TODO Move these into an ApplicationState singleton
-    val detailViewSubscriptionId = AtomicLong(0L) // Omg, what a hack ...
+    // --- QUAKE LOGIC: Single Source of Truth ---
+
+    // The UI observes this Flow. It stays populated even when offline.
+    val quakes: Flow<List<QuakeData>> = quakeDao.getAll()
+
+    // Inside Repository.kt
+
+    suspend fun fetchQuakes(context: Context) {
+        withContext(Dispatchers.IO) {
+            try {
+                val reports = executeFetchReports(context)
+                val quakeEntities = reports.map { report ->
+                    QuakeData(
+                        id = report.id.toString(),
+                        magnitude = 0.0,
+                        place = report.lokasi ?: "Unknown",
+                        // FIX: Parse the real time string instead of using System time
+                        time = parseQuakeTime(report.waktu_kejadian),
+                        description = report.deskripsi ?: "",
+                        latitude = report.latitude,
+                        longitude = report.longitude,
+                        pga = report.pga_maks ?: "0",
+                        durasi = report.durasi,
+                        station_id = report.station_id ?: "N/A",
+                        intensity = report.intensitas_maks ?: "I"
+                    )
+                }
+                quakeDao.upsertAll(quakeEntities)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // Helper function to parse the Indonesian date format
+    private fun parseQuakeTime(dateString: String?): Long {
+        if (dateString.isNullOrEmpty()) return System.currentTimeMillis()
+        try {
+            // API format example: "2026-02-15 13:56:22" (UTC)
+            // Adjust this pattern if your API sends a different format (e.g., "dd MMM yyyy")
+            val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+            format.timeZone = java.util.TimeZone.getTimeZone("UTC") // Assuming API sends UTC
+            return format.parse(dateString)?.time ?: System.currentTimeMillis()
+        } catch (e: Exception) {
+            return System.currentTimeMillis()
+        }
+    }
+
+    private suspend fun executeFetchReports(context: Context): List<QuakeReport> {
+        val url = "https://quakealert.bananapixel.my.id/laporan"
+        val client = HttpUtil.defaultClient(context, url)
+        val request = HttpUtil.requestBuilder(url).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Unexpected response: ${response.code}")
+            val body = response.body?.string().orEmpty()
+            return parseReports(body)
+        }
+    }
+
+    private fun parseReports(jsonBody: String): List<QuakeReport> {
+        val jsonArray = JSONArray(jsonBody)
+        val reports = mutableListOf<QuakeReport>()
+        for (i in 0 until jsonArray.length()) {
+            val item = jsonArray.getJSONObject(i)
+            reports.add(
+                QuakeReport(
+                    id = item.optInt("id"),
+                    waktu_kejadian = item.optString("waktu_kejadian"),
+                    intensitas_maks = item.optString("intensitas_maks"),
+                    lokasi = item.optString("lokasi"),
+                    deskripsi = item.optString("deskripsi"),
+                    pga_maks = item.optString("pga_maks"),
+                    station_id = item.optString("station_id"),
+                    durasi = item.optInt("durasi"),
+                    latitude = item.optDouble("latitude"),
+                    longitude = item.optDouble("longitude")
+                )
+            )
+        }
+        return reports
+    }
+
+    // --- CHAT LOGIC ---
+    // Inside Repository class
+    val chatMessages: Flow<List<ChatMessage>> = chatDao.getAll()
+
+    suspend fun saveChatMessages(messages: List<ChatMessage>) {
+        withContext(Dispatchers.IO) {
+            chatDao.insertAll(messages) // Persists to disk
+        }
+    }
+
+    // --- EXISTING ntfy LOGIC (Keep as is) ---
+    private val connectionForceReconnectVersions = ConcurrentHashMap<String, Long>()
+    val detailViewSubscriptionId = AtomicLong(0L)
     val mediaPlayer = MediaPlayer()
 
     init {
@@ -39,12 +142,20 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun getSubscriptionsLiveData(): LiveData<List<Subscription>> {
-        return subscriptionDao
-            .listFlow()
-            .asLiveData()
-            .combineWith(connectionDetailsLiveData) { subscriptionsWithMetadata, _ ->
-                toSubscriptionList(subscriptionsWithMetadata.orEmpty())
-            }
+        val result = MediatorLiveData<List<Subscription>>()
+
+        val subscriptionsSource = subscriptionDao.listFlow().asLiveData()
+        val connectionsSource = connectionDetailsLiveData
+
+        // Combine both sources manually
+        result.addSource(subscriptionsSource) { subs ->
+            result.value = toSubscriptionList(subs.orEmpty())
+        }
+        result.addSource(connectionsSource) {
+            result.value = toSubscriptionList(subscriptionsSource.value.orEmpty())
+        }
+
+        return result
     }
 
     fun getSubscriptionIdsWithInstantStatusLiveData(): LiveData<Set<Pair<Long, Boolean>>> {
@@ -135,7 +246,6 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         if (maybeExistingNotification != null || notification.event != ApiService.EVENT_MESSAGE) {
             return false
         }
-        // Mark old notifications with the same sequence ID as deleted (this is an update to an existing sequence)
         if (notification.sequenceId.isNotEmpty()) {
             notificationDao.markAsDeletedBySequenceId(notification.subscriptionId, notification.sequenceId)
         }
@@ -164,11 +274,6 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         subscriptionDao.updateLastNotificationId(subscriptionId, notificationId)
     }
 
-    /**
-     * Returns the lastNotificationId to use as "since" parameter for subscribing.
-     * Selects the lastNotificationId from the subscription with the most recent notification.
-     * Returns null if no subscriptions have a lastNotificationId.
-     */
     fun getLastNotificationId(subscriptionIds: Collection<Long>): String? {
         return subscriptionDao.getLastNotificationId(subscriptionIds)
     }
@@ -217,8 +322,6 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         userDao.delete(baseUrl)
     }
 
-    // Trusted certificates
-
     suspend fun getTrustedCertificates(): List<TrustedCertificate> {
         return trustedCertificateDao.list()
     }
@@ -234,8 +337,6 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     suspend fun removeTrustedCertificate(baseUrl: String) {
         trustedCertificateDao.delete(baseUrl)
     }
-
-    // Client certificates
 
     suspend fun getClientCertificates(): List<ClientCertificate> {
         return clientCertificateDao.list()
@@ -285,13 +386,9 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
 
     fun setMinPriority(minPriority: Int) {
         if (minPriority <= MIN_PRIORITY_ANY) {
-            sharedPrefs.edit {
-                remove(SHARED_PREFS_MIN_PRIORITY)
-            }
+            sharedPrefs.edit { remove(SHARED_PREFS_MIN_PRIORITY) }
         } else {
-            sharedPrefs.edit {
-                putInt(SHARED_PREFS_MIN_PRIORITY, minPriority)
-            }
+            sharedPrefs.edit { putInt(SHARED_PREFS_MIN_PRIORITY, minPriority) }
         }
     }
 
@@ -301,7 +398,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
 
     fun getAutoDownloadMaxSize(): Long {
         val defaultValue = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-            AUTO_DOWNLOAD_NEVER // Need to request permission on older versions
+            AUTO_DOWNLOAD_NEVER
         } else {
             AUTO_DOWNLOAD_DEFAULT
         }
@@ -309,9 +406,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun setAutoDownloadMaxSize(maxSize: Long) {
-        sharedPrefs.edit {
-            putLong(SHARED_PREFS_AUTO_DOWNLOAD_MAX_SIZE, maxSize)
-        }
+        sharedPrefs.edit { putLong(SHARED_PREFS_AUTO_DOWNLOAD_MAX_SIZE, maxSize) }
     }
 
     fun getAutoDeleteSeconds(): Long {
@@ -319,35 +414,25 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun setAutoDeleteSeconds(seconds: Long) {
-        sharedPrefs.edit {
-            putLong(SHARED_PREFS_AUTO_DELETE_SECONDS, seconds)
-        }
+        sharedPrefs.edit { putLong(SHARED_PREFS_AUTO_DELETE_SECONDS, seconds) }
     }
 
     fun getUserLatitude(): Double {
-        if (!sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE)) {
-            return DEFAULT_USER_LATITUDE
-        }
+        if (!sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE)) return DEFAULT_USER_LATITUDE
         return Double.fromBits(sharedPrefs.getLong(SHARED_PREFS_USER_LATITUDE, DEFAULT_USER_LATITUDE_BITS))
     }
 
     fun setUserLatitude(latitude: Double) {
-        sharedPrefs.edit {
-            putLong(SHARED_PREFS_USER_LATITUDE, latitude.toRawBits())
-        }
+        sharedPrefs.edit { putLong(SHARED_PREFS_USER_LATITUDE, latitude.toRawBits()) }
     }
 
     fun getUserLongitude(): Double {
-        if (!sharedPrefs.contains(SHARED_PREFS_USER_LONGITUDE)) {
-            return DEFAULT_USER_LONGITUDE
-        }
+        if (!sharedPrefs.contains(SHARED_PREFS_USER_LONGITUDE)) return DEFAULT_USER_LONGITUDE
         return Double.fromBits(sharedPrefs.getLong(SHARED_PREFS_USER_LONGITUDE, DEFAULT_USER_LONGITUDE_BITS))
     }
 
     fun setUserLongitude(longitude: Double) {
-        sharedPrefs.edit {
-            putLong(SHARED_PREFS_USER_LONGITUDE, longitude.toRawBits())
-        }
+        sharedPrefs.edit { putLong(SHARED_PREFS_USER_LONGITUDE, longitude.toRawBits()) }
     }
 
     fun getUserCityName(): String {
@@ -356,23 +441,16 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
 
     fun setUserCityName(cityName: String?) {
         sharedPrefs.edit {
-            if (cityName.isNullOrBlank()) {
-                remove(SHARED_PREFS_USER_CITY_NAME)
-            } else {
-                putString(SHARED_PREFS_USER_CITY_NAME, cityName)
-            }
+            if (cityName.isNullOrBlank()) remove(SHARED_PREFS_USER_CITY_NAME)
+            else putString(SHARED_PREFS_USER_CITY_NAME, cityName)
         }
     }
 
     fun setDarkMode(mode: Int) {
         if (mode == AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM) {
-            sharedPrefs.edit {
-                remove(SHARED_PREFS_DARK_MODE)
-            }
+            sharedPrefs.edit { remove(SHARED_PREFS_DARK_MODE) }
         } else {
-            sharedPrefs.edit {
-                putInt(SHARED_PREFS_DARK_MODE, mode)
-            }
+            sharedPrefs.edit { putInt(SHARED_PREFS_DARK_MODE, mode) }
         }
     }
 
@@ -381,9 +459,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun setDynamicColorsEnabled(enabled: Boolean) {
-        sharedPrefs.edit(commit = true) {
-            putBoolean(SHARED_PREFS_DYNAMIC_COLORS, enabled)
-        }
+        sharedPrefs.edit(commit = true) { putBoolean(SHARED_PREFS_DYNAMIC_COLORS, enabled) }
     }
 
     fun getDynamicColorsEnabled(): Boolean {
@@ -391,9 +467,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun setConnectionProtocol(connectionProtocol: String) {
-        sharedPrefs.edit {
-            putString(SHARED_PREFS_CONNECTION_PROTOCOL, connectionProtocol)
-        }
+        sharedPrefs.edit { putString(SHARED_PREFS_CONNECTION_PROTOCOL, connectionProtocol) }
     }
 
     fun getConnectionProtocol(): String {
@@ -401,53 +475,43 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun getBroadcastEnabled(): Boolean {
-        return sharedPrefs.getBoolean(SHARED_PREFS_BROADCAST_ENABLED, true) // Enabled by default
+        return sharedPrefs.getBoolean(SHARED_PREFS_BROADCAST_ENABLED, true)
     }
 
     fun setBroadcastEnabled(enabled: Boolean) {
-        sharedPrefs.edit {
-            putBoolean(SHARED_PREFS_BROADCAST_ENABLED, enabled)
-        }
+        sharedPrefs.edit { putBoolean(SHARED_PREFS_BROADCAST_ENABLED, enabled) }
     }
 
     fun getUnifiedPushEnabled(): Boolean {
-        return sharedPrefs.getBoolean(SHARED_PREFS_UNIFIEDPUSH_ENABLED, true) // Enabled by default
+        return sharedPrefs.getBoolean(SHARED_PREFS_UNIFIEDPUSH_ENABLED, true)
     }
 
     fun setUnifiedPushEnabled(enabled: Boolean) {
-        sharedPrefs.edit {
-            putBoolean(SHARED_PREFS_UNIFIEDPUSH_ENABLED, enabled)
-        }
+        sharedPrefs.edit { putBoolean(SHARED_PREFS_UNIFIEDPUSH_ENABLED, enabled) }
     }
 
     fun getInsistentMaxPriorityEnabled(): Boolean {
-        return sharedPrefs.getBoolean(SHARED_PREFS_INSISTENT_MAX_PRIORITY_ENABLED, false) // Disabled by default
+        return sharedPrefs.getBoolean(SHARED_PREFS_INSISTENT_MAX_PRIORITY_ENABLED, false)
     }
 
     fun setInsistentMaxPriorityEnabled(enabled: Boolean) {
-        sharedPrefs.edit {
-            putBoolean(SHARED_PREFS_INSISTENT_MAX_PRIORITY_ENABLED, enabled)
-        }
+        sharedPrefs.edit { putBoolean(SHARED_PREFS_INSISTENT_MAX_PRIORITY_ENABLED, enabled) }
     }
 
     fun getRecordLogs(): Boolean {
-        return sharedPrefs.getBoolean(SHARED_PREFS_RECORD_LOGS_ENABLED, false) // Disabled by default
+        return sharedPrefs.getBoolean(SHARED_PREFS_RECORD_LOGS_ENABLED, false)
     }
 
     fun setRecordLogsEnabled(enabled: Boolean) {
-        sharedPrefs.edit {
-            putBoolean(SHARED_PREFS_RECORD_LOGS_ENABLED, enabled)
-        }
+        sharedPrefs.edit { putBoolean(SHARED_PREFS_RECORD_LOGS_ENABLED, enabled) }
     }
 
     fun getMessageBarEnabled(): Boolean {
-        return sharedPrefs.getBoolean(SHARED_PREFS_MESSAGE_BAR_ENABLED, true) // Enabled by default
+        return sharedPrefs.getBoolean(SHARED_PREFS_MESSAGE_BAR_ENABLED, true)
     }
 
     fun setMessageBarEnabled(enabled: Boolean) {
-        sharedPrefs.edit {
-            putBoolean(SHARED_PREFS_MESSAGE_BAR_ENABLED, enabled)
-        }
+        sharedPrefs.edit { putBoolean(SHARED_PREFS_MESSAGE_BAR_ENABLED, enabled) }
     }
 
     fun getBatteryOptimizationsRemindTime(): Long {
@@ -455,9 +519,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun setBatteryOptimizationsRemindTime(timeMillis: Long) {
-        sharedPrefs.edit {
-            putLong(SHARED_PREFS_BATTERY_OPTIMIZATIONS_REMIND_TIME, timeMillis)
-        }
+        sharedPrefs.edit { putLong(SHARED_PREFS_BATTERY_OPTIMIZATIONS_REMIND_TIME, timeMillis) }
     }
 
     fun getWebSocketRemindTime(): Long {
@@ -465,9 +527,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun setWebSocketRemindTime(timeMillis: Long) {
-        sharedPrefs.edit {
-            putLong(SHARED_PREFS_WEBSOCKET_REMIND_TIME, timeMillis)
-        }
+        sharedPrefs.edit { putLong(SHARED_PREFS_WEBSOCKET_REMIND_TIME, timeMillis) }
     }
 
     fun getWebSocketReconnectRemindTime(): Long {
@@ -475,27 +535,19 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun setWebSocketReconnectRemindTime(timeMillis: Long) {
-        sharedPrefs.edit {
-            putLong(SHARED_PREFS_WEBSOCKET_RECONNECT_REMIND_TIME, timeMillis)
-        }
+        sharedPrefs.edit { putLong(SHARED_PREFS_WEBSOCKET_RECONNECT_REMIND_TIME, timeMillis) }
     }
 
     fun getDefaultBaseUrl(): String? {
         return sharedPrefs.getString(SHARED_PREFS_DEFAULT_BASE_URL, null) ?:
-            sharedPrefs.getString(SHARED_PREFS_UNIFIED_PUSH_BASE_URL, null) // Fall back to UP URL, removed when default is set!
+        sharedPrefs.getString(SHARED_PREFS_UNIFIED_PUSH_BASE_URL, null)
     }
 
     fun setDefaultBaseUrl(baseUrl: String) {
         if (baseUrl == "") {
-            sharedPrefs.edit {
-                remove(SHARED_PREFS_UNIFIED_PUSH_BASE_URL) // Remove legacy key
-                    .remove(SHARED_PREFS_DEFAULT_BASE_URL)
-            }
+            sharedPrefs.edit { remove(SHARED_PREFS_UNIFIED_PUSH_BASE_URL).remove(SHARED_PREFS_DEFAULT_BASE_URL) }
         } else {
-            sharedPrefs.edit {
-                remove(SHARED_PREFS_UNIFIED_PUSH_BASE_URL) // Remove legacy key
-                    .putString(SHARED_PREFS_DEFAULT_BASE_URL, baseUrl)
-            }
+            sharedPrefs.edit { remove(SHARED_PREFS_UNIFIED_PUSH_BASE_URL).putString(SHARED_PREFS_DEFAULT_BASE_URL, baseUrl) }
         }
     }
 
@@ -530,18 +582,14 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun setGlobalMutedUntil(mutedUntilTimestamp: Long) {
-        sharedPrefs.edit {
-            putLong(SHARED_PREFS_MUTED_UNTIL_TIMESTAMP, mutedUntilTimestamp)
-        }
+        sharedPrefs.edit { putLong(SHARED_PREFS_MUTED_UNTIL_TIMESTAMP, mutedUntilTimestamp) }
     }
 
     fun checkGlobalMutedUntil(): Boolean {
         val mutedUntil = sharedPrefs.getLong(SHARED_PREFS_MUTED_UNTIL_TIMESTAMP, 0L)
         val expired = mutedUntil > 1L && System.currentTimeMillis()/1000 > mutedUntil
         if (expired) {
-            sharedPrefs.edit {
-                putLong(SHARED_PREFS_MUTED_UNTIL_TIMESTAMP, 0L)
-            }
+            sharedPrefs.edit { putLong(SHARED_PREFS_MUTED_UNTIL_TIMESTAMP, 0L) }
             return true
         }
         return false
@@ -554,9 +602,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
 
     fun addLastShareTopic(topic: String) {
         val topics = (getLastShareTopics().filterNot { it == topic } + topic).takeLast(LAST_TOPICS_COUNT)
-        sharedPrefs.edit {
-            putString(SHARED_PREFS_LAST_TOPICS, topics.joinToString(separator = "\n"))
-        }
+        sharedPrefs.edit { putString(SHARED_PREFS_LAST_TOPICS, topics.joinToString(separator = "\n")) }
     }
 
     private fun toSubscriptionList(list: List<SubscriptionWithMetadata>): List<Subscription> {
@@ -585,9 +631,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     private fun toSubscription(s: SubscriptionWithMetadata?): Subscription? {
-        if (s == null) {
-            return null
-        }
+        if (s == null) return null
         return Subscription(
             id = s.id,
             baseUrl = s.baseUrl,
@@ -659,9 +703,9 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_RECORD_LOGS_ENABLED = "RecordLogs"
         const val SHARED_PREFS_MESSAGE_BAR_ENABLED = "MessageBarEnabled"
         const val SHARED_PREFS_BATTERY_OPTIMIZATIONS_REMIND_TIME = "BatteryOptimizationsRemindTime"
-        const val SHARED_PREFS_WEBSOCKET_REMIND_TIME = "JsonStreamRemindTime" // "Use WebSocket" banner (used to be JSON stream deprecation banner)
+        const val SHARED_PREFS_WEBSOCKET_REMIND_TIME = "JsonStreamRemindTime"
         const val SHARED_PREFS_WEBSOCKET_RECONNECT_REMIND_TIME = "WebSocketReconnectRemindTime"
-        const val SHARED_PREFS_UNIFIED_PUSH_BASE_URL = "UnifiedPushBaseURL" // Legacy key required for migration to DefaultBaseURL
+        const val SHARED_PREFS_UNIFIED_PUSH_BASE_URL = "UnifiedPushBaseURL"
         const val SHARED_PREFS_DEFAULT_BASE_URL = "DefaultBaseURL"
         const val SHARED_PREFS_LAST_TOPICS = "LastTopics"
         const val SHARED_PREFS_USER_LATITUDE = "UserLatitude"
@@ -670,21 +714,19 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_ALERT_RADIUS = "alert_radius"
 
         private const val LAST_TOPICS_COUNT = 3
-
         const val MIN_PRIORITY_USE_GLOBAL = 0
         const val MIN_PRIORITY_ANY = 1
-
         const val MUTED_UNTIL_SHOW_ALL = 0L
         const val MUTED_UNTIL_FOREVER = 1L
         const val MUTED_UNTIL_TOMORROW = 2L
 
         private const val ONE_MB = 1024 * 1024L
-        const val AUTO_DOWNLOAD_NEVER = 0L // Values must match values.xml
+        const val AUTO_DOWNLOAD_NEVER = 0L
         const val AUTO_DOWNLOAD_ALWAYS = 1L
         const val AUTO_DOWNLOAD_DEFAULT = ONE_MB
 
         private const val ONE_DAY_SECONDS = 24 * 60 * 60L
-        const val AUTO_DELETE_USE_GLOBAL = -1L // Values must match values.xml
+        const val AUTO_DELETE_USE_GLOBAL = -1L
         const val AUTO_DELETE_NEVER = 0L
         const val AUTO_DELETE_ONE_DAY_SECONDS = ONE_DAY_SECONDS
         const val AUTO_DELETE_THREE_DAYS_SECONDS = 3 * ONE_DAY_SECONDS
@@ -693,18 +735,14 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val AUTO_DELETE_THREE_MONTHS_SECONDS = 90 * ONE_DAY_SECONDS
         const val AUTO_DELETE_DEFAULT_SECONDS = AUTO_DELETE_ONE_MONTH_SECONDS
 
-        const val INSISTENT_MAX_PRIORITY_USE_GLOBAL = -1 // Values must match values.xml
-        const val INSISTENT_MAX_PRIORITY_ENABLED = 1 // 0 = Disabled (but not needed in code)
-
+        const val INSISTENT_MAX_PRIORITY_USE_GLOBAL = -1
+        const val INSISTENT_MAX_PRIORITY_ENABLED = 1
         const val CONNECTION_PROTOCOL_JSONHTTP = "jsonhttp"
         const val CONNECTION_PROTOCOL_WS = "ws"
-
         const val BATTERY_OPTIMIZATIONS_REMIND_TIME_ALWAYS = 1L
         const val BATTERY_OPTIMIZATIONS_REMIND_TIME_NEVER = Long.MAX_VALUE
-
         const val WEBSOCKET_REMIND_TIME_ALWAYS = 1L
         const val WEBSOCKET_REMIND_TIME_NEVER = Long.MAX_VALUE
-
         const val WEBSOCKET_RECONNECT_REMIND_TIME_ALWAYS = 1L
         const val WEBSOCKET_RECONNECT_REMIND_TIME_NEVER = Long.MAX_VALUE
 
@@ -730,19 +768,4 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
             }
         }
     }
-}
-
-/* https://stackoverflow.com/a/57079290/1440785 */
-fun <T, K, R> LiveData<T>.combineWith(
-    liveData: LiveData<K>,
-    block: (T?, K?) -> R
-): LiveData<R> {
-    val result = MediatorLiveData<R>()
-    result.addSource(this) {
-        result.value = block(this.value, liveData.value)
-    }
-    result.addSource(liveData) {
-        result.value = block(this.value, liveData.value)
-    }
-    return result
 }

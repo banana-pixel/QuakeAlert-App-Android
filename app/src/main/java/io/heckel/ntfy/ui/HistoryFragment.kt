@@ -3,20 +3,22 @@ package io.heckel.ntfy.ui
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import io.heckel.ntfy.R
-import io.heckel.ntfy.util.HttpUtil
-import kotlinx.coroutines.Dispatchers
+import io.heckel.ntfy.app.Application
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import org.json.JSONArray
-import java.io.IOException
 
 class HistoryFragment : Fragment(R.layout.fragment_history) {
+    // Link to the shared ViewModel
+    private val viewModel by viewModels<SubscriptionsViewModel> {
+        SubscriptionsViewModelFactory((requireActivity().application as Application).repository)
+    }
+
     private lateinit var historyAdapter: HistoryAdapter
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
@@ -30,69 +32,24 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = historyAdapter
 
+        // 1. Observe the Room Database (Offline-First Logic)
+        // This Flow emits cached data instantly even when offline.
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.quakes.collectLatest { quakeList ->
+                // This will now match the expected type
+                historyAdapter.updateData(quakeList)
+                swipeRefreshLayout.isRefreshing = false
+            }
+        }
+
+        // 2. Swipe to Refresh now triggers the Repository's fetch
+        // 1. Update the Swipe to Refresh listener
         swipeRefreshLayout.setOnRefreshListener {
-            fetchReports()
+            // Pass requireContext() to the ViewModel
+            viewModel.refreshQuakes(requireContext())
         }
 
-        swipeRefreshLayout.isRefreshing = true
-        fetchReports()
-    }
-
-    private fun fetchReports() {
-        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val client = HttpUtil.defaultClient(requireContext(), REPORTS_URL)
-                val reports = executeRequest(client, REPORTS_URL)
-                withContext(Dispatchers.Main) {
-                    historyAdapter.updateData(reports)
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    historyAdapter.updateData(emptyList())
-                }
-            } finally {
-                withContext(Dispatchers.Main) {
-                    swipeRefreshLayout.isRefreshing = false
-                }
-            }
-        }
-    }
-
-    private fun executeRequest(client: OkHttpClient, url: String): List<QuakeReport> {
-        val request = HttpUtil.requestBuilder(url).get().build()
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                throw IOException("Unexpected response: ${response.code}")
-            }
-            val body = response.body?.string().orEmpty()
-            return parseReports(body)
-        }
-    }
-
-    private fun parseReports(jsonBody: String): List<QuakeReport> {
-        val jsonArray = JSONArray(jsonBody)
-        val reports = mutableListOf<QuakeReport>()
-        for (i in 0 until jsonArray.length()) {
-            val item = jsonArray.getJSONObject(i)
-            reports.add(
-                QuakeReport(
-                    id = item.optInt("id"),
-                    waktu_kejadian = item.optString("waktu_kejadian"),
-                    intensitas_maks = item.optString("intensitas_maks"),
-                    lokasi = item.optString("lokasi"),
-                    deskripsi = item.optString("deskripsi"),
-                    pga_maks = item.optString("pga_maks"),
-                    station_id = item.optString("station_id"),
-                    durasi = item.optInt("durasi"),
-                    latitude = item.optDouble("latitude"),
-                    longitude = item.optDouble("longitude")
-                )
-            )
-        }
-        return reports
-    }
-
-    companion object {
-        private const val REPORTS_URL = "https://quakealert.bananapixel.my.id/laporan"
+// 2. Update the initial fetch call
+        viewModel.refreshQuakes(requireContext())
     }
 }
