@@ -180,6 +180,9 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             }
         }
 
+        // Setup keyboard listener to hide bottom nav when keyboard appears
+        setupKeyboardListener(bottomNav, navHostFragment, navController)
+
         // Dependencies that depend on Context
         workManager = WorkManager.getInstance(this)
         dispatcher = NotificationDispatcher(this, repository)
@@ -959,7 +962,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         actionMode = startSupportActionMode(actionModeCallback)
         adapter.toggleSelection(subscription.id)
 
-            // Fade out FAB
+        // Fade out FAB
         fab.alpha = 1f
         fab
             .animate()
@@ -1098,6 +1101,133 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     // Helper extensions to get margins easily without crashing
     val View.marginTop: Int get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
     val View.marginBottom: Int get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
+
+    /**
+     * Setup keyboard visibility listener to hide/show bottom navigation
+     * and maintain scroll position relative to input field (not bottom nav)
+     */
+    private fun setupKeyboardListener(
+        bottomNav: BottomNavigationView,
+        navHostFragment: NavHostFragment,
+        navController: androidx.navigation.NavController
+    ) {
+        ViewCompat.setOnApplyWindowInsetsListener(window.decorView.rootView) { _, insets ->
+            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+
+            // Get current fragment's views
+            val currentFragment = navHostFragment.childFragmentManager.fragments.firstOrNull()
+            val fragmentView = currentFragment?.view
+            val floatingUi = fragmentView?.findViewById<View>(R.id.bottom_floating_ui)
+            val recyclerView = fragmentView?.findViewById<RecyclerView>(R.id.recycler_view)
+
+            // Check if we're on the chat page (use class check to avoid ID issues)
+            val isChatPage = currentFragment is ChatFragment
+
+            if (imeVisible && imeHeight > 0) {
+                // ============ KEYBOARD IS VISIBLE ============
+
+                // 1. Hide bottom nav and scrim
+                bottomNav.animate()
+                    .translationY(bottomNav.height.toFloat())
+                    .setDuration(200)
+                    .withEndAction {
+                        bottomNav.visibility = View.GONE
+                    }
+                    .start()
+
+                findViewById<View>(R.id.nav_scrim)?.animate()
+                    ?.alpha(0f)
+                    ?.setDuration(200)
+                    ?.withEndAction {
+                        findViewById<View>(R.id.nav_scrim)?.visibility = View.GONE
+                    }
+                    ?.start()
+
+                // 2. Remove bottom margin from floating input
+                floatingUi?.let { ui ->
+                    val params = ui.layoutParams as ViewGroup.MarginLayoutParams
+                    params.bottomMargin = 0
+                    ui.layoutParams = params
+                }
+
+                // 3. Add bottom padding and auto-scroll (only on chat page)
+                if (isChatPage) {
+                    floatingUi?.post {
+                        val inputHeight = floatingUi.height
+                        recyclerView?.let { rv ->
+                            rv.clipToPadding = false
+                            rv.setPadding(
+                                rv.paddingLeft,
+                                rv.paddingTop,
+                                rv.paddingRight,
+                                inputHeight + (16 * resources.displayMetrics.density).toInt()
+                            )
+
+                            // Auto-scroll to bottom (only on chat page)
+                            rv.adapter?.let { adapter ->
+                                if (adapter.itemCount > 0) {
+                                    rv.smoothScrollToPosition(adapter.itemCount - 1)
+                                }
+                            }
+                        }
+                    }
+                }
+
+            } else {
+                // ============ KEYBOARD IS HIDDEN ============
+
+                // 1. Show bottom nav and scrim
+                bottomNav.visibility = View.VISIBLE
+                bottomNav.animate()
+                    .translationY(0f)
+                    .setDuration(200)
+                    .start()
+
+                findViewById<View>(R.id.nav_scrim)?.let { scrim ->
+                    scrim.visibility = View.VISIBLE
+                    scrim.animate()
+                        .alpha(1f)
+                        .setDuration(200)
+                        .start()
+                }
+
+                // 2. Restore proper spacing and maintain scroll position
+                bottomNav.post {
+                    // Only scroll to maintain position on chat page
+                    if (isChatPage && recyclerView != null) {
+                        // Save current last visible item position BEFORE layout changes
+                        val layoutManager = recyclerView.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager
+                        val lastVisiblePosition = layoutManager?.findLastCompletelyVisibleItemPosition() ?: -1
+
+                        // Restore the layout
+                        applyBottomInset(bottomNav)
+
+                        // After layout is restored, scroll to keep messages at input field level
+                        recyclerView.post {
+                            recyclerView.adapter?.let { adapter ->
+                                if (adapter.itemCount > 0) {
+                                    // Scroll to last message to keep it "magnetized" to input field
+                                    val targetPosition = adapter.itemCount - 1
+
+                                    // Use scrollToPosition (instant) to avoid animation weirdness
+                                    layoutManager?.scrollToPositionWithOffset(
+                                        targetPosition,
+                                        0 // Offset from top (0 = align to top of recyclerview content area)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Not chat page, just restore layout normally
+                        applyBottomInset(bottomNav)
+                    }
+                }
+            }
+
+            insets
+        }
+    }
 
     companion object {
         const val TAG = "NtfyMainActivity"

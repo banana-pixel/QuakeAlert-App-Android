@@ -33,6 +33,8 @@ class ChatFragment : Fragment() {
     private lateinit var chatAdapter: ChatAdapter
     private var socket: Socket? = null
     private lateinit var deviceId: String
+    private var isFirstLoad = true  // Only auto-scroll on first load
+    private var lastMessageCount = 0  // Track message count to detect new messages
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentChatBinding.inflate(inflater, container, false)
@@ -55,8 +57,16 @@ class ChatFragment : Fragment() {
             viewModel.chatMessages.collectLatest { messages ->
                 chatAdapter.submitList(messages) {
                     if (messages.isNotEmpty()) {
-                        // CHANGED: chatRecyclerView -> recyclerView
-                        binding.recyclerView.scrollToPosition(messages.size - 1)
+                        val hasNewMessages = messages.size > lastMessageCount
+                        lastMessageCount = messages.size
+
+                        // Auto-scroll only on:
+                        // 1. First load, OR
+                        // 2. New message added (count increased)
+                        if (isFirstLoad || hasNewMessages) {
+                            binding.recyclerView.scrollToPosition(messages.size - 1)
+                            isFirstLoad = false
+                        }
                     }
                 }
             }
