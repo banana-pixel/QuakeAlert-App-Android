@@ -13,9 +13,9 @@ fun convertUtcToLocal(utcTimeString: String): String {
         inputFormat.timeZone = TimeZone.getTimeZone("UTC")
         val date = inputFormat.parse(utcTimeString)
 
-        // Output format: "09 Feb 2026, 21:05:15 GMT+07:00"
+        // Output format: "09 Feb 2026, 21:05:15" in system timezone
         val outputFormat = SimpleDateFormat("dd MMM yyyy, HH:mm:ss ZZZZ", Locale.getDefault())
-        outputFormat.timeZone = TimeZone.getTimeZone("GMT+07:00")
+        outputFormat.timeZone = TimeZone.getDefault()
 
         if (date != null) outputFormat.format(date) else utcTimeString
     } catch (e: Exception) {
@@ -26,6 +26,6 @@ fun convertUtcToLocal(utcTimeString: String): String {
 fun formatTimestampToLocal(timestamp: Long): String {
     val date = Date(timestamp * 1000)
     val outputFormat = SimpleDateFormat("dd MMM yyyy, HH:mm:ss ZZZZ", Locale.getDefault())
-    outputFormat.timeZone = TimeZone.getTimeZone("GMT+07:00")
+    outputFormat.timeZone = TimeZone.getDefault()
     return outputFormat.format(date)
 }
