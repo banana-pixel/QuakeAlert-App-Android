@@ -1,7 +1,6 @@
 package io.heckel.ntfy.ui
 
 import android.Manifest
-import android.app.AlarmManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -76,14 +75,6 @@ class OnboardingActivity : AppCompatActivity() {
             description = "QuakeAlert uses your approximate location to calculate distance from earthquakes and provide more relevant alerts.",
             buttonText = "Grant Location",
             type = PermissionType.LOCATION,
-            required = false
-        ),
-        OnboardingPage.Permission(
-            iconRes = R.drawable.ic_onboarding_alarm,
-            title = "Exact\nAlarms",
-            description = "For more reliable reconnection to the alert server, QuakeAlert needs permission to schedule exact alarms.",
-            buttonText = "Allow Exact Alarms",
-            type = PermissionType.EXACT_ALARM,
             required = false
         ),
         OnboardingPage.TestNotification
@@ -330,14 +321,6 @@ class OnboardingActivity : AppCompatActivity() {
             PermissionType.BATTERY -> {
                 isIgnoringBatteryOptimizations(this)
             }
-            PermissionType.EXACT_ALARM -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
-                    alarmManager.canScheduleExactAlarms()
-                } else {
-                    true
-                }
-            }
         }
     }
 
@@ -366,19 +349,6 @@ class OnboardingActivity : AppCompatActivity() {
                         startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
                     } catch (_: Exception) {
                         startActivity(Intent(Settings.ACTION_SETTINGS))
-                    }
-                }
-            }
-            PermissionType.EXACT_ALARM -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    try {
-                        startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:$packageName")))
-                    } catch (_: Exception) {
-                        try {
-                            startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
-                        } catch (_: Exception) {
-                            startActivity(Intent(Settings.ACTION_SETTINGS))
-                        }
                     }
                 }
             }
@@ -611,7 +581,7 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     enum class PermissionType {
-        NOTIFICATION, LOCATION, BATTERY, EXACT_ALARM
+        NOTIFICATION, LOCATION, BATTERY
     }
 
     companion object {
