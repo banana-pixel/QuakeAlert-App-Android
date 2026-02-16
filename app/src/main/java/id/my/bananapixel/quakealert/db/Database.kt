@@ -355,6 +355,7 @@ abstract class Database : RoomDatabase() {
                     .addMigrations(MIGRATION_16_17)
                     .addMigrations(MIGRATION_17_18)
                     .addMigrations(MIGRATION_18_19)
+                    .addMigrations(MIGRATION_19_20)
                     .fallbackToDestructiveMigration(true)
                     .build()
                 this.instance = instance
@@ -500,6 +501,46 @@ abstract class Database : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS quake_history (id TEXT NOT NULL, magnitude REAL NOT NULL, place TEXT NOT NULL, time INTEGER NOT NULL, url TEXT NOT NULL, tsunami INTEGER NOT NULL, PRIMARY KEY(id))")
                 db.execSQL("CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, message TEXT NOT NULL, sender TEXT NOT NULL, timestamp INTEGER NOT NULL)")
+            }
+        }
+
+        // Align quake_history and chat_messages with current QuakeData and ChatMessage entities.
+        // v19 had quake_history(url, tsunami) and chat_messages(integer id, sender); current schema differs.
+        private val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // quake_history: v19 schema is incompatible (url, tsunami vs description, latitude, etc.). Recreate.
+                db.execSQL("DROP TABLE IF EXISTS quake_history")
+                db.execSQL("""
+                    CREATE TABLE quake_history (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        magnitude REAL NOT NULL,
+                        place TEXT NOT NULL,
+                        time INTEGER NOT NULL,
+                        description TEXT NOT NULL,
+                        latitude REAL NOT NULL,
+                        longitude REAL NOT NULL,
+                        pga TEXT NOT NULL,
+                        durasi INTEGER NOT NULL,
+                        station_id TEXT NOT NULL,
+                        intensity TEXT NOT NULL
+                    )
+                """.trimIndent())
+
+                // chat_messages: migrate from (id INTEGER, message, sender, timestamp) to (id TEXT, senderId, message, timestamp).
+                db.execSQL("""
+                    CREATE TABLE chat_messages_new (
+                        id TEXT NOT NULL PRIMARY KEY,
+                        senderId TEXT NOT NULL,
+                        message TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL
+                    )
+                """.trimIndent())
+                db.execSQL("""
+                    INSERT INTO chat_messages_new (id, senderId, message, timestamp)
+                    SELECT CAST(id AS TEXT), sender, message, timestamp FROM chat_messages
+                """.trimIndent())
+                db.execSQL("DROP TABLE chat_messages")
+                db.execSQL("ALTER TABLE chat_messages_new RENAME TO chat_messages")
             }
         }
     }
