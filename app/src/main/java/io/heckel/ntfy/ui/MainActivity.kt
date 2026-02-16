@@ -1031,8 +1031,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         // 2. Logic to determine Color and Text based on status
         when (status) {
             "HEALTHY" -> {
-                // GREEN STYLE (Healthy)
-                healthBar.setBackgroundResource(R.drawable.bg_pill_3d_green)
+                // GREEN STYLE (Healthy) - use bg_pill_3d_green2 to match SensorsFragment
+                healthBar.setBackgroundResource(R.drawable.bg_pill_3d_green2)
                 tvHealthStatus.text = "Server Healthy"
                 tvHealthStatus.setTextColor(Color.WHITE)
                 viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
