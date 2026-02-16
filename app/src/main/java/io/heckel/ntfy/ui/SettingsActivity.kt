@@ -505,6 +505,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                     getString(R.string.settings_general_message_bar_summary_disabled)
                 }
             }
+            messageBarEnabled?.isVisible = SHOW_HIDDEN_SETTINGS
 
             // Default Base URL
             val appBaseUrl = getString(R.string.app_base_url)
@@ -527,6 +528,12 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                     currentUrl
                 }
             }
+            defaultBaseUrl?.isVisible = SHOW_HIDDEN_SETTINGS
+
+            // Manage users
+            val usersPrefId = context?.getString(R.string.settings_general_users_key) ?: return
+            val manageUsers: Preference? = findPreference(usersPrefId)
+            manageUsers?.isVisible = SHOW_HIDDEN_SETTINGS
 
             // Broadcast enabled
             val broadcastEnabledPrefId = context?.getString(R.string.settings_advanced_broadcast_key) ?: return
@@ -672,6 +679,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
             backup?.onPreferenceClickListener = OnPreferenceClickListener {
                 true
             }
+            backup?.isVisible = SHOW_HIDDEN_SETTINGS
 
             // Restore
             val restorePrefId = context?.getString(R.string.settings_backup_restore_restore_key) ?: return
@@ -707,6 +715,11 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                 restoreResultLauncher.launch("*/*")
                 true
             }
+            restore?.isVisible = SHOW_HIDDEN_SETTINGS
+
+            // Backup & Restore category (hide when both backup and restore are hidden)
+            val backupRestoreCategoryKey = context?.getString(R.string.settings_backup_restore_category_key) ?: return
+            findPreference<PreferenceCategory>(backupRestoreCategoryKey)?.isVisible = SHOW_HIDDEN_SETTINGS
 
             // Connection protocol
             val connectionProtocolPrefId = context?.getString(R.string.settings_advanced_connection_protocol_key) ?: return
@@ -1245,6 +1258,8 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
     companion object {
         private const val TAG = "NtfySettingsActivity"
         private const val TITLE_TAG = "title"
+        /** Set to true to show: Default server, Manage users, Show message bar, Back up to file, Restore from file. */
+        private const val SHOW_HIDDEN_SETTINGS = false
         private const val REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION_FOR_AUTO_DOWNLOAD = 2586
         private const val REQUEST_CODE_COARSE_LOCATION_PERMISSION = 2587
         private const val AUTO_DOWNLOAD_SELECTION_NOT_SET = -99L
