@@ -57,6 +57,7 @@ Apache License 2.0. See [LICENSE](LICENSE).
 
 This project is a fork of [ntfy-android](https://github.com/binwiederhier/ntfy-android) by [Philipp C. Heckel](https://heckel.io). Thanks to the ntfy project and to these resources:
 
+- [Tabler Icons](https://tabler.io/icons) (MIT) — icon set used in the app
 - [RecyclerViewKotlin](https://github.com/android/views-widgets-samples/tree/main/RecyclerViewKotlin) (Apache 2.0)
 - [Android Room with a View](https://github.com/googlecodelabs/android-room-with-a-view/tree/kotlin) (Apache 2.0)
 - [Firebase Messaging Example](https://github.com/firebase/quickstart-android) (Apache 2.0)
