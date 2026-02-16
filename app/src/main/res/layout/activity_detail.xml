@@ -60,11 +60,13 @@
         <TextView
                 android:id="@+id/detail_no_notifications_text"
                 android:text="@string/detail_no_notifications_text"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                android:padding="10dp" android:gravity="center_horizontal"
-                android:paddingStart="50dp" android:paddingEnd="50dp"/>
+                android:padding="10dp"
+                android:gravity="center"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"/>
         <TextView
                 android:text="@string/detail_how_to_intro"
                 android:layout_width="match_parent"

@@ -338,9 +338,9 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
                         howToLink.visibility = View.GONE
                     } else {
                         noSearchResultsText.text = getString(R.string.detail_no_notifications_text)
-                        howToIntro.visibility = View.VISIBLE
-                        howToExample.visibility = View.VISIBLE
-                        howToLink.visibility = if (BuildConfig.PAYMENT_LINKS_AVAILABLE) View.VISIBLE else View.GONE
+                        howToIntro.visibility = View.GONE
+                        howToExample.visibility = View.GONE
+                        howToLink.visibility = View.GONE
                     }
                 } else {
                     mainListContainer.visibility = View.VISIBLE
@@ -656,10 +656,10 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
     private fun showHideOtherMenuItems() {
         if (!this::menu.isInitialized) return
         runOnUiThread {
-            menu.findItem(R.id.detail_menu_settings)?.isVisible = !isSearchActive
+            menu.findItem(R.id.detail_menu_settings)?.isVisible = false
             menu.findItem(R.id.detail_menu_clear)?.isVisible = !isSearchActive
-            menu.findItem(R.id.detail_menu_test)?.isVisible = !isSearchActive
-            menu.findItem(R.id.detail_menu_unsubscribe)?.isVisible = !isSearchActive
+            menu.findItem(R.id.detail_menu_test)?.isVisible = false
+            menu.findItem(R.id.detail_menu_unsubscribe)?.isVisible = false
         }
     }
 
@@ -840,28 +840,17 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
             val notificationsEnabledItem = menu.findItem(R.id.detail_menu_notifications_enabled)
             val notificationsDisabledUntilItem = menu.findItem(R.id.detail_menu_notifications_disabled_until)
             val notificationsDisabledForeverItem = menu.findItem(R.id.detail_menu_notifications_disabled_forever)
-            if (isSearchActive) {
-                notificationsEnabledItem?.isVisible = false
-                notificationsDisabledUntilItem?.isVisible = false
-                notificationsDisabledForeverItem?.isVisible = false
-            } else {
-                notificationsEnabledItem?.isVisible = subscriptionMutedUntil == 0L
-                notificationsDisabledForeverItem?.isVisible = subscriptionMutedUntil == 1L
-                notificationsDisabledUntilItem?.isVisible = subscriptionMutedUntil > 1L
-                if (subscriptionMutedUntil > 1L) {
-                    val formattedDate = formatDateShort(subscriptionMutedUntil)
-                    notificationsDisabledUntilItem?.title = getString(R.string.detail_menu_notifications_disabled_until, formattedDate)
-                }
-            }
+            notificationsEnabledItem?.isVisible = false
+            notificationsDisabledUntilItem?.isVisible = false
+            notificationsDisabledForeverItem?.isVisible = false
         }
     }
 
     private fun showHideCopyMenuItems() {
         if (!this::menu.isInitialized) return
         runOnUiThread {
-            // Hide links that lead to payments, see https://github.com/binwiederhier/ntfy/issues/1463
             val copyUrlItem = menu.findItem(R.id.detail_menu_copy_url)
-            copyUrlItem?.isVisible = !isSearchActive && (appBaseUrl != subscriptionBaseUrl || BuildConfig.PAYMENT_LINKS_AVAILABLE)
+            copyUrlItem?.isVisible = false
         }
     }
 

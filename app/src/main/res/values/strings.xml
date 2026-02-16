@@ -138,7 +138,7 @@
     <string name="add_dialog_error_ssl_untrusted">Server certificate not trusted</string>
 
     <!-- Detail activity -->
-    <string name="detail_no_notifications_text">You haven\'t received any notifications for this topic yet.</string>
+    <string name="detail_no_notifications_text">No earthquake alerts yet.</string>
     <string name="detail_how_to_intro">To send notifications to this topic, simply PUT or POST to the topic URL.
     </string>
     <string name="detail_how_to_example"><![CDATA[ Example (using curl):<br/><tt>$ curl -d \"Hi\" %1$s</tt> ]]></string>
