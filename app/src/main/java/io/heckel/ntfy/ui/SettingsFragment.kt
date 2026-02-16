@@ -23,8 +23,10 @@ import io.heckel.ntfy.db.Repository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import android.content.Context
 import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.tileprovider.tilesource.XYTileSource
+import io.heckel.ntfy.util.systemDarkThemeOn
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polygon
@@ -72,8 +74,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         val btnZoomIn = view.findViewById<MaterialButton>(R.id.btn_zoom_in)
         val btnZoomOut = view.findViewById<MaterialButton>(R.id.btn_zoom_out)
 
-        // 2. CONFIGURE MAP BASICS
-        mapView.setTileSource(TileSourceFactory.MAPNIK)
+        // 2. CONFIGURE MAP BASICS (CARTO basemaps: Positron for light, Dark Matter for dark)
+        mapView.setTileSource(getCartoTileSource(requireContext()))
         mapView.setMultiTouchControls(true)
         mapView.setBuiltInZoomControls(false)
         mapView.setTilesScaledToDpi(true)
@@ -314,6 +316,41 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     override fun onPause() {
         super.onPause()
         mapView.onPause()
+    }
+
+    private fun getCartoTileSource(context: Context): XYTileSource {
+        val isDark = context.systemDarkThemeOn()
+        return if (isDark) {
+            XYTileSource(
+                "Carto Dark Matter",
+                0, 20, 256, ".png",
+                arrayOf(
+                    "https://a.basemaps.cartocdn.com/rastertiles/dark_all/",
+                    "https://b.basemaps.cartocdn.com/rastertiles/dark_all/",
+                    "https://c.basemaps.cartocdn.com/rastertiles/dark_all/",
+                    "https://d.basemaps.cartocdn.com/rastertiles/dark_all/"
+                )
+            )
+        } else {
+            XYTileSource(
+                "Carto Positron",
+                0, 20, 256, ".png",
+                arrayOf(
+                    "https://a.basemaps.cartocdn.com/rastertiles/light_all/",
+                    "https://b.basemaps.cartocdn.com/rastertiles/light_all/",
+                    "https://c.basemaps.cartocdn.com/rastertiles/light_all/",
+                    "https://d.basemaps.cartocdn.com/rastertiles/light_all/"
+                )
+            )
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (::mapView.isInitialized) {
+            mapView.setTileSource(getCartoTileSource(requireContext()))
+            mapView.invalidate()
+        }
     }
 
     companion object {

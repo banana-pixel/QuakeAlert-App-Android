@@ -36,11 +36,12 @@
             android:usesCleartextTraffic="true"
             android:hardwareAccelerated="true">
 
-        <!-- Main activity -->
+        <!-- Main activity (configChanges=uiMode for map theme switching without recreation) -->
         <activity
                 android:name=".ui.MainActivity"
                 android:windowSoftInputMode="adjustResize"
-                android:exported="true">
+                android:exported="true"
+                android:configChanges="uiMode">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
