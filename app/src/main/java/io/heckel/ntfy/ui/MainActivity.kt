@@ -459,7 +459,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         schedulePeriodicServiceRestartWorker()
         schedulePeriodicDeleteWorker()
 
-        // Permissions
+        // Permissions (notification permission is now handled in OnboardingActivity)
         maybeRequestNotificationPermission()
 
         // Handle intent only once at the end of onCreate

@@ -1,0 +1,39 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp"
+    android:height="80dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Outer ring -->
+    <path
+        android:pathData="M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10 10,-4.48 10,-10S17.52,2 12,2z"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#84D6C2"
+        android:strokeLineCap="round" />
+    <!-- Wave ring 1 -->
+    <path
+        android:pathData="M12,5C8.13,5 5,8.13 5,12s3.13,7 7,7 7,-3.13 7,-7S15.87,5 12,5z"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:strokeColor="#5584D6C2"
+        android:strokeLineCap="round" />
+    <!-- Wave ring 2 -->
+    <path
+        android:pathData="M12,8C9.79,8 8,9.79 8,12s1.79,4 4,4 4,-1.79 4,-4S14.21,8 12,8z"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:strokeColor="#3384D6C2"
+        android:strokeLineCap="round" />
+    <!-- Center dot -->
+    <path
+        android:pathData="M12,10.5a1.5,1.5 0,1 1,0 3a1.5,1.5 0,1 1,0 -3z"
+        android:fillColor="#EF5350" />
+    <!-- Lightning bolt -->
+    <path
+        android:pathData="M20,3L18,7L21,7L19,11"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFD54F"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

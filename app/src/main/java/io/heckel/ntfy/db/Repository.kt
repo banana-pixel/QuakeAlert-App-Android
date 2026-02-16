@@ -514,6 +514,14 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         sharedPrefs.edit { putBoolean(SHARED_PREFS_MESSAGE_BAR_ENABLED, enabled) }
     }
 
+    fun isOnboardingCompleted(): Boolean {
+        return sharedPrefs.getBoolean(SHARED_PREFS_ONBOARDING_COMPLETED, false)
+    }
+
+    fun setOnboardingCompleted(completed: Boolean) {
+        sharedPrefs.edit(commit = true) { putBoolean(SHARED_PREFS_ONBOARDING_COMPLETED, completed) }
+    }
+
     fun getBatteryOptimizationsRemindTime(): Long {
         return sharedPrefs.getLong(SHARED_PREFS_BATTERY_OPTIMIZATIONS_REMIND_TIME, BATTERY_OPTIMIZATIONS_REMIND_TIME_ALWAYS)
     }
@@ -712,6 +720,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_USER_LONGITUDE = "UserLongitude"
         const val SHARED_PREFS_USER_CITY_NAME = "UserCityName"
         const val SHARED_PREFS_ALERT_RADIUS = "alert_radius"
+        const val SHARED_PREFS_ONBOARDING_COMPLETED = "OnboardingCompleted"
 
         private const val LAST_TOPICS_COUNT = 3
         const val MIN_PRIORITY_USE_GLOBAL = 0

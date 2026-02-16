@@ -149,6 +149,10 @@
     <color name="chip_background_color">#E8E8E8</color> <!-- Light gray background -->
     <color name="chip_background_checked">#BDBDBD</color> <!-- Darker when selected -->
 
+    <!-- Onboarding page text - light mode (dark text on light bg) -->
+    <color name="onboarding_page_title">#01579B</color>
+    <color name="onboarding_page_desc">#546E7A</color>
+
     <!-- Earthquake intensity badge colors -->
     <color name="intensity_green">#2E7D32</color>
     <color name="intensity_yellow">#F9A825</color>

@@ -1,0 +1,45 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp"
+    android:height="80dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Battery body -->
+    <path
+        android:pathData="M6,4 L6,2 L10,2 L10,4"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M4,4 L12,4 C13.1,4 14,4.9 14,6 L14,20 C14,21.1 13.1,22 12,22 L4,22 C2.9,22 2,21.1 2,20 L2,6 C2,4.9 2.9,4 4,4 Z"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Lightning bolt -->
+    <path
+        android:pathData="M8,10 L6,14 L10,14 L8,18"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Shield -->
+    <path
+        android:pathData="M18,7 L22,9 L22,14 C22,17 20,19 18,20 C16,19 14,17 14,14 L14,9 Z"
+        android:strokeWidth="1.2"
+        android:fillColor="#33FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Check in shield -->
+    <path
+        android:pathData="M16,13 L17.5,14.5 L20,12"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
