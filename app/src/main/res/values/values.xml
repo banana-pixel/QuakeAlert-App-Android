@@ -4,7 +4,7 @@
          The translatable="false" attribute is just an additional safety. -->
 
     <!-- Main app constants -->
-    <string name="app_name" translatable="false">ntfy</string>
+    <string name="app_name" translatable="false">QuakeAlert</string>
     <string name="app_base_url" translatable="false">https://quakealert.bananapixel.my.id</string> <!-- If changed, you must also change google-services.json! -->
 
     <!-- Main activity -->
@@ -42,7 +42,8 @@
     <string name="settings_about_version_key" translatable="false">Version</string>
     <string name="settings_about_quakealert_version_key" translatable="false">QuakeAlertVersion</string>
     <string name="settings_about_credit_key" translatable="false">AboutCredit</string>
-    <string name="settings_about_ntfy_version_format" translatable="false">ntfy %1$s (%2$s)</string>
+    <string name="settings_about_ntfy_version_format" translatable="false">ntfy %1$s</string>
+    <string name="settings_about_ntfy_version_number" translatable="false">1.23.0</string>
     <string name="settings_about_quakealert_version_number" translatable="false">0.1</string>
     <string name="settings_about_credit" translatable="false">Based on ntfy by Philipp C. Heckel · QuakeAlert by Banana Pixel</string>
     <string name="settings_about_ntfy_version_copy_label" translatable="false">ntfy version</string>

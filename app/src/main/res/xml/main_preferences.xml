@@ -51,7 +51,7 @@
                 app:key="@string/settings_general_users_key"
                 app:title="@string/settings_general_users_title"
                 app:summary="@string/settings_general_users_summary"
-                app:fragment="io.heckel.ntfy.ui.SettingsActivity$UserSettingsFragment"/>
+                app:fragment="id.my.bananapixel.quakealert.ui.SettingsActivity$UserSettingsFragment"/>
         <ListPreference
                 app:key="@string/settings_general_language_key"
                 app:title="@string/settings_general_language_title"/>
@@ -100,12 +100,12 @@
             app:key="@string/settings_advanced_custom_headers_key"
             app:title="@string/settings_advanced_custom_headers_title"
             app:summary="@string/settings_advanced_custom_headers_summary"
-            app:fragment="io.heckel.ntfy.ui.SettingsActivity$CustomHeaderSettingsFragment"/>
+            app:fragment="id.my.bananapixel.quakealert.ui.SettingsActivity$CustomHeaderSettingsFragment"/>
         <Preference
             app:key="@string/settings_advanced_certificates_key"
             app:title="@string/settings_advanced_certificates_title"
             app:summary="@string/settings_advanced_certificates_summary"
-            app:fragment="io.heckel.ntfy.ui.CertificateSettingsFragment"/>
+            app:fragment="id.my.bananapixel.quakealert.ui.CertificateSettingsFragment"/>
         <SwitchPreferenceCompat
             app:key="@string/settings_advanced_broadcast_key"
             app:title="@string/settings_advanced_broadcast_title"
@@ -132,11 +132,11 @@
     </PreferenceCategory>
     <PreferenceCategory app:title="@string/settings_about_header">
         <Preference
-                app:key="@string/settings_about_version_key"
-                app:title="@string/settings_about_version_title"/>
-        <Preference
                 app:key="@string/settings_about_quakealert_version_key"
                 app:title="@string/settings_about_quakealert_version_title"/>
+        <Preference
+                app:key="@string/settings_about_version_key"
+                app:title="@string/settings_about_version_title"/>
         <Preference
                 app:key="@string/settings_about_credit_key"
                 app:summary="@string/settings_about_credit"

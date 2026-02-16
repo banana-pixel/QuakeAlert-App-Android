@@ -6,26 +6,26 @@
 
     <fragment
         android:id="@+id/nav_history"
-        android:name="io.heckel.ntfy.ui.HistoryFragment"
+        android:name="id.my.bananapixel.quakealert.ui.HistoryFragment"
         android:label="History" />
 
     <fragment
         android:id="@+id/nav_sensors"
-        android:name="io.heckel.ntfy.ui.SensorsFragment"
+        android:name="id.my.bananapixel.quakealert.ui.SensorsFragment"
         android:label="Sensors" />
 
     <fragment
         android:id="@+id/nav_warning"
-        android:name="io.heckel.ntfy.ui.WarningFragment"
+        android:name="id.my.bananapixel.quakealert.ui.WarningFragment"
         android:label="Warning" />
 
     <fragment
         android:id="@+id/nav_chat"
-        android:name="io.heckel.ntfy.ui.ChatFragment"
+        android:name="id.my.bananapixel.quakealert.ui.ChatFragment"
         android:label="Chat" />
 
     <fragment
         android:id="@+id/nav_settings"
-        android:name="io.heckel.ntfy.ui.SettingsFragment"
+        android:name="id.my.bananapixel.quakealert.ui.SettingsFragment"
         android:label="Settings" />
 </navigation>

@@ -25,16 +25,16 @@ secrets {
 }
 
 android {
-    namespace "io.heckel.ntfy"
+    namespace "id.my.bananapixel.quakealert"
     compileSdk 36
 
     defaultConfig {
-        applicationId "io.heckel.ntfy"
+        applicationId "id.my.bananapixel.quakealert"
         minSdk 26
         targetSdk 36
 
-        versionCode 59
-        versionName "1.23.0"
+        versionCode 1
+        versionName "0.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

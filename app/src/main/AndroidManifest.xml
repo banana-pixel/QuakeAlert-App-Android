@@ -158,7 +158,7 @@
                 android:enabled="true"
                 android:exported="true">
             <intent-filter>
-                <action android:name="io.heckel.ntfy.SEND_MESSAGE"/>
+                <action android:name="id.my.bananapixel.quakealert.SEND_MESSAGE"/>
             </intent-filter>
         </receiver>
 
