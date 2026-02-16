@@ -83,6 +83,15 @@
                     android:value=".ui.MainActivity"/>
         </activity>
 
+        <!-- About QuakeAlert activity -->
+        <activity
+                android:name=".ui.AboutActivity"
+                android:parentActivityName=".ui.MainActivity">
+            <meta-data
+                    android:name="android.support.PARENT_ACTIVITY"
+                    android:value=".ui.MainActivity"/>
+        </activity>
+
         <!-- Detail settings activity -->
         <activity
                 android:name=".ui.DetailSettingsActivity"

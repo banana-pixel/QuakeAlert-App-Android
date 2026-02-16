@@ -8,8 +8,8 @@
     <string name="app_base_url" translatable="false">https://quakealert.bananapixel.my.id</string> <!-- If changed, you must also change google-services.json! -->
 
     <!-- Main activity -->
-    <string name="main_menu_report_bug_url" translatable="false">https://github.com/binwiederhier/ntfy/issues</string>
-    <string name="main_menu_docs_url" translatable="false">https://ntfy.sh/docs</string>
+    <string name="main_menu_report_bug_url" translatable="false">https://github.com/banana-pixel/QuakeAlert-App-Android/issues</string>
+    <string name="main_menu_docs_url" translatable="false">https://github.com/banana-pixel/QuakeAlert-App-Android/blob/main/README.md</string>
     <string name="main_menu_donate_url" translatable="false">https://github.com/sponsors/binwiederhier</string>
 
     <!-- Settings constants -->
@@ -40,6 +40,17 @@
     <string name="settings_advanced_connection_protocol_key" translatable="false">ConnectionProtocol</string>
     <string name="settings_advanced_exact_alarms_key" translatable="false">ExactAlarms</string>
     <string name="settings_about_version_key" translatable="false">Version</string>
+    <string name="settings_about_quakealert_version_key" translatable="false">QuakeAlertVersion</string>
+    <string name="settings_about_credit_key" translatable="false">AboutCredit</string>
+    <string name="settings_about_ntfy_version_format" translatable="false">ntfy %1$s (%2$s)</string>
+    <string name="settings_about_quakealert_version_number" translatable="false">0.1</string>
+    <string name="settings_about_credit" translatable="false">Based on ntfy by Philipp C. Heckel · QuakeAlert by Banana Pixel</string>
+    <string name="settings_about_ntfy_version_copy_label" translatable="false">ntfy version</string>
+    <string name="settings_about_quakealert_version_copy_label" translatable="false">QuakeAlert version</string>
+
+    <!-- About QuakeAlert page -->
+    <string name="about_quakealert_title" translatable="false">About QuakeAlert</string>
+    <string name="about_quakealert_body" translatable="false">QuakeAlert is an earthquake early-warning app that keeps you informed of seismic activity near you.\n\nThis app is built on ntfy, the open-source push notification service, and customized by Banana Pixel for earthquake alerts and monitoring.\n\n• Receive real-time earthquake notifications\n• View quake reports and history\n• Adjust your location for relevant alerts\n\nQuakeAlert by Banana Pixel.\nBased on ntfy by Philipp C. Heckel.</string>
 
     <!-- Detail settings constants -->
     <string name="detail_settings_notifications_header_key" translatable="false">SubscriptionNotifications</string>

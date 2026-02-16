@@ -773,6 +773,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 )
                 true
             }
+            R.id.main_menu_about -> {
+                startActivity(Intent(this, AboutActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }

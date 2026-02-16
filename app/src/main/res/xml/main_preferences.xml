@@ -134,5 +134,12 @@
         <Preference
                 app:key="@string/settings_about_version_key"
                 app:title="@string/settings_about_version_title"/>
+        <Preference
+                app:key="@string/settings_about_quakealert_version_key"
+                app:title="@string/settings_about_quakealert_version_title"/>
+        <Preference
+                app:key="@string/settings_about_credit_key"
+                app:summary="@string/settings_about_credit"
+                app:selectable="false"/>
     </PreferenceCategory>
 </PreferenceScreen>

@@ -745,14 +745,24 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
             // Update "Exact alarms" preference to match system setting
             updateExactAlarmsPref()
 
-            // Version
+            // ntfy version
             val versionPrefId = context?.getString(R.string.settings_about_version_key) ?: return
             val versionPref: Preference? = findPreference(versionPrefId)
-            val version = getString(R.string.settings_about_version_format, BuildConfig.VERSION_NAME, BuildConfig.FLAVOR)
-            versionPref?.summary = version
+            val ntfyVersion = getString(R.string.settings_about_ntfy_version_format, BuildConfig.VERSION_NAME, BuildConfig.FLAVOR)
+            versionPref?.summary = ntfyVersion
             versionPref?.onPreferenceClickListener = OnPreferenceClickListener {
                 val context = context ?: return@OnPreferenceClickListener false
-                copyToClipboard(context, "ntfy version", version)
+                copyToClipboard(context, getString(R.string.settings_about_ntfy_version_copy_label), ntfyVersion)
+                true
+            }
+            // QuakeAlert version
+            val quakeAlertVersionPrefId = context?.getString(R.string.settings_about_quakealert_version_key) ?: return
+            val quakeAlertVersionPref: Preference? = findPreference(quakeAlertVersionPrefId)
+            val quakeAlertVersion = getString(R.string.settings_about_quakealert_version_number)
+            quakeAlertVersionPref?.summary = quakeAlertVersion
+            quakeAlertVersionPref?.onPreferenceClickListener = OnPreferenceClickListener {
+                val context = context ?: return@OnPreferenceClickListener false
+                copyToClipboard(context, getString(R.string.settings_about_quakealert_version_copy_label), quakeAlertVersion)
                 true
             }
         }
