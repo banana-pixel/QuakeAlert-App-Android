@@ -28,6 +28,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.heckel.ntfy.db.Repository
 
 class WarningFragment : Fragment(R.layout.fragment_warning) {
 
@@ -181,6 +182,11 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         dismissButton.setOnClickListener {
             AlertState.setActive(false)
             resetHandler.removeCallbacks(resetRunnable)
+            // Stop the insistent alert sound (same as when user dismisses the notification)
+            Repository.getInstance(requireContext()).mediaPlayer.apply {
+                if (isPlaying) stop()
+                reset()
+            }
         }
 
         viewLogsButton.setOnClickListener {
