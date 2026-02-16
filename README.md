@@ -1,28 +1,65 @@
-# ntfy Android App
-This is the Android app for [ntfy](https://github.com/binwiederhier/ntfy) ([ntfy.sh](https://ntfy.sh)). You can find the app in [F-Droid](https://f-droid.org/packages/io.heckel.ntfy/) or the [Play Store](https://play.google.com/store/apps/details?id=io.heckel.ntfy), 
-or as .apk files on the [GitHub releases page](https://github.com/binwiederhier/ntfy-android/releases).
+# QuakeAlert Android App
 
-If you're downloading the APKs from GitHub, they are signed with a certificate with the following SHA-256 fingerprint: `6e145d7ae685eff75468e5067e03a6c3645453343e4e181dac8b6b17ff67489d`. You can also query the DNS TXT records for `ntfy.sh` to find this fingerprint.
+Android app for **QuakeAlert** — earthquake alerts and station monitoring. It connects to the QuakeAlert backend to receive push notifications, view quake history, check station health, and use in-app chat.
+
+**Package:** `id.my.bananapixel.quakealert`
+
+## Features
+
+- Earthquake alerts and warning screen with intensity and distance
+- Quake history with swipe-to-refresh and error/retry
+- Station/sensors list with health status and latency
+- In-app chat
+- Built on a fork of [ntfy-android](https://github.com/binwiederhier/ntfy-android); supports F-Droid (no Google Play Services) and Play (with Firebase) flavors
 
 ## Build
-For up-to-date building instructions, please see the [official docs](https://docs.ntfy.sh/develop/#android-app).
 
-## Translations
-We're using [Weblate](https://hosted.weblate.org/projects/ntfy/) to translate the ntfy Android app. We'd love your participation.
+### Requirements
 
-<a href="https://hosted.weblate.org/engage/ntfy/">
-<img src="https://hosted.weblate.org/widgets/ntfy/-/multi-blue.svg" alt="Translation status" />
-</a>
+- Android SDK (compileSdk 36, minSdk 26)
+- JDK 17
+
+### Flavors
+
+| Flavor   | Use case                          | Extra requirement                    |
+|----------|-----------------------------------|--------------------------------------|
+| **fdroid** | F-Droid or APK without Google     | None                                 |
+| **play**   | Google Play (Firebase push)      | `google-services.json` in `app/`     |
+
+### Commands
+
+```bash
+# F-Droid / no Firebase (recommended if you don't have google-services.json)
+./gradlew assembleFdroidDebug
+# or release
+./gradlew assembleFdroidRelease
+
+# Play (requires app/google-services.json)
+./gradlew assemblePlayDebug
+./gradlew assemblePlayRelease
+```
+
+### Unit tests
+
+```bash
+./gradlew testFdroidDebugUnitTest
+```
+
+See [docs/TEST_COVERAGE.md](docs/TEST_COVERAGE.md) for what’s covered and how to add tests.
+
+## Backend
+
+The app is designed to work with the QuakeAlert backend (e.g. `quakealert.bananapixel.my.id`). Base URL and endpoints are configured in the app.
 
 ## License
-Made with ❤️ by [Philipp C. Heckel](https://heckel.io), distributed under the [Apache License 2.0](LICENSE).
 
-Thank you to these fantastic resources:
-* [RecyclerViewKotlin](https://github.com/android/views-widgets-samples/tree/main/RecyclerViewKotlin) (Apache 2.0)
-* [Just another Hacker News Android client](https://github.com/manoamaro/another-hacker-news-client) (MIT)
-* [Android Room with a View](https://github.com/googlecodelabs/android-room-with-a-view/tree/kotlin) (Apache 2.0)
-* [Firebase Messaging Example](https://github.com/firebase/quickstart-android/blob/7147f60451b3eeaaa05fc31208ffb67e2df73c3c/messaging/app/src/main/java/com/google/firebase/quickstart/fcm/kotlin/MyFirebaseMessagingService.kt) (Apache 2.0)
-* [Designing a logo with Inkscape](https://www.youtube.com/watch?v=r2Kv61cd2P4)
-* [Foreground service](https://robertohuertas.com/2019/06/29/android_foreground_services/)
-* [github/gemoji](https://github.com/github/gemoji) (MIT) for as data source for an up-to-date [emoji.json](https://raw.githubusercontent.com/github/gemoji/master/db/emoji.json) file
-* [emoji-java](https://github.com/vdurmont/emoji-java) (MIT) has been stripped and inlined to use the emoji.json file
+Apache License 2.0. See [LICENSE](LICENSE).
+
+This project is a fork of [ntfy-android](https://github.com/binwiederhier/ntfy-android) by [Philipp C. Heckel](https://heckel.io). Thanks to the ntfy project and to these resources:
+
+- [RecyclerViewKotlin](https://github.com/android/views-widgets-samples/tree/main/RecyclerViewKotlin) (Apache 2.0)
+- [Android Room with a View](https://github.com/googlecodelabs/android-room-with-a-view/tree/kotlin) (Apache 2.0)
+- [Firebase Messaging Example](https://github.com/firebase/quickstart-android) (Apache 2.0)
+- [Foreground service](https://robertohuertas.com/2019/06/29/android_foreground_services/)
+- [github/gemoji](https://github.com/github/gemoji) (MIT) — emoji data
+- [emoji-java](https://github.com/vdurmont/emoji-java) (MIT) — inlined for emoji.json
