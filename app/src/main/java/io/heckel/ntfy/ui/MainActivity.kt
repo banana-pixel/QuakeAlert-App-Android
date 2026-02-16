@@ -173,8 +173,19 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             true
         }
 
-        navController.addOnDestinationChangedListener { _, _, _ ->
-            // We use .post to wait for the views to be fully drawn/measured
+        navController.addOnDestinationChangedListener { _, destination, _ ->
+
+            // --- FIX: CHANGE COLOR IMMEDIATELY (Remove .post wrapper for this part) ---
+            // This ensures the background is swapped BEFORE the button state changes to "Selected"
+            if (destination.id == R.id.nav_warning) {
+                bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile_warning)
+            } else {
+                bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile)
+            }
+
+            // --- Keep Layout Adjustments inside .post ---
+            // We still need .post() here because we are waiting for the NEW Fragment's view
+            // to be created so we can calculate padding.
             bottomNav.post {
                 applyBottomInset(bottomNav)
             }
