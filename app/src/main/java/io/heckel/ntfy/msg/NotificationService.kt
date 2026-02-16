@@ -124,8 +124,8 @@ class NotificationService(val context: Context) {
             else -> "⚠️ DANGER: Quake (${distanceLabel}km) ⚠️"
         }
 
-        // Trigger global alert if it's a DANGER priority
-        if (displayPriority == PRIORITY_MAX) {
+        // Trigger global alert only for earthquake-tagged messages (red warning page)
+        if (displayPriority == PRIORITY_MAX && hasEarthquakeTag(notification)) {
             AlertState.setAlertData(notification, distanceLabel)
             val intent = Intent(ACTION_QUAKE_ALERT).apply {
                 putExtra("message", notification.message)
@@ -294,6 +294,10 @@ class NotificationService(val context: Context) {
         return context.getString(R.string.notification_popup_file, message, attachmentInfos)
     }
 
+    private fun hasEarthquakeTag(notification: Notification): Boolean {
+        return splitTags(notification.tags).any { it.equals("earthquake", ignoreCase = true) }
+    }
+
     private fun setClickAction(
         builder: NotificationCompat.Builder,
         subscription: Subscription,
@@ -301,8 +305,8 @@ class NotificationService(val context: Context) {
         priority: Int,
         distance: String?
     ) {
-        // If it's a high-intensity quake, go straight to the Warning Page
-        if (priority == PRIORITY_MAX) {
+        // Only open the red Warning Page for ntfy messages tagged with "earthquake"
+        if (priority == PRIORITY_MAX && hasEarthquakeTag(notification)) {
             builder.setContentIntent(warningActivityIntent(subscription, notification, distance))
             return
         }
