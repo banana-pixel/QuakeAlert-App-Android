@@ -666,9 +666,13 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         )
     }
 
-    fun updateConnectionDetails(baseUrl: String, state: ConnectionState, error: Throwable? = null, nextRetryTime: Long = 0L) {
-        val details = ConnectionDetails(state, error, nextRetryTime)
+    fun updateConnectionDetails(baseUrl: String, state: ConnectionState, error: Throwable? = null, nextRetryTime: Long = 0L, latencyMs: Int? = null) {
         val current = connectionDetails[baseUrl]
+        val resolvedLatency = when (state) {
+            ConnectionState.CONNECTED -> latencyMs
+            else -> current?.latencyMs
+        }
+        val details = ConnectionDetails(state, error, nextRetryTime, resolvedLatency)
         if (current != details) {
             if (state == ConnectionState.NOT_APPLICABLE && error == null) {
                 connectionDetails.remove(baseUrl)
@@ -676,7 +680,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
                 connectionDetails[baseUrl] = details
             }
             connectionDetailsLiveData.postValue(connectionDetails.toMap())
-            Log.d(TAG, "Connection details updated for $baseUrl: state=$state, error=${error?.message}, nextRetry=$nextRetryTime")
+            Log.d(TAG, "Connection details updated for $baseUrl: state=$state, error=${error?.message}, nextRetry=$nextRetryTime, latencyMs=$resolvedLatency")
         }
     }
 

@@ -42,7 +42,7 @@ class WsConnection(
     private val httpClient: OkHttpClient,
     private val user: User?,
     private val customHeaders: List<CustomHeader>,
-    private val connectionDetailsListener: (String, ConnectionState, Throwable?, Long) -> Unit,
+    private val connectionDetailsListener: (String, ConnectionState, Throwable?, Long, Int?) -> Unit,
     private val notificationListener: (Subscription, Notification) -> Unit,
     private val alarmManager: AlarmManager
 ) : Connection {
@@ -52,6 +52,7 @@ class WsConnection(
     private var webSocket: WebSocket? = null
     private var state: State? = null
     private var closed = false
+    private var connectionStartTimeMs: Long = 0L
 
     private val globalId = GLOBAL_ID.incrementAndGet()
     private val listenerId = AtomicLong(0)
@@ -75,6 +76,7 @@ class WsConnection(
             webSocket!!.close(WS_CLOSE_NORMAL, "")
         }
         state = State.Connecting
+        connectionStartTimeMs = System.currentTimeMillis()
         val nextListenerId = listenerId.incrementAndGet()
         val since = repository.getLastNotificationId(topicsToSubscriptionIds.values) ?: ApiService.SINCE_NONE
         val urlWithSince = topicUrlWs(baseUrl, topicsStr, since)
@@ -141,7 +143,8 @@ class WsConnection(
                 if (errorCount > 0) {
                     errorCount = 0
                 }
-                connectionDetailsListener(baseUrl, ConnectionState.CONNECTED, null, 0L)
+                val latencyMs = (System.currentTimeMillis() - connectionStartTimeMs).toInt().coerceAtLeast(0)
+                connectionDetailsListener(baseUrl, ConnectionState.CONNECTED, null, 0L, latencyMs)
             }
         }
 
@@ -195,7 +198,7 @@ class WsConnection(
                     isResponseCode(response, 401, 403) && response != null -> NotAuthorizedException(response.code, response.message, t)
                     else -> t
                 }
-                connectionDetailsListener(baseUrl, ConnectionState.CONNECTING, error, nextRetryTime)
+                connectionDetailsListener(baseUrl, ConnectionState.CONNECTING, error, nextRetryTime, null)
                 scheduleReconnect(retrySeconds)
             }
         }

@@ -349,12 +349,15 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 else -> "HEALTHY"
             }
 
-            // 4. Determine Latency
-            // Note: Ntfy doesn't track ping latency by default.
-            // For now, we show "24 ms" when healthy to look good, or "0 ms" otherwise.
-            val latency = if (status == "HEALTHY") (15..45).random() else 0
+            // 4. Latency from connection layer (time to connect when CONNECTED)
+            val latency = if (status == "HEALTHY") {
+                details.values
+                    .filter { it.state == ConnectionState.CONNECTED }
+                    .mapNotNull { it.latencyMs }
+                    .maxOrNull() ?: 0
+            } else 0
 
-            // 5. Call your new function!
+            // 5. Update health bar
             updateHealthStatus(status, latency)
         }
 
@@ -1029,8 +1032,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val tvAppLatency = findViewById<TextView>(R.id.tv_app_latency) ?: return
         val viewHealthDot = findViewById<View>(R.id.view_health_dot) ?: return
 
-        // 1. Update the Latency Text
-        tvAppLatency.text = "$latency ms"
+        // 1. Latency: only show when we have a valid ping; hide when offline/connecting
+        val showLatency = (status == "HEALTHY" || status == "WARNING")
+        tvAppLatency.visibility = if (showLatency) View.VISIBLE else View.GONE
+        if (showLatency) tvAppLatency.text = "$latency ms"
 
         // 2. Logic to determine Color and Text based on status
         when (status) {

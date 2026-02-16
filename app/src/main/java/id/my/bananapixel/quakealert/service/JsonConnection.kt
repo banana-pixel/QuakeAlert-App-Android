@@ -23,7 +23,7 @@ class JsonConnection(
     private val repository: Repository,
     private val api: ApiService,
     private val user: User?,
-    private val connectionDetailsListener: (String, ConnectionState, Throwable?, Long) -> Unit,
+    private val connectionDetailsListener: (String, ConnectionState, Throwable?, Long, Int?) -> Unit,
     private val notificationListener: (Subscription, Notification) -> Unit,
     private val serviceActive: () -> Boolean
 ) : Connection {
@@ -46,12 +46,14 @@ class JsonConnection(
                 val since = repository.getLastNotificationId(topicsToSubscriptionIds.values) ?: ApiService.SINCE_NONE
 
                 try {
+                    val startTimeMs = System.currentTimeMillis()
                     val (newCall, source) = api.subscribe(baseUrl, topicsStr, since, user)
                     call = newCall
                     if (errorCount > 0) {
                         errorCount = 0
                     }
-                    connectionDetailsListener(baseUrl, ConnectionState.CONNECTED, null, 0L)
+                    val latencyMs = (System.currentTimeMillis() - startTimeMs).toInt().coerceAtLeast(0)
+                    connectionDetailsListener(baseUrl, ConnectionState.CONNECTED, null, 0L, latencyMs)
                     
                     // Blocking read loop: reads JSON lines until connection closes or is cancelled
                     while (isActive && serviceActive() && !source.exhausted()) {
@@ -77,7 +79,7 @@ class JsonConnection(
                     val retrySeconds = RETRY_SECONDS.getOrNull(errorCount-1) ?: RETRY_SECONDS.last()
                     val nextRetryTime = System.currentTimeMillis() + (retrySeconds * 1000L)
                     val error = if (isConnectionBrokenException(e)) null else e
-                    connectionDetailsListener(baseUrl, ConnectionState.CONNECTING, error, nextRetryTime)
+                    connectionDetailsListener(baseUrl, ConnectionState.CONNECTING, error, nextRetryTime, null)
                     Log.w(TAG, "[$url] Retrying connection in ${retrySeconds}s ...")
                     delay(retrySeconds * 1000L)
                 }

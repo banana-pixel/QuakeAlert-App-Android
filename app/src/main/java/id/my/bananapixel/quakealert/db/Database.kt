@@ -100,7 +100,9 @@ enum class ConnectionState {
 data class ConnectionDetails(
     val state: ConnectionState = ConnectionState.NOT_APPLICABLE,
     val error: Throwable? = null,
-    val nextRetryTime: Long = 0L
+    val nextRetryTime: Long = 0L,
+    /** Round-trip / connection time in ms when state is CONNECTED; null when not measured. */
+    val latencyMs: Int? = null
 ) {
     fun getStackTraceString(): String {
         return error?.stackTraceToString() ?: ""

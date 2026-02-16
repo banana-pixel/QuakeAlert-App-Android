@@ -148,8 +148,10 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
      * Updates the background resource and text colors based on the state.
      */
     private fun updateHealthStatus(status: String, latency: Int) {
-        // Update Latency Text
-        appLatency.text = "$latency ms"
+        // Latency: only show when we have a valid ping; hide when offline/connecting
+        val showLatency = (status == "HEALTHY" || status == "WARNING")
+        appLatency.visibility = if (showLatency) View.VISIBLE else View.GONE
+        if (showLatency) appLatency.text = "$latency ms"
 
         when (status) {
             "HEALTHY" -> {

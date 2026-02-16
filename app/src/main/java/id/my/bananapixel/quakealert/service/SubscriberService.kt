@@ -330,8 +330,8 @@ class SubscriberService : Service() {
         }
     }
 
-    private fun onConnectionDetailsChanged(baseUrl: String, state: ConnectionState, throwable: Throwable?, nextRetryTime: Long) {
-        repository.updateConnectionDetails(baseUrl, state, throwable, nextRetryTime)
+    private fun onConnectionDetailsChanged(baseUrl: String, state: ConnectionState, throwable: Throwable?, nextRetryTime: Long, latencyMs: Int? = null) {
+        repository.updateConnectionDetails(baseUrl, state, throwable, nextRetryTime, latencyMs)
     }
 
     private fun countTopicsWithConnectionErrors(details: Map<String, ConnectionDetails>? = null): Int {
