@@ -23,10 +23,6 @@ import id.my.bananapixel.quakealert.util.*
 import java.util.*
 import androidx.core.net.toUri
 import kotlinx.coroutines.launch
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
 
 class NotificationService(val context: Context) {
     private val notificationManager =
@@ -111,13 +107,9 @@ class NotificationService(val context: Context) {
             sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
                 .toDouble()
         val distance =
-            geoCoordinates?.let { (lat, lon) -> calculateDistance(userLat, userLon, lat, lon) }
+            geoCoordinates?.let { (lat, lon) -> distanceKm(userLat, userLon, lat, lon) }
         val distanceLabel = distance?.let { formatDistanceKm(it) }
-        val displayPriority = when {
-            distance == null -> notification.priority
-            distance > alertRadiusKm -> PRIORITY_MIN
-            else -> PRIORITY_MAX
-        }
+        val displayPriority = quakeDisplayPriority(distance, alertRadiusKm, notification.priority)
         val title = when {
             distanceLabel == null -> baseTitle
             distance > alertRadiusKm -> "Silent Alert: Quake (${distanceLabel}km)"
@@ -125,7 +117,7 @@ class NotificationService(val context: Context) {
         }
 
         // Trigger global alert only for earthquake-tagged messages (red warning page)
-        if (displayPriority == PRIORITY_MAX && hasEarthquakeTag(notification)) {
+        if (displayPriority == PRIORITY_MAX && hasEarthquakeTag(notification.tags)) {
             AlertState.setAlertData(notification, distanceLabel)
             val intent = Intent(ACTION_QUAKE_ALERT).apply {
                 putExtra("message", notification.message)
@@ -294,10 +286,6 @@ class NotificationService(val context: Context) {
         return context.getString(R.string.notification_popup_file, message, attachmentInfos)
     }
 
-    private fun hasEarthquakeTag(notification: Notification): Boolean {
-        return splitTags(notification.tags).any { it.equals("earthquake", ignoreCase = true) }
-    }
-
     private fun setClickAction(
         builder: NotificationCompat.Builder,
         subscription: Subscription,
@@ -306,7 +294,7 @@ class NotificationService(val context: Context) {
         distance: String?
     ) {
         // Only open the red Warning Page for ntfy messages tagged with "earthquake"
-        if (priority == PRIORITY_MAX && hasEarthquakeTag(notification)) {
+        if (priority == PRIORITY_MAX && hasEarthquakeTag(notification.tags)) {
             builder.setContentIntent(warningActivityIntent(subscription, notification, distance))
             return
         }
@@ -806,32 +794,6 @@ class NotificationService(val context: Context) {
         return message
     }
 
-    private fun extractGeoCoordinates(tags: String): Pair<Double, Double>? {
-        val geoTag = splitTags(tags).firstOrNull { it.startsWith(GEO_TAG_PREFIX) } ?: return null
-        val coordinates = geoTag.removePrefix(GEO_TAG_PREFIX).split(";")
-        if (coordinates.size != 2) {
-            return null
-        }
-        val lat = coordinates[0].toDoubleOrNull() ?: return null
-        val lon = coordinates[1].toDoubleOrNull() ?: return null
-        return Pair(lat, lon)
-    }
-
-    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val latDistance = Math.toRadians(lat2 - lat1)
-        val lonDistance = Math.toRadians(lon2 - lon1)
-        val sinLat = sin(latDistance / 2)
-        val sinLon = sin(lonDistance / 2)
-        val a =
-            sinLat * sinLat + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sinLon * sinLon
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return EARTH_RADIUS_KM * c
-    }
-
-    private fun formatDistanceKm(distanceKm: Double): String {
-        return String.format(Locale.US, "%.1f", distanceKm)
-    }
-
     companion object {
         const val ACTION_QUAKE_ALERT = "id.my.bananapixel.quakealert.QUAKE_ALERT"
         const val ACTION_VIEW = "view"
@@ -850,8 +812,6 @@ class NotificationService(val context: Context) {
         private const val TAG = "NtfyNotifService"
 
         private const val DEFAULT_ALERT_RADIUS_KM = 500
-        private const val EARTH_RADIUS_KM = 6371.0
-        private const val GEO_TAG_PREFIX = "geo:"
 
         private const val DEFAULT_GROUP = "ntfy"
         private const val SUBSCRIPTION_GROUP_PREFIX = "ntfy-subscription-"

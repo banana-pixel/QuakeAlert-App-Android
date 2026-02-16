@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Release (and main): secure defaults: no cleartext, system CAs only. -->
+<!-- Debug only: allow cleartext and user CAs (e.g. Charles Proxy). Release uses main config. -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false">
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
+            <certificates src="user"/>
             <certificates src="system"/>
         </trust-anchors>
     </base-config>

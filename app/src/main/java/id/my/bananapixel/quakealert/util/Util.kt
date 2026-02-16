@@ -165,6 +165,23 @@ fun splitTags(tags: String?): List<String> {
     }
 }
 
+/** True if the tag string contains the "earthquake" tag (case-insensitive). Used for red warning screen. */
+fun hasEarthquakeTag(tags: String?): Boolean {
+    return splitTags(tags).any { it.trim().equals("earthquake", ignoreCase = true) }
+}
+
+/**
+ * Display priority for quake notifications: within radius -> max (DANGER), outside -> min (silent).
+ * When distance is unknown (null), returns the notification's own priority.
+ */
+fun quakeDisplayPriority(distanceKm: Double?, alertRadiusKm: Double, notificationPriority: Int): Int {
+    return when {
+        distanceKm == null -> notificationPriority
+        distanceKm > alertRadiusKm -> PRIORITY_MIN
+        else -> PRIORITY_MAX
+    }
+}
+
 fun toEmojis(tags: List<String>): List<String> {
     return tags.mapNotNull { tag -> toEmoji(tag) }
 }

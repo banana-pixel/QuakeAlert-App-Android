@@ -7,7 +7,6 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import id.my.bananapixel.quakealert.ui.QuakeReport
 import id.my.bananapixel.quakealert.util.HttpUtil
-import org.json.JSONArray
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -45,7 +44,7 @@ class QuakeRemoteMediator(
                         id = report.id.toString(),
                         magnitude = 0.0,
                         place = report.lokasi ?: "Unknown",
-                        time = parseQuakeTime(report.waktu_kejadian), // Uses helper function correctly
+                        time = QuakeReportParser.parseQuakeTime(report.waktu_kejadian),
                         description = report.deskripsi ?: "",
                         latitude = report.latitude,
                         longitude = report.longitude,
@@ -81,20 +80,7 @@ class QuakeRemoteMediator(
         }
     }
 
-    // --- Helper Functions (Must be OUTSIDE 'load') ---
-
-    private fun parseQuakeTime(dateString: String?): Long {
-        if (dateString.isNullOrEmpty()) return System.currentTimeMillis()
-        return try {
-            val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-            format.timeZone = java.util.TimeZone.getTimeZone("UTC")
-            format.parse(dateString)?.time ?: System.currentTimeMillis()
-        } catch (e: Exception) {
-            System.currentTimeMillis()
-        }
-    }
-
-    // Add the 'suspend' keyword here
+    // --- API fetch ---
     private suspend fun fetchReportsFromApi(page: Int): List<QuakeReport> {
         val url = "https://quakealert.bananapixel.my.id/laporan?page=$page"
 
@@ -108,30 +94,7 @@ class QuakeRemoteMediator(
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("Unexpected response: ${response.code}")
             val body = response.body?.string() ?: "[]"
-            return parseReports(body)
+            return QuakeReportParser.parseReports(body)
         }
-    }
-
-    private fun parseReports(jsonBody: String): List<QuakeReport> {
-        val jsonArray = JSONArray(jsonBody)
-        val reports = mutableListOf<QuakeReport>()
-        for (i in 0 until jsonArray.length()) {
-            val item = jsonArray.getJSONObject(i)
-            reports.add(
-                QuakeReport(
-                    id = item.optInt("id"),
-                    waktu_kejadian = item.optString("waktu_kejadian"),
-                    intensitas_maks = item.optString("intensitas_maks"),
-                    lokasi = item.optString("lokasi"),
-                    deskripsi = item.optString("deskripsi"),
-                    pga_maks = item.optString("pga_maks"),
-                    station_id = item.optString("station_id"),
-                    durasi = item.optInt("durasi"),
-                    latitude = item.optDouble("latitude"),
-                    longitude = item.optDouble("longitude")
-                )
-            )
-        }
-        return reports
     }
 }
