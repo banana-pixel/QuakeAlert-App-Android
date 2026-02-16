@@ -137,11 +137,20 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         val extractedIntensity = match?.groupValues?.get(1) ?: "?"
 
         intensityText.text = extractedIntensity
+        intensityText.contentDescription = getString(R.string.warning_intensity_content_description) + ", " + extractedIntensity
+
         alertDetails.text = if (!distance.isNullOrBlank()) {
             "Location: $distance km away\n$cleanMessage"
         } else {
             cleanMessage
         }
+
+        val alertSummary = if (!distance.isNullOrBlank()) {
+            getString(R.string.warning_screen_alert_content_description) + ". " + distance + " km away."
+        } else {
+            getString(R.string.warning_screen_alert_content_description)
+        }
+        alertLayout.contentDescription = alertSummary
     }
 
     private fun updateVisibility(active: Boolean, pulseAnimation: Animation) {

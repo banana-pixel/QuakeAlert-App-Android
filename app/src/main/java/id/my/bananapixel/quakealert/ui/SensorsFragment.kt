@@ -27,10 +27,11 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     // UI Elements
-    private lateinit var healthBar: ConstraintLayout // The container for the 3D effect
+    private lateinit var healthBar: ConstraintLayout
     private lateinit var healthDot: View
     private lateinit var healthStatus: TextView
     private lateinit var appLatency: TextView
+    private lateinit var errorContainer: View
 
     private val refreshRunnable = object : Runnable {
         override fun run() {
@@ -53,6 +54,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         healthDot = view.findViewById(R.id.view_health_dot)
         healthStatus = view.findViewById(R.id.tv_health_status)
         appLatency = view.findViewById(R.id.tv_app_latency)
+        errorContainer = view.findViewById(R.id.sensors_error_container)
 
         swipeRefreshLayout.setOnRefreshListener {
             fetchData()
@@ -72,10 +74,12 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private fun fetchData() {
         val startTime = System.currentTimeMillis()
 
-        // 1. Set state to CONNECTING (Blue 3D Bar) immediately when starting
-        if (swipeRefreshLayout.isRefreshing) {
-            activity?.runOnUiThread {
-                updateHealthStatus("CONNECTING", 0)
+        activity?.runOnUiThread {
+            if (isAdded) {
+                errorContainer.visibility = View.GONE
+                if (swipeRefreshLayout.isRefreshing) {
+                    updateHealthStatus("CONNECTING", 0)
+                }
             }
         }
 
@@ -107,7 +111,6 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                             activity?.runOnUiThread {
                                 if (!isAdded) return@runOnUiThread
 
-                                // 2. Determine Success State based on latency
                                 val status = if (latency > 300) "WARNING" else "HEALTHY"
                                 updateHealthStatus(status, latency.toInt())
 
@@ -115,6 +118,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                                     adapter.notifyDataSetChanged()
                                 }
 
+                                errorContainer.visibility = View.GONE
                                 swipeRefreshLayout.isRefreshing = false
                             }
                         } catch (e: Exception) {
@@ -133,6 +137,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         activity?.runOnUiThread {
             if (isAdded) {
                 updateHealthStatus("CRITICAL", latency.toInt())
+                errorContainer.visibility = View.VISIBLE
                 swipeRefreshLayout.isRefreshing = false
             }
         }

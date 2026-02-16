@@ -10,17 +10,44 @@ import id.my.bananapixel.quakealert.db.*
 import id.my.bananapixel.quakealert.firebase.FirebaseMessenger
 import id.my.bananapixel.quakealert.up.Distributor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
-import kotlinx.coroutines.flow.Flow
+import java.io.IOException
+
+/** Load state for quake history refresh. */
+sealed class QuakeLoadState {
+    data object Idle : QuakeLoadState()
+    data object Loading : QuakeLoadState()
+    data object Success : QuakeLoadState()
+    data class Error(val message: String) : QuakeLoadState()
+}
 
 class SubscriptionsViewModel(private val repository: Repository) : ViewModel() {
 
     // --- QUAKE LOGIC ---
     val quakes: Flow<List<QuakeData>> = repository.quakes
 
+    private val _quakeLoadState = MutableStateFlow<QuakeLoadState>(QuakeLoadState.Idle)
+    val quakeLoadState: StateFlow<QuakeLoadState> = _quakeLoadState.asStateFlow()
+
     fun refreshQuakes(context: Context) = viewModelScope.launch {
-        repository.fetchQuakes(context)
+        _quakeLoadState.value = QuakeLoadState.Loading
+        val result = repository.fetchQuakes(context)
+        _quakeLoadState.value = if (result.isSuccess) {
+            QuakeLoadState.Success
+        } else {
+            val e = result.exceptionOrNull()
+            QuakeLoadState.Error(
+                context.getString(
+                    if (e is IOException) R.string.error_connection_message
+                    else R.string.error_generic_message
+                )
+            )
+        }
     }
 
     // --- CHAT LOGIC (The Missing Piece) ---

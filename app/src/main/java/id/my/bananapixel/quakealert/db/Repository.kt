@@ -47,30 +47,34 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
 
     // Inside Repository.kt
 
-    suspend fun fetchQuakes(context: Context) {
-        withContext(Dispatchers.IO) {
-            try {
-                val reports = executeFetchReports(context)
-                val quakeEntities = reports.map { report ->
-                    QuakeData(
-                        id = report.id.toString(),
-                        magnitude = 0.0,
-                        place = report.lokasi ?: "Unknown",
-                        // FIX: Parse the real time string instead of using System time
-                        time = parseQuakeTime(report.waktu_kejadian),
-                        description = report.deskripsi ?: "",
-                        latitude = report.latitude,
-                        longitude = report.longitude,
-                        pga = report.pga_maks ?: "0",
-                        durasi = report.durasi,
-                        station_id = report.station_id ?: "N/A",
-                        intensity = report.intensitas_maks ?: "I"
-                    )
-                }
-                quakeDao.upsertAll(quakeEntities)
-            } catch (e: Exception) {
-                e.printStackTrace()
+    /**
+     * Fetches quake reports from API and updates local DB.
+     * @return [Result.success] on success, [Result.failure] with message on network/parse error.
+     */
+    suspend fun fetchQuakes(context: Context): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val reports = executeFetchReports(context)
+            val quakeEntities = reports.map { report ->
+                QuakeData(
+                    id = report.id.toString(),
+                    magnitude = 0.0,
+                    place = report.lokasi ?: "Unknown",
+                    time = parseQuakeTime(report.waktu_kejadian),
+                    description = report.deskripsi ?: "",
+                    latitude = report.latitude,
+                    longitude = report.longitude,
+                    pga = report.pga_maks ?: "0",
+                    durasi = report.durasi,
+                    station_id = report.station_id ?: "N/A",
+                    intensity = report.intensitas_maks ?: "I"
+                )
             }
+            quakeDao.upsertAll(quakeEntities)
+            Result.success(Unit)
+        } catch (e: IOException) {
+            Result.failure(e)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 

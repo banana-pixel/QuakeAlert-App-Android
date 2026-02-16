@@ -49,6 +49,12 @@
     <string name="channel_subscriber_notification_reconnecting_one">reconnecting to 1 topic …</string>
     <string name="channel_subscriber_notification_reconnecting_other">reconnecting to %1$d topics …</string>
 
+    <!-- Error / offline UX -->
+    <string name="error_connection_message">Couldn\'t load. Check your connection.</string>
+    <string name="error_generic_message">Something went wrong.</string>
+    <string name="error_retry">Retry</string>
+    <string name="error_sensors_hint">Couldn\'t load. Pull down to retry.</string>
+
     <!-- Common refresh toasts -->
     <string name="refresh_message_result">%1$d notification(s) received</string>
     <string name="refresh_message_no_results">Everything is up to date</string>
@@ -369,6 +375,19 @@
     <string name="settings_notifications_insistent_max_priority_summary_enabled">Max priority notifications continuously alert until dismissed</string>
     <string name="settings_notifications_insistent_max_priority_summary_disabled">Max priority notifications only alert once</string>
     <string name="settings_earthquake_alert_header">Earthquake Alert</string>
+
+    <!-- Warning screen (accessibility) -->
+    <string name="warning_screen_alert_content_description">Earthquake alert screen</string>
+    <string name="warning_screen_scanning_content_description">Monitoring for earthquakes. Sensors active.</string>
+    <string name="warning_alert_icon_content_description">Earthquake alert</string>
+    <string name="warning_safe_actions_button_content_description">Show safe actions during earthquake. Drop, cover, and hold on.</string>
+    <string name="warning_safe_actions_card_content_description">Life-saving actions. Drop to hands and knees. Cover head and neck under a sturdy table. Hold on until shaking stops.</string>
+    <string name="warning_share_button_content_description">Share this earthquake alert</string>
+    <string name="warning_dismiss_button_content_description">Dismiss alert</string>
+    <string name="warning_view_logs_content_description">View alert logs</string>
+    <string name="warning_radar_icon_content_description">Sensors active, monitoring for seismic activity</string>
+    <string name="warning_intensity_content_description">Shaking intensity</string>
+
     <string name="settings_earthquake_location_summary_title">Current location</string>
     <string name="settings_earthquake_location_summary_format">(%1$s, %2$s)</string>
     <string name="settings_earthquake_location_updated_toast">Location updated to %1$s!</string>
