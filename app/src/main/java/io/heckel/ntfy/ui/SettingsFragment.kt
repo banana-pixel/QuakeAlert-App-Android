@@ -32,6 +32,7 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polygon
 import java.util.Locale
 import android.graphics.Point
+import android.view.ViewTreeObserver
 
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private lateinit var repository: Repository
@@ -114,8 +115,19 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", currentLat, currentLon)
         }
 
+        // Wait for layout, then center with a subtle zoom-in animation
+        // Use zoom 7 for getOffsetCenter so it matches recenter (projection depends on zoom)
         mapView.controller.setZoom(7.0)
-        mapView.post { animateToOffset(startPoint) }
+        mapView.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                mapView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                mapView.controller.setCenter(startPoint)
+                val targetCenter = getOffsetCenter(startPoint)
+                mapView.controller.setCenter(targetCenter)
+                mapView.controller.setZoom(6.0)
+                mapView.controller.animateTo(targetCenter, 7.0, 450L)
+            }
+        })
 
         // --- SLIDER LOGIC UPDATED FOR SEEKBAR ---
         val sharedPrefs = requireContext().getSharedPreferences(Repository.SHARED_PREFS_ID, 0)
@@ -161,29 +173,19 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         btnZoomOut.setOnClickListener { mapView.controller.zoomOut() }
     }
 
-    private fun animateToOffset(target: GeoPoint) {
-        // 1. Calculate the offset (half the height of the bottom panel)
+    /** Returns the map center GeoPoint so the target appears above the bottom panel. */
+    private fun getOffsetCenter(target: GeoPoint): GeoPoint {
         val offsetPixels = bottomPanel.height / 2
+        if (offsetPixels <= 0) return target
+        val projection = mapView.projection
+        val targetPointPixels = projection.toPixels(target, null)
+        val newCenterPixels = Point(targetPointPixels.x, targetPointPixels.y + offsetPixels)
+        return projection.fromPixels(newCenterPixels.x, newCenterPixels.y) as GeoPoint
+    }
 
-        if (offsetPixels > 0) {
-            val projection = mapView.projection
-
-            // 2. Translate the target GeoPoint to screen pixels
-            val targetPointPixels = projection.toPixels(target, null)
-
-            // 3. Create a new pixel point that is 'offsetPixels' LOWER (South)
-            // This forces the map center to be below the target, pushing the target UP.
-            val newCenterPixels = Point(targetPointPixels.x, targetPointPixels.y + offsetPixels)
-
-            // 4. Convert back to GeoPoint
-            val newCenterGeoPoint = projection.fromPixels(newCenterPixels.x, newCenterPixels.y)
-
-            // 5. Animate to the adjusted center
-            mapView.controller.animateTo(newCenterGeoPoint)
-        } else {
-            // Fallback if view isn't laid out yet
-            mapView.controller.animateTo(target)
-        }
+    private fun animateToOffset(target: GeoPoint) {
+        val targetCenter = getOffsetCenter(target)
+        mapView.controller.animateTo(targetCenter, mapView.zoomLevelDouble, 400L)
     }
 
     private fun checkPermissionAndRefresh() {
