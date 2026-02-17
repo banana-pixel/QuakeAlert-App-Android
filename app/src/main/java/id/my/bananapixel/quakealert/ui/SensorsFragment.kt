@@ -33,6 +33,9 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private lateinit var appLatency: TextView
     private lateinit var errorContainer: View
 
+    /** Only show CONNECTING (blue) on first load or pull-to-refresh; keep current state during background polls. */
+    private var hasReceivedFirstResult = false
+
     private val refreshRunnable = object : Runnable {
         override fun run() {
             fetchData()
@@ -56,6 +59,10 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         appLatency = view.findViewById(R.id.tv_app_latency)
         errorContainer = view.findViewById(R.id.sensors_error_container)
 
+        // Start in CONNECTING state so we never show default "Server Healthy" + blue
+        // before the first fetch completes (avoids wrong state when offline on first open).
+        updateHealthStatus("CONNECTING", 0)
+
         swipeRefreshLayout.setOnRefreshListener {
             fetchData()
         }
@@ -77,7 +84,8 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         activity?.runOnUiThread {
             if (isAdded) {
                 errorContainer.visibility = View.GONE
-                if (swipeRefreshLayout.isRefreshing) {
+                // Show CONNECTING only on first load or user pull-to-refresh; avoid blinking to blue every 3s poll.
+                if (!hasReceivedFirstResult || swipeRefreshLayout.isRefreshing) {
                     updateHealthStatus("CONNECTING", 0)
                 }
             }
@@ -113,6 +121,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                             activity?.runOnUiThread {
                                 if (!isAdded) return@runOnUiThread
 
+                                hasReceivedFirstResult = true
                                 val status = if (latency > 300) "WARNING" else "HEALTHY"
                                 updateHealthStatus(status, latency.toInt())
 
@@ -138,6 +147,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         val latency = System.currentTimeMillis() - startTime
         activity?.runOnUiThread {
             if (isAdded) {
+                hasReceivedFirstResult = true
                 updateHealthStatus("CRITICAL", latency.toInt())
                 errorContainer.visibility = View.VISIBLE
                 swipeRefreshLayout.isRefreshing = false
