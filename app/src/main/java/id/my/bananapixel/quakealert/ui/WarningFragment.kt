@@ -6,6 +6,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -14,13 +16,17 @@ import android.view.View
 import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.widget.*
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.fragment.app.Fragment
 import com.google.android.material.card.MaterialCardView
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.app.AlertState
 import id.my.bananapixel.quakealert.msg.NotificationService
+import id.my.bananapixel.quakealert.msg.Sensor
 import id.my.bananapixel.quakealert.util.formatTimestampToLocal
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import id.my.bananapixel.quakealert.app.Application as App
@@ -29,12 +35,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import id.my.bananapixel.quakealert.db.Repository
+import okhttp3.*
+import java.io.IOException
 
 class WarningFragment : Fragment(R.layout.fragment_warning) {
 
     private lateinit var scanningLayout: LinearLayout
     private lateinit var alertLayout: ScrollView
     private lateinit var radarIcon: ImageView
+    private lateinit var radarContainer: FrameLayout
+    private lateinit var statusPill: ConstraintLayout
+    private lateinit var statusDot: View
+    private lateinit var statusPillText: TextView
+    private lateinit var statusTitle: TextView
+    private lateinit var statusSubtitle: TextView
     private lateinit var alertDetails: TextView
     private lateinit var alertTime: TextView
     private lateinit var intensityText: TextView
@@ -43,6 +57,16 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     private lateinit var shareButton: Button
     private lateinit var dismissButton: Button
     private lateinit var viewLogsButton: FloatingActionButton
+
+    private val client = OkHttpClient()
+    private val gson = Gson()
+    private val statusHandler = Handler(Looper.getMainLooper())
+    private val statusRefreshRunnable = object : Runnable {
+        override fun run() {
+            if (scanningLayout.visibility == View.VISIBLE) fetchServerStatus()
+            statusHandler.postDelayed(this, 3000)
+        }
+    }
 
     private var backgroundAnimator: ValueAnimator? = null
     private val resetHandler = Handler(Looper.getMainLooper())
@@ -82,6 +106,12 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         // ------------------------------------
 
         radarIcon = view.findViewById(R.id.warning_radar_icon)
+        radarContainer = view.findViewById(R.id.warning_radar_container)
+        statusPill = view.findViewById(R.id.warning_status_pill)
+        statusDot = view.findViewById(R.id.warning_status_dot)
+        statusPillText = view.findViewById(R.id.warning_status_pill_text)
+        statusTitle = view.findViewById(R.id.warning_status_title)
+        statusSubtitle = view.findViewById(R.id.warning_status_subtitle)
         alertDetails = view.findViewById(R.id.warning_alert_details)
         alertTime = view.findViewById(R.id.warning_alert_time)
         intensityText = view.findViewById(R.id.warning_intensity_text)
@@ -158,18 +188,145 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             scanningLayout.visibility = View.GONE
             alertLayout.visibility = View.VISIBLE
             radarIcon.clearAnimation()
-
-            // NOTE: We comment this out because setting background color
-            // will override your nice Red Gradient drawable.
-            // startBackgroundWarningAnimation(alertLayout)
-
+            statusHandler.removeCallbacks(statusRefreshRunnable)
         } else {
             scanningLayout.visibility = View.VISIBLE
             alertLayout.visibility = View.GONE
             stopBackgroundWarningAnimation()
             radarIcon.startAnimation(pulseAnimation)
             safeActionsCard.visibility = View.GONE
+            updateWarningStatus("CONNECTING", 0, 0)
+            statusHandler.removeCallbacks(statusRefreshRunnable)
+            statusHandler.post(statusRefreshRunnable)
         }
+    }
+
+    private fun fetchServerStatus() {
+        val ctx = context ?: return
+        val baseUrl = ctx.getString(R.string.app_base_url).trimEnd('/')
+        val startTime = System.currentTimeMillis()
+        val request = Request.Builder().url("$baseUrl/stations").build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                activity?.runOnUiThread {
+                    if (isAdded && scanningLayout.visibility == View.VISIBLE) {
+                        val latency = (System.currentTimeMillis() - startTime).toInt()
+                        updateWarningStatus("CRITICAL", latency, 0)
+                    }
+                }
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val latency = (System.currentTimeMillis() - startTime).toInt()
+                response.use {
+                    if (!response.isSuccessful) {
+                        activity?.runOnUiThread {
+                            if (isAdded && scanningLayout.visibility == View.VISIBLE) {
+                                updateWarningStatus("CRITICAL", latency, 0)
+                            }
+                        }
+                        return
+                    }
+                    val bodyString = response.body?.string()
+                    if (bodyString != null && bodyString.trim().startsWith("[")) {
+                        try {
+                            val type = object : TypeToken<List<Sensor>>() {}.type
+                            val stations: List<Sensor> = gson.fromJson(bodyString, type)
+                            val onlineCount = stations.count { it.status == "online" }
+                            val status = if (latency > 300) "WARNING" else "HEALTHY"
+                            activity?.runOnUiThread {
+                                if (isAdded && scanningLayout.visibility == View.VISIBLE) {
+                                    updateWarningStatus(status, latency, onlineCount)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            activity?.runOnUiThread {
+                                if (isAdded && scanningLayout.visibility == View.VISIBLE) {
+                                    updateWarningStatus("CRITICAL", latency, 0)
+                                }
+                            }
+                        }
+                    } else {
+                        activity?.runOnUiThread {
+                            if (isAdded && scanningLayout.visibility == View.VISIBLE) {
+                                updateWarningStatus("CRITICAL", latency, 0)
+                            }
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    /**
+     * Updates the 3D status pill, title, subtitle, radar tint and container to match server/sensor state.
+     * Status: HEALTHY, CONNECTING, WARNING, CRITICAL. Same semantics as SensorsFragment.
+     */
+    private fun updateWarningStatus(status: String, latency: Int, onlineCount: Int) {
+        if (!::statusPill.isInitialized) return
+        statusPill.setBackgroundResource(
+            when (status) {
+                "HEALTHY" -> R.drawable.bg_pill_3d_green2
+                "CONNECTING" -> R.drawable.bg_pill_3d_blue
+                "WARNING" -> R.drawable.bg_pill_3d_orange
+                else -> R.drawable.bg_pill_3d_red
+            }
+        )
+        statusDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
+        statusPillText.setTextColor(Color.WHITE)
+
+        val pillText: String
+        val titleRes: Int
+        val subtitleRes: Int
+        val titleColor: Int
+        val radarTint: String
+        val circleBg: Int
+
+        when (status) {
+            "HEALTHY" -> {
+                pillText = if (onlineCount == 0) {
+                    getString(R.string.warning_status_no_sensors)
+                } else {
+                    getString(R.string.warning_status_pill_healthy, onlineCount)
+                }
+                titleRes = if (onlineCount == 0) R.string.warning_status_no_sensors else R.string.warning_status_sensors_active
+                subtitleRes = if (onlineCount == 0) R.string.warning_subtitle_no_sensors else R.string.warning_subtitle_monitoring
+                titleColor = if (onlineCount == 0) Color.parseColor("#FF9800") else Color.parseColor("#4CAF50")
+                radarTint = if (onlineCount == 0) "#FF9800" else "#4CAF50"
+                circleBg = if (onlineCount == 0) R.drawable.bg_circle_3d_orange else R.drawable.bg_circle_3d_green
+            }
+            "CONNECTING" -> {
+                pillText = getString(R.string.warning_status_pill_connecting)
+                titleRes = R.string.warning_status_connecting
+                subtitleRes = R.string.warning_subtitle_connecting
+                titleColor = Color.parseColor("#2196F3")
+                radarTint = "#2196F3"
+                circleBg = R.drawable.bg_circle_3d_green
+            }
+            "WARNING" -> {
+                pillText = getString(R.string.warning_status_unstable)
+                titleRes = R.string.warning_status_unstable
+                subtitleRes = R.string.warning_subtitle_unstable
+                titleColor = Color.parseColor("#FF9800")
+                radarTint = "#FF9800"
+                circleBg = R.drawable.bg_circle_3d_orange
+            }
+            else -> {
+                pillText = getString(R.string.warning_status_server_offline)
+                titleRes = R.string.warning_status_server_offline
+                subtitleRes = R.string.warning_subtitle_server_offline
+                titleColor = Color.parseColor("#F44336")
+                radarTint = "#F44336"
+                circleBg = R.drawable.bg_circle_3d_red
+            }
+        }
+        statusPillText.text = pillText
+        statusTitle.text = getString(titleRes)
+        statusTitle.setTextColor(titleColor)
+        statusSubtitle.text = getString(subtitleRes)
+        radarIcon.setColorFilter(Color.parseColor(radarTint))
+        radarContainer.setBackgroundResource(circleBg)
     }
 
     private fun setupListeners() {
@@ -275,11 +432,16 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         super.onResume()
         val filter = IntentFilter(NotificationService.ACTION_QUAKE_ALERT)
         requireContext().registerReceiver(quakeReceiver, filter, Context.RECEIVER_EXPORTED)
+        if (::scanningLayout.isInitialized && scanningLayout.visibility == View.VISIBLE) {
+            statusHandler.removeCallbacks(statusRefreshRunnable)
+            statusHandler.post(statusRefreshRunnable)
+        }
     }
 
     override fun onPause() {
         super.onPause()
         requireContext().unregisterReceiver(quakeReceiver)
+        statusHandler.removeCallbacks(statusRefreshRunnable)
     }
 
     override fun onDestroyView() {

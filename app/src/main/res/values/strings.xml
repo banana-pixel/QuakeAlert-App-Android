@@ -378,15 +378,30 @@
 
     <!-- Warning screen (accessibility) -->
     <string name="warning_screen_alert_content_description">Earthquake alert screen</string>
-    <string name="warning_screen_scanning_content_description">Monitoring for earthquakes. Sensors active.</string>
+    <string name="warning_screen_scanning_content_description">Monitoring for earthquakes. Server and sensor status shown below.</string>
     <string name="warning_alert_icon_content_description">Earthquake alert</string>
     <string name="warning_safe_actions_button_content_description">Show safe actions during earthquake. Drop, cover, and hold on.</string>
     <string name="warning_safe_actions_card_content_description">Life-saving actions. Drop to hands and knees. Cover head and neck under a sturdy table. Hold on until shaking stops.</string>
     <string name="warning_share_button_content_description">Share this earthquake alert</string>
     <string name="warning_dismiss_button_content_description">Dismiss alert</string>
     <string name="warning_view_logs_content_description">View alert logs</string>
-    <string name="warning_radar_icon_content_description">Sensors active, monitoring for seismic activity</string>
+    <string name="warning_radar_icon_content_description">Monitoring status indicator</string>
     <string name="warning_intensity_content_description">Shaking intensity</string>
+
+    <!-- Warning scanning status (server/sensor sync) -->
+    <string name="warning_status_sensors_active">SENSORS ACTIVE</string>
+    <string name="warning_status_connecting">WAITING FOR CONNECTION</string>
+    <string name="warning_status_server_offline">SERVER OFFLINE</string>
+    <string name="warning_status_no_sensors">NO SENSORS ONLINE</string>
+    <string name="warning_status_unstable">UNSTABLE CONNECTION</string>
+    <string name="warning_subtitle_monitoring">Monitoring for seismic activity…</string>
+    <string name="warning_subtitle_connecting">Connecting to server…</string>
+    <string name="warning_subtitle_server_offline">Check internet or try again later.</string>
+    <string name="warning_subtitle_no_sensors">Server is up but no sensors are online.</string>
+    <string name="warning_subtitle_unstable">Connection is slow or unstable.</string>
+    <string name="warning_sensors_online_count">%1$d sensor(s) online</string>
+    <string name="warning_status_pill_healthy">Server Healthy • %1$d sensor(s) online</string>
+    <string name="warning_status_pill_connecting">Connecting…</string>
 
     <string name="settings_earthquake_location_summary_title">Current location</string>
     <string name="settings_earthquake_location_not_set">Not set</string>

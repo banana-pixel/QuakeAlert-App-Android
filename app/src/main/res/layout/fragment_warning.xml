@@ -4,46 +4,95 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000">
+    android:background="@color/md_theme_background">
 
     <LinearLayout
         android:id="@+id/warning_scanning_layout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
+        android:gravity="center_horizontal"
         android:orientation="vertical"
         android:visibility="gone"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:contentDescription="@string/warning_screen_scanning_content_description"
         android:focusable="true">
 
+        <!-- 3D radar container (consistent with app design language) -->
         <FrameLayout
+            android:id="@+id/warning_radar_container"
             android:layout_width="240dp"
-            android:layout_height="240dp">
+            android:layout_height="240dp"
+            android:layout_marginTop="24dp"
+            android:background="@drawable/bg_circle_3d_green"
+            android:padding="16dp">
             <ImageView
                 android:id="@+id/warning_radar_icon"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:alpha="0.8"
+                android:alpha="0.9"
                 android:contentDescription="@string/warning_radar_icon_content_description"
                 android:importantForAccessibility="yes"
                 android:src="@drawable/ic_radar"
                 app:tint="#4CAF50" />
         </FrameLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- 3D status pill (server + sensor count), same style as Sensors screen -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/warning_status_pill"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:background="@drawable/bg_pill_3d_blue"
+            android:paddingStart="20dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="16dp">
+
+            <View
+                android:id="@+id/warning_status_dot"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:background="@drawable/badge_circle"
+                android:backgroundTint="#FFFFFF"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/warning_status_pill_text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:text="@string/warning_status_pill_connecting"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/warning_status_dot"
+                app:layout_constraintTop_toTopOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <TextView
+            android:id="@+id/warning_status_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
             android:letterSpacing="0.1"
-            android:text="SENSORS ACTIVE"
-            android:textColor="#4CAF50"
+            android:text="@string/warning_status_connecting"
+            android:textColor="#2196F3"
             android:textSize="14sp"
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/warning_status_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Monitoring for seismic activity..."
+            android:layout_marginTop="8dp"
+            android:text="@string/warning_subtitle_connecting"
             android:textColor="#888888"
             android:textSize="14sp" />
     </LinearLayout>
@@ -196,8 +245,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="32dp"
-                android:orientation="horizontal"
-                android:layout_marginStart="12dp">
+                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/warning_share_button"

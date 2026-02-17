@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lexend Deca (Google Fonts, variable 100–900).
+  Add the variable font: download from https://fonts.google.com/specimen/Lexend+Deca
+  → Download family → extract "LexendDeca-VariableFont_wght.ttf", rename to
+  "lexend_deca_variable.ttf", and place in this res/font/ folder.
+-->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <font
+        android:font="@font/lexend_deca_variable"
+        android:fontStyle="normal"
+        android:fontWeight="400" />
+    <font
+        android:font="@font/lexend_deca_variable"
+        android:fontStyle="normal"
+        android:fontWeight="700" />
+</font-family>
