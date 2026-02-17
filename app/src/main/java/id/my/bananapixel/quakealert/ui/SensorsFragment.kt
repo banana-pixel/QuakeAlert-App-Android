@@ -83,8 +83,10 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
             }
         }
 
+        val ctx = context ?: return
+        val baseUrl = ctx.getString(R.string.app_base_url).trimEnd('/')
         val request = Request.Builder()
-            .url("https://quakealert.bananapixel.my.id/stations")
+            .url("$baseUrl/stations")
             .build()
 
         client.newCall(request).enqueue(object : Callback {

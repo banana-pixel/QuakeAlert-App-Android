@@ -2,6 +2,7 @@ package id.my.bananapixel.quakealert.db
 
 import android.content.Context
 import androidx.paging.ExperimentalPagingApi
+import id.my.bananapixel.quakealert.R
 import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
@@ -82,7 +83,8 @@ class QuakeRemoteMediator(
 
     // --- API fetch ---
     private suspend fun fetchReportsFromApi(page: Int): List<QuakeReport> {
-        val url = "https://quakealert.bananapixel.my.id/laporan?page=$page"
+        val baseUrl = context.getString(R.string.app_base_url).trimEnd('/')
+        val url = "$baseUrl/laporan?page=$page"
 
         // Now this call is legal because the parent function is also suspending
         val client = HttpUtil.defaultClient(context, url)

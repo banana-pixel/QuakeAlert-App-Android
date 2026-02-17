@@ -12,6 +12,7 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.map
+import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.msg.ApiService
 import id.my.bananapixel.quakealert.ui.QuakeReport
 import id.my.bananapixel.quakealert.util.HttpUtil
@@ -60,7 +61,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
                     id = report.id.toString(),
                     magnitude = 0.0,
                     place = report.lokasi ?: "Unknown",
-                    time = parseQuakeTime(report.waktu_kejadian),
+                    time = QuakeReportParser.parseQuakeTime(report.waktu_kejadian),
                     description = report.deskripsi ?: "",
                     latitude = report.latitude,
                     longitude = report.longitude,
@@ -79,22 +80,9 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         }
     }
 
-    // Helper function to parse the Indonesian date format
-    private fun parseQuakeTime(dateString: String?): Long {
-        if (dateString.isNullOrEmpty()) return System.currentTimeMillis()
-        try {
-            // API format example: "2026-02-15 13:56:22" (UTC)
-            // Adjust this pattern if your API sends a different format (e.g., "dd MMM yyyy")
-            val format = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
-            format.timeZone = java.util.TimeZone.getTimeZone("UTC") // Assuming API sends UTC
-            return format.parse(dateString)?.time ?: System.currentTimeMillis()
-        } catch (e: Exception) {
-            return System.currentTimeMillis()
-        }
-    }
-
     private suspend fun executeFetchReports(context: Context): List<QuakeReport> {
-        val url = "https://quakealert.bananapixel.my.id/laporan"
+        val baseUrl = context.getString(R.string.app_base_url).trimEnd('/')
+        val url = "$baseUrl/laporan"
         val client = HttpUtil.defaultClient(context, url)
         val request = HttpUtil.requestBuilder(url).get().build()
         client.newCall(request).execute().use { response ->

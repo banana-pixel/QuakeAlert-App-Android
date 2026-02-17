@@ -11,8 +11,9 @@ import id.my.bananapixel.quakealert.db.QuakeData
 import id.my.bananapixel.quakealert.db.QuakeRemoteMediator
 import kotlinx.coroutines.flow.Flow
 
-class QuakeViewModel(private val context: Context, private val database: Database) : ViewModel() {
-    
+class QuakeViewModel(private val appContext: Context, private val database: Database) : ViewModel() {
+    // Uses Application context to avoid memory leaks (Context must not be Activity)
+
     @OptIn(ExperimentalPagingApi::class)
     val quakes: Flow<PagingData<QuakeData>> = Pager(
         config = PagingConfig(
@@ -20,7 +21,7 @@ class QuakeViewModel(private val context: Context, private val database: Databas
             enablePlaceholders = false,
             initialLoadSize = 20
         ),
-        remoteMediator = QuakeRemoteMediator(context, database),
+        remoteMediator = QuakeRemoteMediator(appContext, database),
         pagingSourceFactory = { database.quakeHistoryDao().getPaged() } // Points to Room DAO
     ).flow.cachedIn(viewModelScope)
 }
@@ -28,6 +29,7 @@ class QuakeViewModel(private val context: Context, private val database: Databas
 class QuakeViewModelFactory(private val context: Context, private val database: Database) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return QuakeViewModel(context, database) as T
+        // Use applicationContext to prevent memory leaks when ViewModel holds Context
+        return QuakeViewModel(context.applicationContext, database) as T
     }
 }
