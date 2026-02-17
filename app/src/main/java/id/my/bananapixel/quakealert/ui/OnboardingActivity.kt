@@ -28,6 +28,9 @@ import id.my.bananapixel.quakealert.msg.NotificationService
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.PRIORITY_MAX
 import id.my.bananapixel.quakealert.util.isIgnoringBatteryOptimizations
+import id.my.bananapixel.quakealert.work.LocationWorker
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import java.util.Random
 
 class OnboardingActivity : AppCompatActivity() {
@@ -69,14 +72,14 @@ class OnboardingActivity : AppCompatActivity() {
             type = PermissionType.BATTERY,
             required = true
         ),
-        // Optional permissions after
+        // Location is required for distance-based alerts
         OnboardingPage.Permission(
             iconRes = R.drawable.ic_onboarding_location,
             title = "Location\nAccess",
-            description = "QuakeAlert uses your approximate location to calculate distance from earthquakes and provide more relevant alerts.",
+            description = "QuakeAlert uses your location to calculate distance from earthquakes and show relevant alerts. Required for accurate warnings.",
             buttonText = "Grant Location",
             type = PermissionType.LOCATION,
-            required = false
+            required = true
         ),
         OnboardingPage.TestNotification
     )
@@ -102,6 +105,11 @@ class OnboardingActivity : AppCompatActivity() {
         val coarseGranted = results[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
         Log.d(TAG, "Location permission result: fine=$fineGranted, coarse=$coarseGranted")
         updatePermissionStatus()
+        updateNextButtonState()
+        if (fineGranted || coarseGranted) {
+            val request = OneTimeWorkRequestBuilder<LocationWorker>().build()
+            WorkManager.getInstance(this).enqueue(request)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

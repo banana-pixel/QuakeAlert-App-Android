@@ -104,12 +104,17 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
 
         // 6. INITIAL DATA LOAD
-        val currentLat = repository.getUserLatitude()
-        val currentLon = repository.getUserLongitude()
-        val currentCity = repository.getUserCityName()
+        val (currentLat, currentLon) = if (repository.isUserLocationSet()) {
+            Pair(repository.getUserLatitude(), repository.getUserLongitude())
+        } else {
+            Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
+        }
         val startPoint = GeoPoint(currentLat, currentLon)
+        val currentCity = repository.getUserCityName()
 
-        if (currentCity.isNotEmpty() && currentCity != "Unknown") {
+        if (!repository.isUserLocationSet()) {
+            tvLocationName.text = getString(R.string.settings_earthquake_location_not_set)
+        } else if (currentCity.isNotEmpty() && currentCity != "Unknown") {
             tvLocationName.text = currentCity
         } else {
             tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", currentLat, currentLon)
@@ -148,8 +153,12 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                 updateRadiusLabel(valueView, progress)
 
                 // Only update visual circle while dragging
-                val center = GeoPoint(repository.getUserLatitude(), repository.getUserLongitude())
-                updateMapCircle(radius, center)
+                val (lat, lon) = if (repository.isUserLocationSet()) {
+                    Pair(repository.getUserLatitude(), repository.getUserLongitude())
+                } else {
+                    Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
+                }
+                updateMapCircle(radius, GeoPoint(lat, lon))
 
                 if (fromUser) {
                     sharedPrefs.edit { putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius) }
@@ -165,8 +174,11 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         btnRefresh.setOnClickListener { checkPermissionAndRefresh() }
         // UPDATED: Use the new helper for manual Recenter
         btnRecenter.setOnClickListener {
-            val lat = repository.getUserLatitude()
-            val lon = repository.getUserLongitude()
+            val (lat, lon) = if (repository.isUserLocationSet()) {
+                Pair(repository.getUserLatitude(), repository.getUserLongitude())
+            } else {
+                Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
+            }
             animateToOffset(GeoPoint(lat, lon))
         }
         btnZoomIn.setOnClickListener { mapView.controller.zoomIn() }

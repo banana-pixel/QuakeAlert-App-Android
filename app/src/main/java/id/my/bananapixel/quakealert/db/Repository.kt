@@ -421,18 +421,24 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         sharedPrefs.edit { putLong(SHARED_PREFS_AUTO_DELETE_SECONDS, seconds) }
     }
 
+    /** True when the user has set or the app has obtained a location (no fake default). */
+    fun isUserLocationSet(): Boolean =
+        sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE) && sharedPrefs.contains(SHARED_PREFS_USER_LONGITUDE)
+
+    /** Returns user latitude, or [Double.NaN] when location has never been set. */
     fun getUserLatitude(): Double {
-        if (!sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE)) return DEFAULT_USER_LATITUDE
-        return Double.fromBits(sharedPrefs.getLong(SHARED_PREFS_USER_LATITUDE, DEFAULT_USER_LATITUDE_BITS))
+        if (!sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE)) return Double.NaN
+        return Double.fromBits(sharedPrefs.getLong(SHARED_PREFS_USER_LATITUDE, 0L))
     }
 
     fun setUserLatitude(latitude: Double) {
         sharedPrefs.edit { putLong(SHARED_PREFS_USER_LATITUDE, latitude.toRawBits()) }
     }
 
+    /** Returns user longitude, or [Double.NaN] when location has never been set. */
     fun getUserLongitude(): Double {
-        if (!sharedPrefs.contains(SHARED_PREFS_USER_LONGITUDE)) return DEFAULT_USER_LONGITUDE
-        return Double.fromBits(sharedPrefs.getLong(SHARED_PREFS_USER_LONGITUDE, DEFAULT_USER_LONGITUDE_BITS))
+        if (!sharedPrefs.contains(SHARED_PREFS_USER_LONGITUDE)) return Double.NaN
+        return Double.fromBits(sharedPrefs.getLong(SHARED_PREFS_USER_LONGITUDE, 0L))
     }
 
     fun setUserLongitude(longitude: Double) {
@@ -763,10 +769,9 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val WEBSOCKET_RECONNECT_REMIND_TIME_ALWAYS = 1L
         const val WEBSOCKET_RECONNECT_REMIND_TIME_NEVER = Long.MAX_VALUE
 
-        const val DEFAULT_USER_LATITUDE = -6.9175
-        const val DEFAULT_USER_LONGITUDE = 107.6191
-        private val DEFAULT_USER_LATITUDE_BITS = DEFAULT_USER_LATITUDE.toRawBits()
-        private val DEFAULT_USER_LONGITUDE_BITS = DEFAULT_USER_LONGITUDE.toRawBits()
+        /** Used only for map display when user location is not set (e.g. Settings map center). */
+        const val DEFAULT_MAP_CENTER_LAT = -6.9175
+        const val DEFAULT_MAP_CENTER_LON = 107.6191
 
         private const val TAG = "NtfyRepository"
         private var instance: Repository? = null

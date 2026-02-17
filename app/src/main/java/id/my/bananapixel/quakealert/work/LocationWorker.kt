@@ -3,6 +3,7 @@ package id.my.bananapixel.quakealert.work
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -16,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import java.util.Locale
 
 class LocationWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
     init {
@@ -38,9 +40,25 @@ class LocationWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
                 val repository = Repository.getInstance(applicationContext)
                 repository.setUserLatitude(location.latitude)
                 repository.setUserLongitude(location.longitude)
+                resolveAndSavePlaceName(repository, location.latitude, location.longitude)
             }
 
             return@withContext Result.success()
+        }
+    }
+
+    /** Same behavior as Settings "Update location": reverse geocode and save city/place name. */
+    private fun resolveAndSavePlaceName(repository: Repository, lat: Double, lon: Double) {
+        if (!Geocoder.isPresent()) return
+        try {
+            @Suppress("DEPRECATION")
+            val addresses = Geocoder(applicationContext, Locale.getDefault()).getFromLocation(lat, lon, 1)
+            val cityName = addresses?.firstOrNull()?.let { addr ->
+                addr.locality ?: addr.subAdminArea ?: addr.adminArea
+            }
+            repository.setUserCityName(cityName?.takeIf { it.isNotBlank() } ?: "")
+        } catch (_: Exception) {
+            repository.setUserCityName("")
         }
     }
 

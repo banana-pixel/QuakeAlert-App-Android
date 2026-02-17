@@ -99,20 +99,23 @@ class NotificationService(val context: Context) {
     ) {
         val baseTitle = formatTitle(appBaseUrl, subscription, notification)
         val geoCoordinates = extractGeoCoordinates(notification.tags)
-        val userLat = repository.getUserLatitude()
-        val userLon = repository.getUserLongitude()
         val sharedPrefs =
             context.getSharedPreferences(Repository.SHARED_PREFS_ID, Context.MODE_PRIVATE)
         val alertRadiusKm =
             sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
                 .toDouble()
-        val distance =
-            geoCoordinates?.let { (lat, lon) -> distanceKm(userLat, userLon, lat, lon) }
-        val distanceLabel = distance?.let { formatDistanceKm(it) }
+        val (distance, distanceLabel) = if (repository.isUserLocationSet()) {
+            val userLat = repository.getUserLatitude()
+            val userLon = repository.getUserLongitude()
+            val dist = geoCoordinates?.let { (lat, lon) -> distanceKm(userLat, userLon, lat, lon) }
+            Pair(dist, dist?.let { formatDistanceKm(it) })
+        } else {
+            Pair(null, null)
+        }
         val displayPriority = quakeDisplayPriority(distance, alertRadiusKm, notification.priority)
         val title = when {
             distanceLabel == null -> baseTitle
-            distance > alertRadiusKm -> "Silent Alert: Quake (${distanceLabel}km)"
+            distance != null && distance > alertRadiusKm -> "Silent Alert: Quake (${distanceLabel}km)"
             else -> "⚠️ DANGER: Quake (${distanceLabel}km) ⚠️"
         }
 

@@ -49,6 +49,7 @@ import id.my.bananapixel.quakealert.service.SubscriberServiceManager
 import id.my.bananapixel.quakealert.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -889,6 +890,10 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         }
 
         private fun updateLocationSummary() {
+            if (!repository.isUserLocationSet()) {
+                locationSummaryPreference?.summary = getString(R.string.settings_earthquake_location_not_set)
+                return
+            }
             val latitude = repository.getUserLatitude()
             val longitude = repository.getUserLongitude()
             val latLabel = String.format(Locale.US, "%.2f", latitude)
@@ -907,6 +912,22 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                     setSpan(StyleSpan(Typeface.BOLD), 0, cityName.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                     append(" ")
                     append(coordinates)
+                }
+            }
+        }
+
+        override fun onResume() {
+            super.onResume()
+            updateLocationSummary()
+            if (repository.isUserLocationSet() && repository.getUserCityName().isBlank()) {
+                lifecycleScope.launch {
+                    val lat = repository.getUserLatitude()
+                    val lon = repository.getUserLongitude()
+                    val cityName = withContext(Dispatchers.IO) { getCityName(lat, lon) }
+                    if (!cityName.isNullOrBlank()) {
+                        repository.setUserCityName(cityName)
+                        updateLocationSummary()
+                    }
                 }
             }
         }

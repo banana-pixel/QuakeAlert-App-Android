@@ -389,6 +389,7 @@
     <string name="warning_intensity_content_description">Shaking intensity</string>
 
     <string name="settings_earthquake_location_summary_title">Current location</string>
+    <string name="settings_earthquake_location_not_set">Not set</string>
     <string name="settings_earthquake_location_summary_format">(%1$s, %2$s)</string>
     <string name="settings_earthquake_location_updated_toast">Location updated to %1$s!</string>
     <string name="settings_earthquake_update_location_title">Update location</string>
