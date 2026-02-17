@@ -42,9 +42,10 @@ class OnboardingActivity : AppCompatActivity() {
 
     private val pages = listOf(
         OnboardingPage.Intro(
-            iconRes = R.drawable.ic_onboarding_seismograph,
+            iconRes = R.drawable.ic_onboarding_logo,
             title = "Welcome to\nQuakeAlert App",
-            subtitle = "Real-time earthquake early warning system.\nKeep safe with instant seismic alerts powered by IoT technology."
+            subtitle = "Real-time earthquake early warning system.\nKeep safe with instant seismic alerts powered by IoT technology.",
+            showIconCircle = false
         ),
         OnboardingPage.Intro(
             iconRes = R.drawable.ic_onboarding_esp32,
@@ -480,11 +481,13 @@ class OnboardingActivity : AppCompatActivity() {
 
         inner class IntroViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             private val icon: ImageView = view.findViewById(R.id.onboarding_icon)
+            private val iconCircle: View = view.findViewById(R.id.onboarding_icon_circle)
             private val title: TextView = view.findViewById(R.id.onboarding_title)
             private val subtitle: TextView = view.findViewById(R.id.onboarding_subtitle)
 
             fun bind(page: OnboardingPage.Intro) {
                 icon.setImageResource(page.iconRes)
+                iconCircle.visibility = if (page.showIconCircle) View.VISIBLE else View.GONE
                 title.text = page.title
                 subtitle.text = page.subtitle
             }
@@ -565,7 +568,8 @@ class OnboardingActivity : AppCompatActivity() {
         data class Intro(
             val iconRes: Int,
             val title: String,
-            val subtitle: String
+            val subtitle: String,
+            val showIconCircle: Boolean = true
         ) : OnboardingPage()
 
         data class Permission(

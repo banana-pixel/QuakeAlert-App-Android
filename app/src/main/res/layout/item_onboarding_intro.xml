@@ -22,6 +22,7 @@
             android:layout_gravity="center">
 
             <View
+                android:id="@+id/onboarding_icon_circle"
                 android:layout_width="130dp"
                 android:layout_height="130dp"
                 android:layout_gravity="bottom"
@@ -29,8 +30,8 @@
 
             <ImageView
                 android:id="@+id/onboarding_icon"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
+                android:layout_width="110dp"
+                android:layout_height="110dp"
                 android:layout_gravity="center"
                 android:layout_marginBottom="3dp"
                 android:contentDescription="Page icon" />
