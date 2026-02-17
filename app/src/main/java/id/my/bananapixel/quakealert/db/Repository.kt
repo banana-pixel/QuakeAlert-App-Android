@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONException
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -103,27 +104,38 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         }
     }
 
+    /**
+     * Parses API JSON array. Returns empty list on malformed/empty body so the app
+     * shows empty history instead of "Something went wrong".
+     */
     private fun parseReports(jsonBody: String): List<QuakeReport> {
-        val jsonArray = JSONArray(jsonBody)
-        val reports = mutableListOf<QuakeReport>()
-        for (i in 0 until jsonArray.length()) {
-            val item = jsonArray.getJSONObject(i)
-            reports.add(
-                QuakeReport(
-                    id = item.optInt("id"),
-                    waktu_kejadian = item.optString("waktu_kejadian"),
-                    intensitas_maks = item.optString("intensitas_maks"),
-                    lokasi = item.optString("lokasi"),
-                    deskripsi = item.optString("deskripsi"),
-                    pga_maks = item.optString("pga_maks"),
-                    station_id = item.optString("station_id"),
-                    durasi = item.optInt("durasi"),
-                    latitude = item.optDouble("latitude"),
-                    longitude = item.optDouble("longitude")
+        if (jsonBody.isBlank()) return emptyList()
+        return try {
+            val jsonArray = JSONArray(jsonBody)
+            val reports = mutableListOf<QuakeReport>()
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.getJSONObject(i)
+                val lat = item.optDouble("latitude", Double.NaN)
+                val lon = item.optDouble("longitude", Double.NaN)
+                reports.add(
+                    QuakeReport(
+                        id = item.optInt("id"),
+                        waktu_kejadian = item.optString("waktu_kejadian"),
+                        intensitas_maks = item.optString("intensitas_maks"),
+                        lokasi = item.optString("lokasi"),
+                        deskripsi = item.optString("deskripsi"),
+                        pga_maks = item.optString("pga_maks"),
+                        station_id = item.optString("station_id"),
+                        durasi = item.optInt("durasi"),
+                        latitude = if (java.lang.Double.isNaN(lat)) 0.0 else lat,
+                        longitude = if (java.lang.Double.isNaN(lon)) 0.0 else lon
+                    )
                 )
-            )
+            }
+            reports
+        } catch (e: JSONException) {
+            emptyList()
         }
-        return reports
     }
 
     // --- CHAT LOGIC ---
