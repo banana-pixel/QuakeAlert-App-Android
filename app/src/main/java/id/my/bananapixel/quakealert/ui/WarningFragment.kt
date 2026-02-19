@@ -197,8 +197,35 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             safeActionsCard.visibility = View.GONE
             updateWarningStatus("CONNECTING", 0, 0)
             statusHandler.removeCallbacks(statusRefreshRunnable)
-            statusHandler.post(statusRefreshRunnable)
+            warmupThenStartPolling()
         }
+    }
+
+    /**
+     * Run one silent request to establish the connection (DNS, TCP, TLS), then start the 3s status polling.
+     * Matches SensorsFragment: first visible request reuses the warm connection so the shown status/latency is representative.
+     */
+    private fun warmupThenStartPolling() {
+        val ctx = context ?: return
+        val baseUrl = ctx.getString(R.string.app_base_url).trimEnd('/')
+        val request = Request.Builder().url("$baseUrl/stations").build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                activity?.runOnUiThread {
+                    if (isAdded && scanningLayout.visibility == View.VISIBLE) {
+                        statusHandler.post(statusRefreshRunnable)
+                    }
+                }
+            }
+            override fun onResponse(call: Call, response: Response) {
+                response.close()
+                activity?.runOnUiThread {
+                    if (isAdded && scanningLayout.visibility == View.VISIBLE) {
+                        statusHandler.post(statusRefreshRunnable)
+                    }
+                }
+            }
+        })
     }
 
     private fun fetchServerStatus() {
@@ -434,7 +461,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         requireContext().registerReceiver(quakeReceiver, filter, Context.RECEIVER_EXPORTED)
         if (::scanningLayout.isInitialized && scanningLayout.visibility == View.VISIBLE) {
             statusHandler.removeCallbacks(statusRefreshRunnable)
-            statusHandler.post(statusRefreshRunnable)
+            warmupThenStartPolling()
         }
     }
 

@@ -70,12 +70,35 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
     override fun onResume() {
         super.onResume()
-        handler.post(refreshRunnable)
+        warmupThenStartPolling()
     }
 
     override fun onPause() {
         super.onPause()
         handler.removeCallbacks(refreshRunnable)
+    }
+
+    /**
+     * Run one silent request to establish the connection (DNS, TCP, TLS), then start the 3s polling.
+     * The first fetch that updates the UI will then reuse the warm connection, so the shown ping is low.
+     */
+    private fun warmupThenStartPolling() {
+        val ctx = context ?: return
+        val baseUrl = ctx.getString(R.string.app_base_url).trimEnd('/')
+        val request = Request.Builder().url("$baseUrl/stations").build()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                activity?.runOnUiThread {
+                    if (isAdded) handler.post(refreshRunnable)
+                }
+            }
+            override fun onResponse(call: Call, response: Response) {
+                response.close()
+                activity?.runOnUiThread {
+                    if (isAdded) handler.post(refreshRunnable)
+                }
+            }
+        })
     }
 
     private fun fetchData() {
@@ -124,11 +147,9 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                                 hasReceivedFirstResult = true
                                 val status = if (latency > 300) "WARNING" else "HEALTHY"
                                 updateHealthStatus(status, latency.toInt())
-
                                 adapter.submitList(stations) {
                                     adapter.notifyDataSetChanged()
                                 }
-
                                 errorContainer.visibility = View.GONE
                                 swipeRefreshLayout.isRefreshing = false
                             }
