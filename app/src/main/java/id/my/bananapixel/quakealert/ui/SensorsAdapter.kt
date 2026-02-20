@@ -81,7 +81,12 @@ class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(Diff
 
             // --- 4. Technical Badges ---
             rssiValue.text = sensor.rssi ?: "---"
-            latencyValue.text = sensor.latency ?: "---"
+            val rawLatency = sensor.latency
+            latencyValue.text = when {
+                rawLatency.isNullOrBlank() -> "---"
+                rawLatency.contains("ms", ignoreCase = true) -> rawLatency
+                else -> "$rawLatency ms"
+            }
         }
     }
 
