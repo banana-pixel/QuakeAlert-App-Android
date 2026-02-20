@@ -593,4 +593,7 @@
     <string name="history_dur_label">DUR</string>
     <string name="history_pga_value">%1$s</string>
     <string name="history_dur_value">%1$ds</string>
+    <string name="history_empty_text">No earthquake records yet.\nPull down to refresh.</string>
+    <string name="chat_empty_text">No messages yet.\nSend a message to start the conversation.</string>
+    <string name="sensors_empty_text">No sensors found.\nPull down to refresh.</string>
 </resources>

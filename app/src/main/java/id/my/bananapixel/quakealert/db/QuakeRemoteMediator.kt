@@ -50,7 +50,7 @@ class QuakeRemoteMediator(
                         latitude = report.latitude,
                         longitude = report.longitude,
                         pga = report.pga_maks ?: "0",
-                        durasi = report.durasi,
+                        durasi = report.durasi.toInt(),
                         station_id = report.station_id ?: "N/A",
                         intensity = report.intensitas_maks ?: "I" // Fixes missing parameter
                     )

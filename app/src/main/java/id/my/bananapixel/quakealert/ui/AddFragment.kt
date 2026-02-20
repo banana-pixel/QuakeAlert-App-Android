@@ -21,6 +21,7 @@ import id.my.bananapixel.quakealert.db.User
 import id.my.bananapixel.quakealert.msg.ApiService
 import id.my.bananapixel.quakealert.util.CertUtil
 import id.my.bananapixel.quakealert.util.*
+import androidx.navigation.fragment.findNavController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.core.view.isVisible
@@ -89,7 +90,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         // Setup toolbar
         toolbar = view.findViewById(R.id.add_dialog_toolbar)
         toolbar.setNavigationOnClickListener {
-            dismiss()
+            closeDialog()
         }
         toolbar.setOnMenuItemClickListener { menuItem ->
             if (menuItem.itemId == R.id.add_dialog_action_button) {
@@ -431,7 +432,16 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
             val topic = subscribeTopicText.text.toString()
             val instant = !BuildConfig.FIREBASE_AVAILABLE || baseUrl != appBaseUrl || subscribeInstantDeliveryCheckbox.isChecked
             subscribeListener.onSubscribe(topic, baseUrl, instant)
-            dialog?.dismiss()
+            closeDialog()
+        }
+    }
+
+    /** Use NavController when shown via Navigation graph, otherwise dismiss() */
+    private fun closeDialog() {
+        try {
+            findNavController().navigateUp()
+        } catch (e: IllegalStateException) {
+            dismiss()
         }
     }
 
@@ -448,7 +458,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         toolbar.setTitle(R.string.add_dialog_title)
         actionMenuItem.setTitle(R.string.add_dialog_button_subscribe)
         toolbar.setNavigationOnClickListener {
-            dismiss()
+            closeDialog()
         }
         loginView.visibility = View.GONE
         subscribeView.visibility = View.VISIBLE

@@ -32,6 +32,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private lateinit var healthStatus: TextView
     private lateinit var appLatency: TextView
     private lateinit var errorContainer: View
+    private lateinit var emptyContainer: View
 
     /** Only show CONNECTING (blue) on first load or pull-to-refresh; keep current state during background polls. */
     private var hasReceivedFirstResult = false
@@ -58,6 +59,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         healthStatus = view.findViewById(R.id.tv_health_status)
         appLatency = view.findViewById(R.id.tv_app_latency)
         errorContainer = view.findViewById(R.id.sensors_error_container)
+        emptyContainer = view.findViewById(R.id.sensors_empty_container)
 
         // Start in CONNECTING state so we never show default "Server Healthy" + blue
         // before the first fetch completes (avoids wrong state when offline on first open).
@@ -151,6 +153,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                                     adapter.notifyDataSetChanged()
                                 }
                                 errorContainer.visibility = View.GONE
+                                emptyContainer.visibility = if (stations.isEmpty()) View.VISIBLE else View.GONE
                                 swipeRefreshLayout.isRefreshing = false
                             }
                         } catch (e: Exception) {
@@ -171,6 +174,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                 hasReceivedFirstResult = true
                 updateHealthStatus("CRITICAL", latency.toInt())
                 errorContainer.visibility = View.VISIBLE
+                emptyContainer.visibility = View.GONE
                 swipeRefreshLayout.isRefreshing = false
             }
         }

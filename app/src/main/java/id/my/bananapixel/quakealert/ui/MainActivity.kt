@@ -110,6 +110,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(R.layout.activity_main)
+        supportFragmentManager.executePendingTransactions()
 
         Log.init(this) // Init logs in all entry points
         Log.d(TAG, "Create $this")
@@ -327,24 +328,28 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent?.action == "OPEN_WARNING_PAGE") {
-            Log.d(TAG, "Intercepted OPEN_WARNING_PAGE action")
+        when {
+            intent?.action == "OPEN_WARNING_PAGE" -> {
+                Log.d(TAG, "Intercepted OPEN_WARNING_PAGE action")
 
-            val message = intent.getStringExtra("message") ?: ""
-            val distance = intent.getStringExtra("distance") ?: ""
+                val message = intent.getStringExtra("message") ?: ""
+                val distance = intent.getStringExtra("distance") ?: ""
 
-            // 1. Activate the Red UI state
-            id.my.bananapixel.quakealert.app.AlertState.setActive(true)
-            id.my.bananapixel.quakealert.app.AlertState.setAlertFromRaw(message, distance, System.currentTimeMillis() / 1000)
+                // 1. Activate the Red UI state
+                id.my.bananapixel.quakealert.app.AlertState.setActive(true)
+                id.my.bananapixel.quakealert.app.AlertState.setAlertFromRaw(message, distance, System.currentTimeMillis() / 1000)
 
-            // 2. Switch to the Warning Fragment and WIPE the history
-            val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as NavHostFragment
-            val navController = navHostFragment.navController
-
-            val navOptions = NavOptions.Builder()
-                .setPopUpTo(navController.graph.id, true)
-                .build()
-            navController.navigate(R.id.nav_warning, null, navOptions)
+                // 2. Switch to the Warning Fragment via Navigation graph
+                val navController = (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController ?: return
+                val navOptions = NavOptions.Builder()
+                    .setPopUpTo(navController.graph.id, true)
+                    .build()
+                navController.navigate(R.id.nav_warning, null, navOptions)
+            }
+            intent?.data != null -> {
+                // Handle URI deep links (e.g. quakealert://warning)
+                (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.handleDeepLink(intent)
+            }
         }
     }
 
@@ -554,8 +559,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private fun onNotificationSettingsClick(enable: Boolean) {
         if (!enable) {
             Log.d(TAG, "Showing global notification settings dialog")
-            val notificationFragment = NotificationFragment()
-            notificationFragment.show(supportFragmentManager, NotificationFragment.TAG)
+            (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(R.id.nav_dialog_notification)
         } else {
             Log.d(TAG, "Re-enabling global notifications")
             onNotificationMutedUntilChanged(Repository.MUTED_UNTIL_SHOW_ALL)
@@ -564,8 +568,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
     private fun onConnectionErrorClick() {
         Log.d(TAG, "Showing connection error dialog")
-        val connectionErrorFragment = ConnectionErrorFragment.newInstance()
-        connectionErrorFragment.show(supportFragmentManager, ConnectionErrorFragment.TAG)
+        (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(R.id.nav_dialog_connection_error)
     }
 
     override fun onNotificationMutedUntilChanged(mutedUntilTimestamp: Long) {
@@ -585,8 +588,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     }
 
     private fun onSubscribeButtonClick() {
-        val newFragment = AddFragment()
-        newFragment.show(supportFragmentManager, AddFragment.TAG)
+        (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(R.id.nav_dialog_add)
     }
 
     override fun onSubscribe(topic: String, baseUrl: String, instant: Boolean) {

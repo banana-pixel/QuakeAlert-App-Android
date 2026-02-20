@@ -25,6 +25,7 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
     private lateinit var errorContainer: View
     private lateinit var errorMessage: TextView
     private lateinit var errorRetry: MaterialButton
+    private lateinit var emptyContainer: View
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -34,6 +35,7 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
         errorContainer = view.findViewById(R.id.history_error_container)
         errorMessage = view.findViewById(R.id.history_error_message)
         errorRetry = view.findViewById(R.id.history_error_retry)
+        emptyContainer = view.findViewById(R.id.history_empty_container)
 
         historyAdapter = HistoryAdapter()
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -42,6 +44,8 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.quakes.collectLatest { quakeList ->
                 historyAdapter.updateData(quakeList)
+                emptyContainer.visibility = if (quakeList.isEmpty() && errorContainer.visibility != View.VISIBLE)
+                    View.VISIBLE else View.GONE
             }
         }
 
@@ -52,9 +56,11 @@ class HistoryFragment : Fragment(R.layout.fragment_history) {
                     is QuakeLoadState.Error -> {
                         errorMessage.text = state.message
                         errorContainer.visibility = View.VISIBLE
+                        emptyContainer.visibility = View.GONE
                     }
                     QuakeLoadState.Success, QuakeLoadState.Idle -> {
                         errorContainer.visibility = View.GONE
+                        emptyContainer.visibility = if (historyAdapter.itemCount == 0) View.VISIBLE else View.GONE
                     }
                     QuakeLoadState.Loading -> { /* refresh indicator already set */ }
                 }

@@ -64,7 +64,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
                     latitude = report.latitude.orZeroIfNaN(),
                     longitude = report.longitude.orZeroIfNaN(),
                     pga = report.pga_maks.ifEmpty { "0" },
-                    durasi = report.durasi,
+                    durasi = report.durasi.toInt(),
                     station_id = report.station_id.ifEmpty { "N/A" },
                     intensity = report.intensitas_maks.ifEmpty { "I" }
                 )

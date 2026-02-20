@@ -13,6 +13,7 @@ import android.widget.HorizontalScrollView
 import android.widget.TextView
 import androidx.core.text.HtmlCompat
 import androidx.fragment.app.DialogFragment
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.textfield.TextInputLayout
@@ -70,7 +71,7 @@ class ConnectionErrorFragment : DialogFragment() {
 
         // Setup toolbar
         toolbar = view.findViewById(R.id.connection_error_dialog_toolbar)
-        toolbar.setNavigationOnClickListener { dismiss() }
+        toolbar.setNavigationOnClickListener { closeDialog() }
         toolbar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.connection_error_dialog_action_retry -> {
@@ -132,7 +133,7 @@ class ConnectionErrorFragment : DialogFragment() {
             
             // Close dialog if no more errors
             if (connectionDetails.isEmpty()) {
-                dismiss()
+                closeDialog()
                 return@observe
             }
             
@@ -241,6 +242,15 @@ class ConnectionErrorFragment : DialogFragment() {
             }
         } else {
             countdownTextView.visibility = View.GONE
+        }
+    }
+
+    /** Use NavController when shown via Navigation graph, otherwise dismiss() */
+    private fun closeDialog() {
+        try {
+            findNavController().navigateUp()
+        } catch (e: IllegalStateException) {
+            dismiss()
         }
     }
 

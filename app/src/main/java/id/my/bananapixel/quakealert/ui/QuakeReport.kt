@@ -11,7 +11,7 @@ data class QuakeReport(
     val deskripsi: String = "",
     val pga_maks: String = "",
     val station_id: String = "",
-    val durasi: Int = 0,
+    val durasi: Double = 0.0,
     val latitude: Double = Double.NaN,
     val longitude: Double = Double.NaN
 )

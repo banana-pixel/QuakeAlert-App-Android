@@ -53,6 +53,13 @@
                 android:windowSoftInputMode="adjustResize"
                 android:exported="true"
                 android:configChanges="uiMode">
+            <!-- Deep link for quakealert://warning (e.g. from notification tap) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="quakealert" android:host="warning" />
+            </intent-filter>
         </activity>
 
         <!-- Detail activity -->

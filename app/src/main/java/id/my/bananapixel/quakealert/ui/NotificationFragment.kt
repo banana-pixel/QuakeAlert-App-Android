@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Bundle
 import android.widget.RadioButton
 import androidx.fragment.app.DialogFragment
+import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import id.my.bananapixel.quakealert.R
@@ -87,6 +88,15 @@ class NotificationFragment : DialogFragment() {
         lifecycleScope.launch(Dispatchers.Main) {
             delay(150) // Another hack: Let the animation finish before dismissing the window
             settingsListener?.onNotificationMutedUntilChanged(mutedUntilTimestamp)
+            closeDialog()
+        }
+    }
+
+    /** Use NavController when shown via Navigation graph, otherwise dismiss() */
+    private fun closeDialog() {
+        try {
+            findNavController().navigateUp()
+        } catch (e: IllegalStateException) {
             dismiss()
         }
     }

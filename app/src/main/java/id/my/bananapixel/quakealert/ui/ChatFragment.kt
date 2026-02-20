@@ -58,6 +58,7 @@ class ChatFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.chatMessages.collectLatest { messages ->
                 chatAdapter.submitList(messages) {
+                    binding.chatEmptyContainer.visibility = if (messages.isEmpty()) View.VISIBLE else View.GONE
                     if (messages.isNotEmpty()) {
                         val hasNewMessages = messages.size > lastMessageCount
                         lastMessageCount = messages.size

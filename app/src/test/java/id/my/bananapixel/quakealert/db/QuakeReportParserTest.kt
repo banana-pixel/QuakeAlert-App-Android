@@ -42,7 +42,7 @@ class QuakeReportParserTest {
             assertEquals("Gempa kecil", deskripsi)
             assertEquals("0.5", pga_maks)
             assertEquals("ST001", station_id)
-            assertEquals(10, durasi)
+            assertEquals(10.0, durasi, 1e-9)
             assertEquals(-6.2, latitude, 1e-9)
             assertEquals(106.8, longitude, 1e-9)
         }
@@ -78,7 +78,7 @@ class QuakeReportParserTest {
             assertEquals("", deskripsi)
             assertEquals("", pga_maks)
             assertEquals("", station_id)
-            assertEquals(0, durasi)
+            assertEquals(0.0, durasi, 1e-9)
             // org.json optDouble returns NaN for missing keys
             assert(latitude.isNaN()) { "expected NaN for missing latitude, got $latitude" }
             assert(longitude.isNaN()) { "expected NaN for missing longitude, got $longitude" }
