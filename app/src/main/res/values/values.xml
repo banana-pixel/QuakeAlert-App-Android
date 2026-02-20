@@ -42,6 +42,7 @@
     <string name="settings_about_version_key" translatable="false">Version</string>
     <string name="settings_about_quakealert_version_key" translatable="false">QuakeAlertVersion</string>
     <string name="settings_about_credit_key" translatable="false">AboutCredit</string>
+    <string name="settings_about_version_format" translatable="false">QuakeAlert %1$s (%2$s)</string>
     <string name="settings_about_ntfy_version_format" translatable="false">ntfy %1$s</string>
     <string name="settings_about_ntfy_version_number" translatable="false">1.23.0</string>
     <string name="settings_about_quakealert_version_number" translatable="false">0.2</string>
