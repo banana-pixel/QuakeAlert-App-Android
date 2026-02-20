@@ -1,11 +1,16 @@
 package id.my.bananapixel.quakealert.db
 
 import id.my.bananapixel.quakealert.ui.QuakeReport
-import org.json.JSONArray
-import org.json.JSONException
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
+
+private val quakeReportJson = Json {
+    ignoreUnknownKeys = true
+    coerceInputValues = true
+}
 
 /**
  * Parses the quake reports API JSON response into [QuakeReport] list.
@@ -36,32 +41,11 @@ object QuakeReportParser {
     fun parseReports(jsonBody: String): List<QuakeReport> {
         if (jsonBody.isBlank()) return emptyList()
         return try {
-            val jsonArray = JSONArray(jsonBody)
-            parseReportsFromArray(jsonArray)
-        } catch (e: JSONException) {
+            quakeReportJson.decodeFromString(ListSerializer(QuakeReport.serializer()), jsonBody)
+        } catch (_: kotlinx.serialization.SerializationException) {
+            emptyList()
+        } catch (_: Throwable) {
             emptyList()
         }
-    }
-
-    internal fun parseReportsFromArray(jsonArray: JSONArray): List<QuakeReport> {
-        val reports = mutableListOf<QuakeReport>()
-        for (i in 0 until jsonArray.length()) {
-            val item = jsonArray.getJSONObject(i)
-            reports.add(
-                QuakeReport(
-                    id = item.optInt("id"),
-                    waktu_kejadian = item.optString("waktu_kejadian"),
-                    intensitas_maks = item.optString("intensitas_maks"),
-                    lokasi = item.optString("lokasi"),
-                    deskripsi = item.optString("deskripsi"),
-                    pga_maks = item.optString("pga_maks"),
-                    station_id = item.optString("station_id"),
-                    durasi = item.optInt("durasi"),
-                    latitude = item.optDouble("latitude"),
-                    longitude = item.optDouble("longitude")
-                )
-            )
-        }
-        return reports
     }
 }

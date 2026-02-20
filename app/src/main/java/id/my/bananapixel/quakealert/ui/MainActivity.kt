@@ -1,32 +1,23 @@
 package id.my.bananapixel.quakealert.ui
 
 import android.Manifest
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.app.AlarmManager
-import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
-import android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-import android.text.method.LinkMovementMethod
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.appcompat.view.ActionMode
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
-import androidx.core.text.HtmlCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -42,7 +33,6 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.android.material.appbar.AppBarLayout
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
@@ -57,12 +47,15 @@ import id.my.bananapixel.quakealert.msg.NotificationDispatcher
 import id.my.bananapixel.quakealert.msg.Poller
 import id.my.bananapixel.quakealert.service.SubscriberService
 import id.my.bananapixel.quakealert.service.SubscriberServiceManager
+import id.my.bananapixel.quakealert.ui.delegates.MainActionModeDelegate
+import id.my.bananapixel.quakealert.ui.delegates.MainBannersDelegate
+import id.my.bananapixel.quakealert.ui.delegates.MainConnectionStatusDelegate
+import id.my.bananapixel.quakealert.ui.delegates.MainKeyboardDelegate
+import id.my.bananapixel.quakealert.ui.delegates.MainNavigationDelegate
 import id.my.bananapixel.quakealert.util.Log
-import id.my.bananapixel.quakealert.util.dangerButton
 import id.my.bananapixel.quakealert.util.displayName
 import id.my.bananapixel.quakealert.util.formatDateShort
 import id.my.bananapixel.quakealert.util.isDarkThemeOn
-import id.my.bananapixel.quakealert.util.isIgnoringBatteryOptimizations
 import id.my.bananapixel.quakealert.util.maybeSplitTopicUrl
 import id.my.bananapixel.quakealert.util.randomSubscriptionId
 import id.my.bananapixel.quakealert.util.shortUrl
@@ -84,11 +77,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.activity.OnBackPressedCallback
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
-import android.graphics.Color
-import android.content.res.ColorStateList
-import androidx.constraintlayout.widget.ConstraintLayout
-import id.my.bananapixel.quakealert.db.ConnectionState
-import android.view.ViewGroup
 
 class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener {
     private val viewModel by viewModels<SubscriptionsViewModel> {
@@ -107,38 +95,16 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private lateinit var fab: FloatingActionButton
 
     // Other stuff
-    private var workManager: WorkManager? = null // Context-dependent
-    private var dispatcher: NotificationDispatcher? = null // Context-dependent
-    private var appBaseUrl: String? = null // Context-dependent
+    private var workManager: WorkManager? = null
+    private var dispatcher: NotificationDispatcher? = null
+    private var appBaseUrl: String? = null
 
-    // Action mode stuff
-    private var actionMode: ActionMode? = null
-    private val actionModeCallback = object : ActionMode.Callback {
-        override fun onCreateActionMode(mode: ActionMode?, menu: Menu?): Boolean {
-            actionMode = mode
-            if (mode != null) {
-                mode.menuInflater.inflate(R.menu.menu_main_action_mode, menu)
-                mode.title = "1" // One item selected
-            }
-            return true
-        }
-
-        override fun onPrepareActionMode(mode: ActionMode?, menu: Menu?) = false
-
-        override fun onActionItemClicked(mode: ActionMode?, item: MenuItem): Boolean {
-            return when (item.itemId) {
-                R.id.main_action_mode_delete -> {
-                    onMultiDeleteClick()
-                    true
-                }
-                else -> false
-            }
-        }
-
-        override fun onDestroyActionMode(mode: ActionMode?) {
-            endActionModeAndRedraw()
-        }
-    }
+    // Delegates (navigation, banners, keyboard, connection status, action mode)
+    private lateinit var navigationDelegate: MainNavigationDelegate
+    private lateinit var bannersDelegate: MainBannersDelegate
+    private lateinit var keyboardDelegate: MainKeyboardDelegate
+    private lateinit var connectionStatusDelegate: MainConnectionStatusDelegate
+    private lateinit var actionModeDelegate: MainActionModeDelegate
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -151,53 +117,22 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as NavHostFragment
         val navController = navHostFragment.navController
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
-        bottomNav.setupWithNavController(navController) // Keep this for icon tinting
+        bottomNav.setupWithNavController(navController)
 
-
-
-
-
-
-        // OVERRIDE CLICK LISTENER: Clear back stack on every tab switch
-        // In MainActivity.kt inside onCreate()
-
-        bottomNav.setOnItemSelectedListener { item ->
-            if (item.itemId != navController.currentDestination?.id) {
-                val navOptions = NavOptions.Builder()
-                    .setPopUpTo(navController.graph.startDestinationId, true)
-                    .setLaunchSingleTop(true)
-                    .setRestoreState(false)
-                    .build()
-                navController.navigate(item.itemId, null, navOptions)
-            }
-            true
+        navigationDelegate = MainNavigationDelegate(this)
+        navigationDelegate.setupBottomNavClearBackStack(navController, bottomNav)
+        navigationDelegate.addDestinationChangedListener(navController, bottomNav) {
+            navigationDelegate.applyBottomInset(bottomNav)
         }
 
-        navController.addOnDestinationChangedListener { _, destination, _ ->
+        keyboardDelegate = MainKeyboardDelegate(this, navigationDelegate)
+        keyboardDelegate.setupKeyboardListener(bottomNav, navHostFragment, window.decorView.rootView)
 
-            // --- FIX: CHANGE COLOR IMMEDIATELY (Remove .post wrapper for this part) ---
-            // This ensures the background is swapped BEFORE the button state changes to "Selected"
-            if (destination.id == R.id.nav_warning) {
-                bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile_warning)
-            } else {
-                bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile)
-            }
-
-            // --- Keep Layout Adjustments inside .post ---
-            // We still need .post() here because we are waiting for the NEW Fragment's view
-            // to be created so we can calculate padding.
-            bottomNav.post {
-                applyBottomInset(bottomNav)
-            }
-        }
-
-        // Setup keyboard listener to hide bottom nav when keyboard appears
-        setupKeyboardListener(bottomNav, navHostFragment, navController)
-
-        // Dependencies that depend on Context
         workManager = WorkManager.getInstance(this)
         dispatcher = NotificationDispatcher(this, repository)
         appBaseUrl = getString(R.string.app_base_url)
+        connectionStatusDelegate = MainConnectionStatusDelegate(this, repository)
+        bannersDelegate = MainBannersDelegate(this, repository, appBaseUrl)
 
         // Action bar
         val toolbarLayout = findViewById<AppBarLayout>(R.id.app_bar_drawer)
@@ -270,6 +205,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             Colors.onPrimary(this)
         )
         mainList.adapter = adapter
+        actionModeDelegate = MainActionModeDelegate(this, adapter, fab, viewModel) { redrawList() }
 
         // Apply window insets to ensure content is not covered by navigation bar
         mainList.clipToPadding = false
@@ -297,10 +233,9 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                     Log.addScrubTerm(s.topic)
                 }
 
-                // Update battery banner + WebSocket banner + websocket reconnect banner
-                showHideBatteryBanner(subscriptions)
-                showHideWebSocketBanner(subscriptions)
-                showHideWebSocketReconnectBanner()
+                bannersDelegate.showHideBatteryBanner(subscriptions)
+                bannersDelegate.showHideWebSocketBanner(subscriptions)
+                bannersDelegate.showHideWebSocketReconnectBanner()
             }
         }
 
@@ -328,121 +263,9 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
             SubscriberServiceManager.refresh(this)
         }
 
-        // Observe connection details and update menu item visibility
-        // Observe connection details and update menu item visibility + 3D Health Bar
-        repository.getConnectionDetailsLiveData().observe(this) { details ->
-            showHideConnectionErrorMenuItem(details) // Keep the original line
+        connectionStatusDelegate.observeConnectionDetails(this)
 
-            // --- NEW: LOGIC TO UPDATE 3D HEALTH BAR ---
-
-            // 1. Check if any connection has failed
-            val hasError = details.values.any { it.hasError() }
-
-            // 2. Check if any connection is currently trying to connect
-            val isConnecting = details.values.any { it.state == ConnectionState.CONNECTING }
-
-            // 3. Determine the status string for your 3D bar
-            val status = when {
-                hasError -> "CRITICAL"
-                isConnecting -> "CONNECTING"
-                details.isEmpty() -> "CONNECTING" // Starting up
-                else -> "HEALTHY"
-            }
-
-            // 4. Latency from connection layer (time to connect when CONNECTED)
-            val latency = if (status == "HEALTHY") {
-                details.values
-                    .filter { it.state == ConnectionState.CONNECTED }
-                    .mapNotNull { it.latencyMs }
-                    .maxOrNull() ?: 0
-            } else 0
-
-            // 5. Update health bar
-            updateHealthStatus(status, latency)
-        }
-
-        // Battery banner
-        val batteryBanner = findViewById<View>(R.id.main_banner_battery) // Banner visibility is toggled in onResume()
-        val dontAskAgainButton = findViewById<Button>(R.id.main_banner_battery_dontaskagain)
-        val askLaterButton = findViewById<Button>(R.id.main_banner_battery_ask_later)
-        val fixNowButton = findViewById<Button>(R.id.main_banner_battery_fix_now)
-        dontAskAgainButton.setOnClickListener {
-            batteryBanner.visibility = View.GONE
-            repository.setBatteryOptimizationsRemindTime(Repository.BATTERY_OPTIMIZATIONS_REMIND_TIME_NEVER)
-        }
-        askLaterButton.setOnClickListener {
-            batteryBanner.visibility = View.GONE
-            repository.setBatteryOptimizationsRemindTime(System.currentTimeMillis() + ONE_DAY_MILLIS)
-        }
-        fixNowButton.setOnClickListener {
-            try {
-                Log.d(TAG, "package:$packageName".toUri().toString())
-                startActivity(
-                    Intent(
-                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-                        "package:$packageName".toUri()
-                    )
-                )
-            } catch (_: ActivityNotFoundException) {
-                try {
-                    startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
-                } catch (_: ActivityNotFoundException) {
-                    startActivity(Intent(Settings.ACTION_SETTINGS))
-                }
-            }
-            // Hide, at least for now
-            val batteryBanner = findViewById<View>(R.id.main_banner_battery)
-            batteryBanner.visibility = View.GONE
-        }
-
-        // WebSocket banner
-        val wsBanner = findViewById<View>(R.id.main_banner_websocket) // Banner visibility is toggled in onResume()
-        val wsText = findViewById<TextView>(R.id.main_banner_websocket_text)
-        val wsDismissButton = findViewById<Button>(R.id.main_banner_websocket_dontaskagain)
-        val wsRemindButton = findViewById<Button>(R.id.main_banner_websocket_remind_later)
-        val wsEnableButton = findViewById<Button>(R.id.main_banner_websocket_enable)
-        wsText.movementMethod = LinkMovementMethod.getInstance() // Make links clickable
-        wsDismissButton.setOnClickListener {
-            wsBanner.visibility = View.GONE
-            repository.setWebSocketRemindTime(Repository.WEBSOCKET_REMIND_TIME_NEVER)
-        }
-        wsRemindButton.setOnClickListener {
-            wsBanner.visibility = View.GONE
-            repository.setWebSocketRemindTime(System.currentTimeMillis() + ONE_DAY_MILLIS)
-        }
-        wsEnableButton.setOnClickListener {
-            repository.setConnectionProtocol(Repository.CONNECTION_PROTOCOL_WS)
-            SubscriberServiceManager(this).refresh()
-            wsBanner.visibility = View.GONE
-
-            // Maybe show WebSocketReconnectBanner
-            viewModel.list().observe(this) {
-                it?.let { subscriptions ->
-                    showHideWebSocketReconnectBanner()
-                }
-            }
-        }
-
-        // WebSocket Reconnect banner
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val wsReconnectBanner = findViewById<View>(R.id.main_banner_websocket_reconnect)
-            val wsReconnectText = findViewById<TextView>(R.id.main_banner_websocket_reconnect_text)
-            val wsReconnectDismissButton = findViewById<Button>(R.id.main_banner_websocket_reconnect_dontaskagain)
-            val wsReconnectRemindButton = findViewById<Button>(R.id.main_banner_websocket_reconnect_remind_later)
-            val wsReconnectEnableButton = findViewById<Button>(R.id.main_banner_websocket_reconnect_enable)
-            wsReconnectText.movementMethod = LinkMovementMethod.getInstance() // Make links clickable
-            wsReconnectDismissButton.setOnClickListener {
-                wsReconnectBanner.visibility = View.GONE
-                repository.setWebSocketReconnectRemindTime(Repository.WEBSOCKET_RECONNECT_REMIND_TIME_NEVER)
-            }
-            wsReconnectRemindButton.setOnClickListener {
-                wsReconnectBanner.visibility = View.GONE
-                repository.setWebSocketReconnectRemindTime(System.currentTimeMillis() + ONE_DAY_MILLIS)
-            }
-            wsReconnectEnableButton.setOnClickListener {
-                startActivity(Intent(ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
-            }
-        }
+        bannersDelegate.setupClickListeners { bannersDelegate.showHideWebSocketReconnectBanner() }
 
         // Hide links that lead to payments, see https://github.com/binwiederhier/ntfy/issues/1463
         val howToLink = findViewById<TextView>(R.id.main_how_to_link)
@@ -537,53 +360,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     override fun onResume() {
         super.onResume()
         showHideNotificationMenuItems()
-        showHideConnectionErrorMenuItem(repository.getConnectionDetails())
+        connectionStatusDelegate.showHideConnectionErrorMenuItem(repository.getConnectionDetails())
         redrawList()
-    }
-
-    private fun showHideBatteryBanner(subscriptions: List<Subscription>) {
-        val hasInstantSubscriptions = subscriptions.count { it.instant } > 0
-        val batteryRemindTimeReached = repository.getBatteryOptimizationsRemindTime() < System.currentTimeMillis()
-        val ignoringOptimizations = isIgnoringBatteryOptimizations(this@MainActivity)
-        val showBanner = batteryRemindTimeReached && !ignoringOptimizations
-        val batteryBanner = findViewById<View>(R.id.main_banner_battery)
-        batteryBanner.visibility = if (showBanner) View.VISIBLE else View.GONE
-        Log.d(TAG, "Battery: ignoring optimizations = $ignoringOptimizations (we want this to be true); instant subscriptions = $hasInstantSubscriptions; remind time reached = $batteryRemindTimeReached; banner = $showBanner")
-    }
-
-    private fun showHideWebSocketBanner(subscriptions: List<Subscription>) {
-        val hasSelfHostedSubscriptions = subscriptions.count { it.baseUrl != appBaseUrl } > 0
-        val usingWebSockets = repository.getConnectionProtocol() == Repository.CONNECTION_PROTOCOL_WS
-        val wsRemindTimeReached = repository.getWebSocketRemindTime() < System.currentTimeMillis()
-        val showBanner = hasSelfHostedSubscriptions && wsRemindTimeReached && !usingWebSockets
-        val wsBanner = findViewById<View>(R.id.main_banner_websocket)
-        if (showBanner) {
-            wsBanner.visibility = View.VISIBLE
-            if (!BuildConfig.PAYMENT_LINKS_AVAILABLE) {
-                // Hide links that lead to payments, see https://github.com/binwiederhier/ntfy/issues/1463
-                // This is a big fat hack, but I have to release this quickly ...
-                val wsBannerMainText = findViewById<TextView>(R.id.main_banner_websocket_text)
-                val raw = getString(R.string.main_banner_websocket_text)
-                val unlinked = raw.replace(Regex("</?a[^>]*>"), "")
-                wsBannerMainText.text = HtmlCompat.fromHtml(unlinked, HtmlCompat.FROM_HTML_MODE_LEGACY)
-            }
-        } else {
-            wsBanner.visibility = View.GONE
-        }
-    }
-
-    private fun showHideWebSocketReconnectBanner() {
-        val wsReconnectBanner = findViewById<View>(R.id.main_banner_websocket_reconnect)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val usingWebSockets = repository.getConnectionProtocol() == Repository.CONNECTION_PROTOCOL_WS
-            val wsReconnectRemindTimeReached = repository.getWebSocketReconnectRemindTime() < System.currentTimeMillis()
-            val canScheduleExactAlarms = (getSystemService(ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
-            val showBanner = wsReconnectRemindTimeReached && usingWebSockets && !canScheduleExactAlarms
-            Log.d(TAG, "wsReconnectRemindTimeReached: ${wsReconnectRemindTimeReached}, usingWebSockets: ${usingWebSockets}, canScheduleExactAlarms: ${canScheduleExactAlarms}")
-            wsReconnectBanner.visibility = if (showBanner) View.VISIBLE else View.GONE
-        } else {
-            wsReconnectBanner.visibility = View.GONE
-        }
     }
 
     private fun schedulePeriodicPollWorker() {
@@ -647,16 +425,16 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main_action_bar, menu)
         this.menu = menu
+        connectionStatusDelegate.setMenu(menu)
 
-        // Tint menu icons based on theme
         val toolbarTextColor = Colors.toolbarTextColor(this, repository.getDynamicColorsEnabled(), isDarkThemeOn(this))
         for (i in 0 until menu.size) {
             menu[i].icon?.setTint(toolbarTextColor)
         }
 
         showHideNotificationMenuItems()
-        showHideConnectionErrorMenuItem(repository.getConnectionDetails())
-        checkSubscriptionsMuted() // This is done here, because then we know that we've initialized the menu
+        connectionStatusDelegate.showHideConnectionErrorMenuItem(repository.getConnectionDetails())
+        checkSubscriptionsMuted()
         return true
     }
 
@@ -716,17 +494,6 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
                 val formattedDate = formatDateShort(mutedUntilSeconds)
                 notificationsDisabledUntilItem?.title = getString(R.string.main_menu_notifications_disabled_until, formattedDate)
             }
-        }
-    }
-
-    private fun showHideConnectionErrorMenuItem(details: Map<String, id.my.bananapixel.quakealert.db.ConnectionDetails>) {
-        if (!this::menu.isInitialized) {
-            return
-        }
-        runOnUiThread {
-            val connectionErrorItem = menu.findItem(R.id.main_menu_connection_error)
-            val hasErrors = details.values.any { it.hasError() }
-            connectionErrorItem?.isVisible = hasErrors
         }
     }
 
@@ -872,9 +639,9 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     }
 
     private fun onSubscriptionItemClick(subscription: Subscription) {
-        if (actionMode != null) {
-            handleActionModeClick(subscription)
-        } else if (subscription.upAppId != null) { // UnifiedPush
+        if (actionModeDelegate.isActive()) {
+            actionModeDelegate.handleItemClick(subscription)
+        } else if (subscription.upAppId != null) {
             startDetailSettingsView(subscription)
         } else {
             startDetailView(subscription)
@@ -882,8 +649,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     }
 
     private fun onSubscriptionItemLongClick(subscription: Subscription) {
-        if (actionMode == null) {
-            beginActionMode(subscription)
+        if (!actionModeDelegate.isActive()) {
+            actionModeDelegate.startActionMode(subscription)
         }
     }
 
@@ -946,307 +713,11 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         startActivity(intent)
     }
 
-    private fun handleActionModeClick(subscription: Subscription) {
-        adapter.toggleSelection(subscription.id)
-        if (adapter.selected.isEmpty()) {
-            finishActionMode()
-        } else {
-            actionMode!!.title = adapter.selected.size.toString()
-        }
-    }
-
-    private fun onMultiDeleteClick() {
-        Log.d(DetailActivity.TAG, "Showing multi-delete dialog for selected items")
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setMessage(R.string.main_action_mode_delete_dialog_message)
-            .setPositiveButton(R.string.main_action_mode_delete_dialog_permanently_delete) { _, _ ->
-                adapter.selected.map { subscriptionId -> viewModel.remove(this, subscriptionId) }
-                finishActionMode()
-            }
-            .setNegativeButton(R.string.main_action_mode_delete_dialog_cancel) { _, _ ->
-                finishActionMode()
-            }
-            .create()
-        dialog.setOnShowListener {
-            dialog
-                .getButton(AlertDialog.BUTTON_POSITIVE)
-                .dangerButton()
-        }
-        dialog.show()
-    }
-
-    private fun beginActionMode(subscription: Subscription) {
-        actionMode = startSupportActionMode(actionModeCallback)
-        adapter.toggleSelection(subscription.id)
-
-        // Fade out FAB
-        fab.alpha = 1f
-        fab
-            .animate()
-            .alpha(0f)
-            .setDuration(ANIMATION_DURATION)
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    fab.visibility = View.GONE
-                }
-            })
-    }
-
-    private fun finishActionMode() {
-        actionMode!!.finish()
-        endActionModeAndRedraw()
-    }
-
-    private fun endActionModeAndRedraw() {
-        actionMode = null
-        adapter.selected.clear()
-        redrawList()
-
-        // Fade in FAB
-        fab.alpha = 0f
-        fab.visibility = View.VISIBLE
-        fab
-            .animate()
-            .alpha(1f)
-            .setDuration(ANIMATION_DURATION)
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    fab.visibility = View.VISIBLE // Required to replace the old listener
-                }
-            })
-    }
-
     private fun redrawList() {
         if (!this::mainList.isInitialized) {
             return
         }
         adapter.notifyItemRangeChanged(0, adapter.currentList.size)
-    }
-
-    private fun updateHealthStatus(status: String, latency: Int) {
-        // Initialize views if they haven't been initialized yet
-        // (Safety check in case this is called from a background thread or early)
-        val healthBar = findViewById<ConstraintLayout>(R.id.health_bar) ?: return
-        val tvHealthStatus = findViewById<TextView>(R.id.tv_health_status) ?: return
-        val tvAppLatency = findViewById<TextView>(R.id.tv_app_latency) ?: return
-        val viewHealthDot = findViewById<View>(R.id.view_health_dot) ?: return
-
-        // 1. Latency: only show when we have a valid ping; hide when offline/connecting
-        val showLatency = (status == "HEALTHY" || status == "WARNING")
-        tvAppLatency.visibility = if (showLatency) View.VISIBLE else View.GONE
-        if (showLatency) tvAppLatency.text = "$latency ms"
-
-        // 2. Logic to determine Color and Text based on status
-        when (status) {
-            "HEALTHY" -> {
-                // GREEN STYLE (Healthy) - use bg_pill_3d_green2 to match SensorsFragment
-                healthBar.setBackgroundResource(R.drawable.bg_pill_3d_green2)
-                tvHealthStatus.text = "Server Healthy"
-                tvHealthStatus.setTextColor(Color.WHITE)
-                viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
-                tvAppLatency.setTextColor(Color.parseColor("#E8F5E9")) // Very Light Green
-            }
-            "CONNECTING" -> {
-                // BLUE STYLE (Your Light Blue Accent)
-                healthBar.setBackgroundResource(R.drawable.bg_pill_3d_blue)
-                tvHealthStatus.text = "Connecting..."
-                tvHealthStatus.setTextColor(Color.WHITE)
-                viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
-                tvAppLatency.setTextColor(Color.parseColor("#E1F5FE")) // Very Light Blue
-            }
-            "WARNING" -> {
-                // ORANGE STYLE (High Latency / Issues)
-                healthBar.setBackgroundResource(R.drawable.bg_pill_3d_orange)
-                tvHealthStatus.text = "Unstable Connection"
-                tvHealthStatus.setTextColor(Color.parseColor("#FFF3E0")) // Very light orange
-                viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FFF3E0"))
-                tvAppLatency.setTextColor(Color.parseColor("#FFF3E0"))
-            }
-            "CRITICAL" -> {
-                // RED STYLE (Offline / Error)
-                healthBar.setBackgroundResource(R.drawable.bg_pill_3d_red)
-                tvHealthStatus.text = "Server Offline"
-                tvHealthStatus.setTextColor(Color.WHITE)
-                viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
-                tvAppLatency.setTextColor(Color.parseColor("#FFEBEE")) // Very light red
-            }
-        }
-    }
-
-    private fun applyBottomInset(bottomNav: View) {
-        // 1. Find the current fragment and its root view
-        val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment
-        val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull()
-        val fragmentView = currentFragment?.view ?: return
-
-        // 2. Calculate the base space needed for the Navigation Bar
-        val navSpace = bottomNav.height + bottomNav.marginTop + bottomNav.marginBottom + 20
-
-        // 3. Handle the Floating UI (the Chat Input Bar)
-        val floatingUi = fragmentView.findViewById<View>(R.id.bottom_floating_ui)
-
-        // We start with the navigation bar height as our base padding
-        var totalBottomPadding = navSpace
-
-        floatingUi?.let { ui ->
-            // LIFT: Push the input bar up so it sits on top of the Nav Bar
-            val params = ui.layoutParams as ViewGroup.MarginLayoutParams
-            params.bottomMargin = navSpace
-            ui.layoutParams = params
-
-            // STACK: Once the UI is measured, add its height to the list padding
-            ui.post {
-                // We add the height of the input bar + some extra padding (16dp)
-                val uiHeightWithMargin = ui.height + (16 * resources.displayMetrics.density).toInt()
-                totalBottomPadding += uiHeightWithMargin
-
-                // Apply the final combined padding to the RecyclerView
-                applyToRecyclerView(fragmentView, totalBottomPadding)
-            }
-        } ?: run {
-            // If there is no floating UI, just apply the navigation padding
-            applyToRecyclerView(fragmentView, totalBottomPadding)
-        }
-    }
-
-    private fun applyToRecyclerView(rootView: View, padding: Int) {
-        val recyclerView = rootView.findViewById<RecyclerView>(R.id.recycler_view)
-        recyclerView?.let { rv ->
-            rv.clipToPadding = false
-            rv.setPadding(rv.paddingLeft, rv.paddingTop, rv.paddingRight, padding)
-        }
-    }
-
-    // Helper extensions to get margins easily without crashing
-    val View.marginTop: Int get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
-    val View.marginBottom: Int get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
-
-    /**
-     * Setup keyboard visibility listener to hide/show bottom navigation
-     * and maintain scroll position relative to input field (not bottom nav)
-     */
-    private fun setupKeyboardListener(
-        bottomNav: BottomNavigationView,
-        navHostFragment: NavHostFragment,
-        navController: androidx.navigation.NavController
-    ) {
-        ViewCompat.setOnApplyWindowInsetsListener(window.decorView.rootView) { _, insets ->
-            val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
-            val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-
-            // Get current fragment's views
-            val currentFragment = navHostFragment.childFragmentManager.fragments.firstOrNull()
-            val fragmentView = currentFragment?.view
-            val floatingUi = fragmentView?.findViewById<View>(R.id.bottom_floating_ui)
-            val recyclerView = fragmentView?.findViewById<RecyclerView>(R.id.recycler_view)
-
-            // Check if we're on the chat page (use class check to avoid ID issues)
-            val isChatPage = currentFragment is ChatFragment
-
-            if (imeVisible && imeHeight > 0) {
-                // ============ KEYBOARD IS VISIBLE ============
-
-                // 1. Hide bottom nav and scrim
-                bottomNav.animate()
-                    .translationY(bottomNav.height.toFloat())
-                    .setDuration(200)
-                    .withEndAction {
-                        bottomNav.visibility = View.GONE
-                    }
-                    .start()
-
-                findViewById<View>(R.id.nav_scrim)?.animate()
-                    ?.alpha(0f)
-                    ?.setDuration(200)
-                    ?.withEndAction {
-                        findViewById<View>(R.id.nav_scrim)?.visibility = View.GONE
-                    }
-                    ?.start()
-
-                // 2. Remove bottom margin from floating input
-                floatingUi?.let { ui ->
-                    val params = ui.layoutParams as ViewGroup.MarginLayoutParams
-                    params.bottomMargin = 0
-                    ui.layoutParams = params
-                }
-
-                // 3. Add bottom padding and auto-scroll (only on chat page)
-                if (isChatPage) {
-                    floatingUi?.post {
-                        val inputHeight = floatingUi.height
-                        recyclerView?.let { rv ->
-                            rv.clipToPadding = false
-                            rv.setPadding(
-                                rv.paddingLeft,
-                                rv.paddingTop,
-                                rv.paddingRight,
-                                inputHeight + (16 * resources.displayMetrics.density).toInt()
-                            )
-
-                            // Auto-scroll to bottom (only on chat page)
-                            rv.adapter?.let { adapter ->
-                                if (adapter.itemCount > 0) {
-                                    rv.smoothScrollToPosition(adapter.itemCount - 1)
-                                }
-                            }
-                        }
-                    }
-                }
-
-            } else {
-                // ============ KEYBOARD IS HIDDEN ============
-
-                // 1. Show bottom nav and scrim
-                bottomNav.visibility = View.VISIBLE
-                bottomNav.animate()
-                    .translationY(0f)
-                    .setDuration(200)
-                    .start()
-
-                findViewById<View>(R.id.nav_scrim)?.let { scrim ->
-                    scrim.visibility = View.VISIBLE
-                    scrim.animate()
-                        .alpha(1f)
-                        .setDuration(200)
-                        .start()
-                }
-
-                // 2. Restore proper spacing and maintain scroll position
-                bottomNav.post {
-                    // Only scroll to maintain position on chat page
-                    if (isChatPage && recyclerView != null) {
-                        // Save current last visible item position BEFORE layout changes
-                        val layoutManager = recyclerView.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager
-                        val lastVisiblePosition = layoutManager?.findLastCompletelyVisibleItemPosition() ?: -1
-
-                        // Restore the layout
-                        applyBottomInset(bottomNav)
-
-                        // After layout is restored, scroll to keep messages at input field level
-                        recyclerView.post {
-                            recyclerView.adapter?.let { adapter ->
-                                if (adapter.itemCount > 0) {
-                                    // Scroll to last message to keep it "magnetized" to input field
-                                    val targetPosition = adapter.itemCount - 1
-
-                                    // Use scrollToPosition (instant) to avoid animation weirdness
-                                    layoutManager?.scrollToPositionWithOffset(
-                                        targetPosition,
-                                        0 // Offset from top (0 = align to top of recyclerview content area)
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        // Not chat page, just restore layout normally
-                        applyBottomInset(bottomNav)
-                    }
-                }
-            }
-
-            insets
-        }
     }
 
     companion object {

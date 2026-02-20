@@ -12,11 +12,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import id.my.bananapixel.quakealert.app.Application
 import id.my.bananapixel.quakealert.databinding.FragmentChatBinding
 import id.my.bananapixel.quakealert.db.ChatMessage
+import id.my.bananapixel.quakealert.msg.ChatMessagePayload
 import io.socket.client.IO
 import io.socket.client.Socket
 import io.socket.engineio.client.transports.WebSocket
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URISyntaxException
@@ -82,18 +84,14 @@ class ChatFragment : Fragment() {
             socket = IO.socket("https://quakealert.bananapixel.my.id", opts)
 
             socket?.on("chat_history") { args ->
-                val data = args[0] as JSONArray
-                val history = mutableListOf<ChatMessage>()
-                for (i in 0 until data.length()) {
-                    parseMessage(data.getJSONObject(i))?.let { history.add(it) }
-                }
-                // 2. Save history to Database instead of just updating adapter
+                val jsonString = (args[0] as JSONArray).toString()
+                val history = parseChatHistory(jsonString)
                 viewModel.saveChatMessages(history)
             }
 
             socket?.on("receive_message") { args ->
-                parseMessage(args[0] as JSONObject)?.let {
-                    // 3. Save new message to Database
+                val jsonString = (args[0] as JSONObject).toString()
+                parseChatMessage(jsonString)?.let {
                     viewModel.saveChatMessages(listOf(it))
                 }
             }
@@ -101,35 +99,46 @@ class ChatFragment : Fragment() {
         } catch (e: URISyntaxException) { e.printStackTrace() }
     }
 
-    private fun parseMessage(obj: JSONObject): ChatMessage? {
-        val senderId = obj.optString("senderId", "")
-        val message = obj.optString("message", "")
-        val timestamp = obj.optLong("timestamp", System.currentTimeMillis())
+    private fun parseChatMessage(jsonString: String): ChatMessage? {
+        return try {
+            val payload = chatJson.decodeFromString<ChatMessagePayload>(jsonString)
+            if (payload.senderId.isEmpty() || payload.message.isEmpty()) return null
+            val ts = if (payload.timestamp == 0L) System.currentTimeMillis() else payload.timestamp
+            val uniqueId = "${payload.senderId}-${ts}-${payload.message.hashCode()}"
+            ChatMessage(id = uniqueId, senderId = payload.senderId, message = payload.message, timestamp = ts)
+        } catch (_: Exception) {
+            null
+        }
+    }
 
-        if (senderId.isEmpty() || message.isEmpty()) return null
-
-        // Create a unique ID string. If the same message comes again, it will have the same ID.
-        val uniqueId = "${senderId}-${timestamp}-${message.hashCode()}"
-
-        return ChatMessage(
-            id = uniqueId,
-            senderId = senderId,
-            message = message,
-            timestamp = timestamp
-        )
+    private fun parseChatHistory(jsonString: String): List<ChatMessage> {
+        return try {
+            chatJson.decodeFromString<List<ChatMessagePayload>>(jsonString)
+                .mapNotNull { payload ->
+                    if (payload.senderId.isEmpty() || payload.message.isEmpty()) null
+                    else {
+                        val ts = if (payload.timestamp == 0L) System.currentTimeMillis() else payload.timestamp
+                        val uniqueId = "${payload.senderId}-${ts}-${payload.message.hashCode()}"
+                        ChatMessage(id = uniqueId, senderId = payload.senderId, message = payload.message, timestamp = ts)
+                    }
+                }
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private fun sendMessage() {
         val text = binding.chatInputEditText.text.toString().trim()
         if (text.isNotEmpty()) {
-            val messageObj = JSONObject().apply {
-                put("senderId", deviceId)
-                put("message", text)
-                put("timestamp", System.currentTimeMillis())
-            }
+            val payload = ChatMessagePayload(deviceId, text, System.currentTimeMillis())
+            val messageObj = JSONObject(chatJson.encodeToString(ChatMessagePayload.serializer(), payload))
             socket?.emit("send_message", messageObj)
             binding.chatInputEditText.text.clear()
         }
+    }
+
+    companion object {
+        private val chatJson = Json { ignoreUnknownKeys = true; coerceInputValues = true }
     }
 
     override fun onDestroyView() {

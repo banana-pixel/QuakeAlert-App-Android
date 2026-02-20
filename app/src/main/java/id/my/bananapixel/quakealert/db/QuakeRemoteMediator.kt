@@ -6,8 +6,8 @@ import id.my.bananapixel.quakealert.R
 import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
+import id.my.bananapixel.quakealert.api.QuakeAlertApi
 import id.my.bananapixel.quakealert.ui.QuakeReport
-import id.my.bananapixel.quakealert.util.HttpUtil
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -81,22 +81,10 @@ class QuakeRemoteMediator(
         }
     }
 
-    // --- API fetch ---
     private suspend fun fetchReportsFromApi(page: Int): List<QuakeReport> {
         val baseUrl = context.getString(R.string.app_base_url).trimEnd('/')
-        val url = "$baseUrl/laporan?page=$page"
-
-        // Now this call is legal because the parent function is also suspending
-        val client = HttpUtil.defaultClient(context, url)
-
-        val request = HttpUtil.requestBuilder(url).get().build()
-
-        // Note: It is safe to use execute() here because 'load()' wraps this
-        // whole process in Dispatchers.IO
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Unexpected response: ${response.code}")
-            val body = response.body?.string() ?: "[]"
-            return QuakeReportParser.parseReports(body)
-        }
+        val api = QuakeAlertApi.create(context, baseUrl)
+        val body = api.getLaporan(page = page)
+        return QuakeReportParser.parseReports(body.ifEmpty { "[]" })
     }
 }
