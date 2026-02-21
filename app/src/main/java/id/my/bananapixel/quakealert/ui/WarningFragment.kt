@@ -21,8 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.fragment.app.Fragment
 import com.google.android.material.card.MaterialCardView
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.domain.ServerHealthStatus
 import id.my.bananapixel.quakealert.util.EMERGENCY_TOPIC
@@ -37,6 +36,8 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import id.my.bananapixel.quakealert.db.Repository
 import okhttp3.*
 import java.io.IOException
@@ -62,7 +63,6 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     private lateinit var viewLogsButton: FloatingActionButton
 
     private val client = OkHttpClient()
-    private val gson = Gson()
     private val statusHandler = Handler(Looper.getMainLooper())
     private val statusRefreshRunnable = object : Runnable {
         override fun run() {
@@ -210,7 +210,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
      */
     private fun warmupThenStartPolling() {
         val ctx = context ?: return
-        val baseUrl = ctx.getString(R.string.app_base_url).trimEnd('/')
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
         val request = Request.Builder().url("$baseUrl/stations").build()
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -233,7 +233,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
 
     private fun fetchServerStatus() {
         val ctx = context ?: return
-        val baseUrl = ctx.getString(R.string.app_base_url).trimEnd('/')
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
         val startTime = System.currentTimeMillis()
         val request = Request.Builder().url("$baseUrl/stations").build()
 
@@ -261,8 +261,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                     val bodyString = response.body?.string()
                     if (bodyString != null && bodyString.trim().startsWith("[")) {
                         try {
-                            val type = object : TypeToken<List<Sensor>>() {}.type
-                            val stations: List<Sensor> = gson.fromJson(bodyString, type)
+                            val stations: List<Sensor> = Json.decodeFromString(ListSerializer(Sensor.serializer()), bodyString)
                             val onlineCount = stations.count { SensorStatus.fromApi(it.status) == SensorStatus.ONLINE }
                             val status = if (latency > 300) ServerHealthStatus.WARNING else ServerHealthStatus.HEALTHY
                             activity?.runOnUiThread {

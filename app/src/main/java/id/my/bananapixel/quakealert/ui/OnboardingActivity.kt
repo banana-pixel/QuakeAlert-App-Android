@@ -20,6 +20,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Notification
 import id.my.bananapixel.quakealert.db.Repository
@@ -374,7 +375,7 @@ class OnboardingActivity : AppCompatActivity() {
         repository.setInsistentMaxPriorityEnabled(insistent)
 
         try {
-            val baseUrl = getString(R.string.app_base_url)
+            val baseUrl = BuildConfig.APP_BASE_URL
 
             // Create a fake subscription for the notification display
             val subscription = Subscription(

@@ -14,6 +14,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textfield.TextInputLayout
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.app.Application
 import id.my.bananapixel.quakealert.msg.ApiService
@@ -83,7 +84,7 @@ class ShareActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         // Context-dependent things
-        appBaseUrl = getString(R.string.app_base_url)
+        appBaseUrl = BuildConfig.APP_BASE_URL
         defaultBaseUrl = repository.getDefaultBaseUrl()
 
         // UI elements

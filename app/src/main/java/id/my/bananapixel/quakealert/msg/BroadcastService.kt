@@ -2,6 +2,7 @@ package id.my.bananapixel.quakealert.msg
 
 import android.content.Context
 import android.content.Intent
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Action
 import id.my.bananapixel.quakealert.db.Notification
@@ -69,7 +70,7 @@ class BroadcastService(private val ctx: Context) {
 
         private fun send(ctx: Context, intent: Intent) {
             val api = ApiService(ctx)
-            val baseUrl = getStringExtra(intent, "base_url") ?: ctx.getString(R.string.app_base_url)
+            val baseUrl = getStringExtra(intent, "base_url") ?: BuildConfig.APP_BASE_URL
             val topic = getStringExtra(intent, "topic") ?: return
             val message = getStringExtra(intent, "message") ?: return
             val title = getStringExtra(intent, "title") ?: ""

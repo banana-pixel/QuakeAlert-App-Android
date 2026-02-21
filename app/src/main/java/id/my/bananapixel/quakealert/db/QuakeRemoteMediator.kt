@@ -2,6 +2,7 @@ package id.my.bananapixel.quakealert.db
 
 import android.content.Context
 import androidx.paging.ExperimentalPagingApi
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import androidx.paging.LoadType
 import androidx.paging.PagingState
@@ -82,7 +83,7 @@ class QuakeRemoteMediator(
     }
 
     private suspend fun fetchReportsFromApi(page: Int): List<QuakeReport> {
-        val baseUrl = context.getString(R.string.app_base_url).trimEnd('/')
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
         val api = QuakeAlertApi.create(context, baseUrl)
         val body = api.getLaporan(page = page)
         return QuakeReportParser.parseReports(body.ifEmpty { "[]" })

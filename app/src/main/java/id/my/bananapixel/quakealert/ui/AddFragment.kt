@@ -81,7 +81,7 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         // Dependencies (Fragments need a default constructor)
         repository = Repository.getInstance(requireActivity())
         api = ApiService(requireContext())
-        appBaseUrl = getString(R.string.app_base_url)
+        appBaseUrl = BuildConfig.APP_BASE_URL
         defaultBaseUrl = repository.getDefaultBaseUrl()
 
         // Build root view

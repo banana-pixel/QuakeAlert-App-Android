@@ -2,10 +2,7 @@ package id.my.bananapixel.quakealert.backup
 
 import android.content.Context
 import android.net.Uri
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.annotations.SerializedName
-import com.google.gson.stream.JsonReader
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.app.Application
 import id.my.bananapixel.quakealert.db.Repository
@@ -14,10 +11,21 @@ import id.my.bananapixel.quakealert.msg.NotificationService
 import id.my.bananapixel.quakealert.util.CertUtil
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.topicUrl
-import java.io.InputStreamReader
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+
+private val backupJson = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+}
+
+private val backupJsonPretty = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+    prettyPrint = true
+}
 
 class Backuper(val context: Context) {
-    private val gson = Gson()
     private val resolver = context.applicationContext.contentResolver
     private val repository = (context.applicationContext as Application).repository
     private val messenger = FirebaseMessenger()
@@ -25,7 +33,7 @@ class Backuper(val context: Context) {
 
     suspend fun backup(uri: Uri, withSettings: Boolean = true, withSubscriptions: Boolean = true, withUsers: Boolean = true) {
         Log.d(TAG, "Backing up settings to file $uri")
-        val json = gson.toJson(createBackupFile(withSettings, withSubscriptions, withUsers))
+        val json = backupJson.encodeToString(createBackupFile(withSettings, withSubscriptions, withUsers))
         val outputStream = resolver.openOutputStream(uri) ?: throw Exception("Cannot open output stream")
         outputStream.use { it.write(json.toByteArray()) }
         Log.d(TAG, "Backup done")
@@ -33,15 +41,15 @@ class Backuper(val context: Context) {
 
     suspend fun restore(uri: Uri) {
         Log.d(TAG, "Restoring settings from file $uri")
-        val reader = JsonReader(InputStreamReader(resolver.openInputStream(uri)))
-        val backupFile = gson.fromJson<BackupFile>(reader, BackupFile::class.java)
+        val backupFile = resolver.openInputStream(uri)?.use { stream ->
+            backupJson.decodeFromString<BackupFile>(stream.bufferedReader().readText())
+        } ?: throw Exception("Cannot open input stream")
         applyBackupFile(backupFile)
         Log.d(TAG, "Restoring done")
     }
 
     fun settingsAsString(): String {
-        val gson = GsonBuilder().setPrettyPrinting().create()
-        return gson.toJson(createSettings())
+        return backupJsonPretty.encodeToString(createSettings())
     }
 
     private suspend fun applyBackupFile(backupFile: BackupFile) {
@@ -99,7 +107,7 @@ class Backuper(val context: Context) {
         if (subscriptions == null) {
             return
         }
-        val appBaseUrl = context.getString(R.string.app_base_url)
+        val appBaseUrl = BuildConfig.APP_BASE_URL
         subscriptions.forEach { s ->
             try {
                 // Add to database
@@ -399,6 +407,7 @@ class Backuper(val context: Context) {
     }
 }
 
+@kotlinx.serialization.Serializable
 data class BackupFile(
     val magic: String,
     val version: Int,
@@ -410,6 +419,7 @@ data class BackupFile(
     val clientCertificates: List<ClientCertificateBackup>? = null
 )
 
+@kotlinx.serialization.Serializable
 data class Settings(
     val minPriority: Int?,
     val autoDownloadMaxSize: Long?,
@@ -424,6 +434,7 @@ data class Settings(
     val lastSharedTopics: List<String>?,
 )
 
+@kotlinx.serialization.Serializable
 data class Subscription(
     val id: Long,
     val baseUrl: String,
@@ -441,11 +452,12 @@ data class Subscription(
     val displayName: String?
 )
 
+@kotlinx.serialization.Serializable
 data class Notification(
     val id: String,
     val subscriptionId: Long,
     val timestamp: Long,
-    @SerializedName("sequence_id") val sequenceId: String?, // Sequence ID for updating notifications
+    @kotlinx.serialization.SerialName("sequence_id") val sequenceId: String? = null, // Sequence ID for updating notifications
     val title: String,
     val message: String,
     val contentType: String, // "" or "text/markdown" (empty assumes "text/plain")
@@ -459,6 +471,7 @@ data class Notification(
     val deleted: Boolean
 )
 
+@kotlinx.serialization.Serializable
 data class Action(
     val id: String, // Synthetic ID to identify result, and easily pass via Broadcast and WorkManager
     val action: String, // "view", "http", "broadcast", or "copy"
@@ -475,6 +488,7 @@ data class Action(
     val error: String? // used to indicate errors in popup
 )
 
+@kotlinx.serialization.Serializable
 data class Attachment(
     val name: String, // Filename
     val type: String?, // MIME type
@@ -485,22 +499,26 @@ data class Attachment(
     val progress: Int, // Progress during download, -1 if not downloaded
 )
 
+@kotlinx.serialization.Serializable
 data class Icon(
     val url: String?, // URL (nullable to handle corrupt backup files)
     val contentUri: String?, // After it's downloaded, the content:// location
 )
 
+@kotlinx.serialization.Serializable
 data class User(
     val baseUrl: String,
     val username: String,
     val password: String
 )
 
+@kotlinx.serialization.Serializable
 data class TrustedCertificateBackup(
     val baseUrl: String,
     val pem: String
 )
 
+@kotlinx.serialization.Serializable
 data class ClientCertificateBackup(
     val baseUrl: String,
     val p12Base64: String,

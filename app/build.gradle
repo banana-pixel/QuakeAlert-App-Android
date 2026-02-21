@@ -50,6 +50,10 @@ android {
             arg("room.schemaLocation", "$projectDir/schemas")
         }
 
+        /* Server base URL: override via gradle.properties or local.properties (quakealert.base.url) */
+        def baseUrl = project.findProperty('quakealert.base.url') ?: 'https://quakealert.bananapixel.my.id'
+        buildConfigField 'String', 'APP_BASE_URL', "\"${baseUrl}\""
+
         buildFeatures {
             buildConfig true
             viewBinding true
@@ -136,9 +140,8 @@ dependencies {
     implementation "androidx.work:work-runtime-ktx:2.11.1"
     implementation 'androidx.preference:preference-ktx:1.2.1'
 
-    // JSON: Kotlin Serialization for type-safe parsing (quake + chat)
+    // JSON: Kotlinx Serialization for type-safe parsing (ntfy, quake, chat, backup, sensors)
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3'
-    implementation 'com.google.code.gson:gson:2.13.2' // used elsewhere (ntfy, backup, sensors)
 
     // Room (SQLite)
     def room_version = "2.8.4"

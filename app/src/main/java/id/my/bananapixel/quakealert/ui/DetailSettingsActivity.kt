@@ -116,7 +116,7 @@ class DetailSettingsActivity : AppCompatActivity() {
             serviceManager = SubscriberServiceManager(requireActivity())
             notificationService = NotificationService(requireActivity())
             resolver = requireContext().applicationContext.contentResolver
-            appBaseUrl = requireContext().getString(R.string.app_base_url)
+            appBaseUrl = BuildConfig.APP_BASE_URL
 
             // Create result launcher for custom icon (must be created in onCreatePreferences() directly)
             iconSetLauncher = createIconPickLauncher()
@@ -154,7 +154,7 @@ class DetailSettingsActivity : AppCompatActivity() {
         }
 
         private fun loadInstantPref() {
-            val appBaseUrl = getString(R.string.app_base_url)
+            val appBaseUrl = BuildConfig.APP_BASE_URL
             val prefId = context?.getString(R.string.detail_settings_notifications_instant_key) ?: return
             val pref: SwitchPreferenceCompat? = findPreference(prefId)
             pref?.isVisible = BuildConfig.FIREBASE_AVAILABLE && subscription.baseUrl == appBaseUrl
@@ -413,7 +413,7 @@ class DetailSettingsActivity : AppCompatActivity() {
             }
             pref?.summaryProvider = Preference.SummaryProvider<EditTextPreference> { provider ->
                 if (TextUtils.isEmpty(provider.text)) {
-                    val appBaseUrl = context?.getString(R.string.app_base_url)
+                    val appBaseUrl = BuildConfig.APP_BASE_URL
                     getString(
                         R.string.detail_settings_appearance_display_name_default_summary,
                         displayName(appBaseUrl, subscription)

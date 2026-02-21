@@ -12,6 +12,7 @@ import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.map
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.msg.ApiService
 import id.my.bananapixel.quakealert.ui.QuakeReport
@@ -79,7 +80,7 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     private suspend fun executeFetchReports(context: Context): List<QuakeReport> {
-        val baseUrl = context.getString(R.string.app_base_url).trimEnd('/')
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
         val api = QuakeAlertApi.create(context, baseUrl)
         val body = api.getLaporan()
         return QuakeReportParser.parseReports(body)

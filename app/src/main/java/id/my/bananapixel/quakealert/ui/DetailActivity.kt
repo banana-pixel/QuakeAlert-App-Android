@@ -143,7 +143,7 @@ class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSet
 
         // Dependencies that depend on Context
         notifier = NotificationService(this)
-        appBaseUrl = getString(R.string.app_base_url)
+        appBaseUrl = BuildConfig.APP_BASE_URL
 
         val toolbarLayout = findViewById<View>(R.id.app_bar_drawer)
         val dynamicColors = repository.getDynamicColorsEnabled()

@@ -7,6 +7,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.android.material.color.DynamicColors
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
@@ -49,7 +50,7 @@ class Application : Application(), KoinComponent {
 
     private fun addEmergencySubscription() {
         ioScope.launch {
-            val appBaseUrl = getString(R.string.app_base_url)
+            val appBaseUrl = BuildConfig.APP_BASE_URL
             val emergencyTopic = EMERGENCY_TOPIC
             val existing = repository.getSubscription(appBaseUrl, emergencyTopic)
             if (existing == null) {

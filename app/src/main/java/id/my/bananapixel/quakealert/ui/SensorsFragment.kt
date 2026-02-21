@@ -12,17 +12,17 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.domain.ServerHealthStatus
 import id.my.bananapixel.quakealert.msg.Sensor
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 import okhttp3.*
 import java.io.IOException
 
 class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private val client = OkHttpClient()
-    private val gson = Gson()
     private val adapter = SensorsAdapter()
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
@@ -87,7 +87,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
      */
     private fun warmupThenStartPolling() {
         val ctx = context ?: return
-        val baseUrl = ctx.getString(R.string.app_base_url).trimEnd('/')
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
         val request = Request.Builder().url("$baseUrl/stations").build()
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -118,7 +118,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         }
 
         val ctx = context ?: return
-        val baseUrl = ctx.getString(R.string.app_base_url).trimEnd('/')
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
         val request = Request.Builder()
             .url("$baseUrl/stations")
             .build()
@@ -141,8 +141,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
                     if (bodyString != null && bodyString.trim().startsWith("[")) {
                         try {
-                            val type = object : TypeToken<List<Sensor>>() {}.type
-                            val stations: List<Sensor> = gson.fromJson(bodyString, type)
+                            val stations: List<Sensor> = Json.decodeFromString(ListSerializer(Sensor.serializer()), bodyString)
 
                             activity?.runOnUiThread {
                                 if (!isAdded) return@runOnUiThread

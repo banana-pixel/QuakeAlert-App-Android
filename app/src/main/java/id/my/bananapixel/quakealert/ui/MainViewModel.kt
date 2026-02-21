@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.*
 import id.my.bananapixel.quakealert.firebase.FirebaseMessenger
@@ -80,7 +81,7 @@ class SubscriptionsViewModel(private val repository: Repository) : ViewModel() {
             try { resolver.delete(subscription.icon.toUri(), null, null) } catch (_: Exception) { }
         }
 
-        val appBaseUrl = context.getString(R.string.app_base_url)
+        val appBaseUrl = BuildConfig.APP_BASE_URL
         if (subscription.baseUrl == appBaseUrl) {
             val messenger = FirebaseMessenger()
             messenger.unsubscribe(subscription.topic)

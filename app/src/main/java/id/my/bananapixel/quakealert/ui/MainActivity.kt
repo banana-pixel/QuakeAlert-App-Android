@@ -131,7 +131,7 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
         workManager = WorkManager.getInstance(this)
         dispatcher = NotificationDispatcher(this, repository)
-        appBaseUrl = getString(R.string.app_base_url)
+        appBaseUrl = BuildConfig.APP_BASE_URL
         connectionStatusDelegate = MainConnectionStatusDelegate(this, repository)
         bannersDelegate = MainBannersDelegate(this, repository, appBaseUrl)
 

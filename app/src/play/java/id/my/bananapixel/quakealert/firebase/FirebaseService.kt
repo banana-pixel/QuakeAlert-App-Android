@@ -9,6 +9,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.app.Application
 import id.my.bananapixel.quakealert.db.Attachment
@@ -75,7 +76,7 @@ class FirebaseService : FirebaseMessagingService() {
     }
 
     private fun handlePollRequest(remoteMessage: RemoteMessage) {
-        val baseUrl = getString(R.string.app_base_url) // Everything from Firebase comes from main service URL!
+        val baseUrl = BuildConfig.APP_BASE_URL // Everything from Firebase comes from main service URL!
         val topic = remoteMessage.data["topic"] ?: return
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
@@ -102,7 +103,7 @@ class FirebaseService : FirebaseMessagingService() {
         Log.d(TAG, "Received message_delete: from=${remoteMessage.from}, id=$id, topic=$topic, sequenceId=$sequenceId")
 
         CoroutineScope(job).launch {
-            val baseUrl = getString(R.string.app_base_url)
+            val baseUrl = BuildConfig.APP_BASE_URL
             val subscription = repository.getSubscription(baseUrl, topic) ?: return@launch
 
             // Mark all notifications with this sequenceId as deleted
@@ -126,7 +127,7 @@ class FirebaseService : FirebaseMessagingService() {
         Log.d(TAG, "Received message_clear: from=${remoteMessage.from}, id=$id, topic=$topic, sequenceId=$sequenceId")
 
         CoroutineScope(job).launch {
-            val baseUrl = getString(R.string.app_base_url)
+            val baseUrl = BuildConfig.APP_BASE_URL
             val subscription = repository.getSubscription(baseUrl, topic) ?: return@launch
 
             // Mark all notifications with this sequenceId as read
@@ -170,7 +171,7 @@ class FirebaseService : FirebaseMessagingService() {
         Log.d(TAG, "Received message: from=${remoteMessage.from}, fcmprio=${remoteMessage.priority}, fcmprio_orig=${remoteMessage.originalPriority}, data=${data}")
 
         CoroutineScope(job).launch {
-            val baseUrl = getString(R.string.app_base_url) // Everything from Firebase comes from main service URL!
+            val baseUrl = BuildConfig.APP_BASE_URL // Everything from Firebase comes from main service URL!
 
             // Check if notification was truncated and discard if it will (or likely already did) arrive via instant delivery
             val subscription = repository.getSubscription(baseUrl, topic) ?: return@launch

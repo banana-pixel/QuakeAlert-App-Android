@@ -39,7 +39,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.preference.*
 import androidx.preference.Preference.OnPreferenceClickListener
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.gson.Gson
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.backup.Backuper
@@ -48,6 +47,8 @@ import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.User
 import id.my.bananapixel.quakealert.service.SubscriberServiceManager
 import id.my.bananapixel.quakealert.util.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -519,7 +520,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
             messageBarEnabled?.isVisible = SHOW_HIDDEN_SETTINGS
 
             // Default Base URL
-            val appBaseUrl = getString(R.string.app_base_url)
+            val appBaseUrl = BuildConfig.APP_BASE_URL
             val defaultBaseUrlPrefId = context?.getString(R.string.settings_general_default_base_url_key) ?: return
             val defaultBaseUrl: Preference? = findPreference(defaultBaseUrlPrefId)
             defaultBaseUrl?.preferenceDataStore = object : PreferenceDataStore() { } // Dummy store to protect from accidentally overwriting
@@ -788,7 +789,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         }
 
         fun refreshDefaultServerSummary() {
-            val appBaseUrl = getString(R.string.app_base_url)
+            val appBaseUrl = BuildConfig.APP_BASE_URL
             val defaultBaseUrlPrefId = context?.getString(R.string.settings_general_default_base_url_key) ?: return
             val defaultBaseUrl: Preference? = findPreference(defaultBaseUrlPrefId)
             // Re-set the summary provider to trigger a refresh
@@ -833,7 +834,6 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                             .show()
                     }
                 }
-                val gson = Gson()
                 val request = HttpUtil.requestBuilder(EXPORT_LOGS_UPLOAD_URL)
                     .put(log.toRequestBody())
                     .build()
@@ -846,7 +846,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
                         val body = response.body.string().trim()
                         if (body.isEmpty()) throw Exception("Return body is empty")
                         Log.d(TAG, "Logs uploaded successfully: $body")
-                        val resp = gson.fromJson(body, NopasteResponse::class.java)
+                        val resp = Json.decodeFromString<NopasteResponse>(body)
                         requireActivity().runOnUiThread {
                             val clipboard = context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                             val clip = ClipData.newPlainText("logs URL", resp.url)
@@ -1053,6 +1053,7 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         }
 
         @Keep
+        @Serializable
         data class NopasteResponse(val url: String)
     }
 

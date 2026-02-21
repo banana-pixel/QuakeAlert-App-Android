@@ -19,15 +19,15 @@ import androidx.room.TypeConverters
 import androidx.room.Update
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import id.my.bananapixel.quakealert.msg.ApiService
 import id.my.bananapixel.quakealert.service.NotAuthorizedException
 import id.my.bananapixel.quakealert.service.WebSocketNotSupportedException
 import id.my.bananapixel.quakealert.service.hasCause
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import kotlinx.parcelize.Parcelize
-import java.lang.reflect.Type
 import java.net.ConnectException
 
 @Entity(indices = [Index(value = ["baseUrl", "topic"], unique = true), Index(value = ["upConnectorToken"], unique = true)])
@@ -228,6 +228,7 @@ data class Icon(
 
 @Parcelize
 @Entity
+@kotlinx.serialization.Serializable
 data class Action(
     @ColumnInfo(name = "id") val id: String, // Synthetic ID to identify result, and easily pass via Broadcast and WorkManager
     @ColumnInfo(name = "action") val action: String, // "view", "http", "broadcast", or "copy"
@@ -248,18 +249,27 @@ const val ACTION_PROGRESS_ONGOING = 1
 const val ACTION_PROGRESS_SUCCESS = 2
 const val ACTION_PROGRESS_FAILED = 3
 
+private val convertersJson = Json {
+    ignoreUnknownKeys = true
+    encodeDefaults = true
+}
+
 class Converters {
-    private val gson = Gson()
 
     @TypeConverter
     fun toActionList(value: String?): List<Action>? {
-        val listType: Type = object : TypeToken<List<Action>?>() {}.type
-        return gson.fromJson(value, listType)
+        if (value.isNullOrBlank() || value == "null") return null
+        return try {
+            convertersJson.decodeFromString(ListSerializer(Action.serializer()), value)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     @TypeConverter
     fun fromActionList(list: List<Action>?): String {
-        return gson.toJson(list)
+        if (list == null) return "null"
+        return convertersJson.encodeToString(ListSerializer(Action.serializer()), list)
     }
 }
 

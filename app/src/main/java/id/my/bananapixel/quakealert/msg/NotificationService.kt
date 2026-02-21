@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.app.AlertState
 import id.my.bananapixel.quakealert.db.*
@@ -30,7 +31,7 @@ class NotificationService(val context: Context) {
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private val repository = Repository.getInstance(context)
     private val markwon = MarkwonFactory.createForNotification(context)
-    private val appBaseUrl = context.getString(R.string.app_base_url)
+    private val appBaseUrl = BuildConfig.APP_BASE_URL
 
     fun display(subscription: Subscription, notification: Notification) {
         Log.d(TAG, "Displaying notification $notification")

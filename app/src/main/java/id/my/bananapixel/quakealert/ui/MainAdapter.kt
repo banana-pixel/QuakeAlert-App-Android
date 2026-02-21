@@ -81,7 +81,7 @@ class MainAdapter(
         private val notificationDisabledForeverImageView: View = itemView.findViewById(R.id.main_item_notification_disabled_forever_image)
         private val instantImageView: View = itemView.findViewById(R.id.main_item_instant_image)
         private val newItemsView: TextView = itemView.findViewById(R.id.main_item_new)
-        private val appBaseUrl = context.getString(R.string.app_base_url)
+        private val appBaseUrl = BuildConfig.APP_BASE_URL
 
         fun bind(subscription: Subscription) {
             this.subscription = subscription

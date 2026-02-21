@@ -5,7 +5,7 @@
 
     <!-- Main app constants -->
     <string name="app_name" translatable="false">QuakeAlert</string>
-    <string name="app_base_url" translatable="false">https://quakealert.bananapixel.my.id</string> <!-- If changed, you must also change google-services.json! -->
+    <string name="app_base_url" translatable="false">https://quakealert.bananapixel.my.id</string> <!-- Override at build: set quakealert.base.url in gradle.properties. Code uses BuildConfig.APP_BASE_URL. See docs/BUILDING.md. -->
 
     <!-- Main activity -->
     <string name="main_menu_report_bug_url" translatable="false">https://github.com/banana-pixel/QuakeAlert-App-Android/issues</string>

@@ -1,7 +1,5 @@
 package id.my.bananapixel.quakealert.msg
 
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import id.my.bananapixel.quakealert.db.Action
 import id.my.bananapixel.quakealert.db.Attachment
 import id.my.bananapixel.quakealert.db.Icon
@@ -10,10 +8,15 @@ import id.my.bananapixel.quakealert.util.deriveNotificationId
 import id.my.bananapixel.quakealert.util.joinTags
 import id.my.bananapixel.quakealert.util.toPriority
 import id.my.bananapixel.quakealert.util.Log
-import java.lang.reflect.Type
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
+
+private val notificationJson = Json {
+    ignoreUnknownKeys = true
+    coerceInputValues = true
+}
 
 class NotificationParser {
-    private val gson = Gson()
 
     fun parse(s: String, subscriptionId: Long = 0, baseUrl: String = ""): Notification? {
         val notificationWithTopic = parseWithTopic(s, subscriptionId = subscriptionId, baseUrl = baseUrl)
@@ -21,7 +24,7 @@ class NotificationParser {
     }
 
     fun parseWithTopic(s: String, subscriptionId: Long = 0, baseUrl: String = ""): NotificationWithTopic? {
-        val message = gson.fromJson(s, Message::class.java)
+        val message = notificationJson.decodeFromString(Message.serializer(), s)
         val validEvent = message.event == ApiService.EVENT_MESSAGE ||
                 message.event == ApiService.EVENT_MESSAGE_DELETE ||
                 message.event == ApiService.EVENT_MESSAGE_CLEAR
@@ -97,8 +100,12 @@ class NotificationParser {
      * not necessary, but for "good form".
      */
     fun parseActions(s: String?): List<Action>? {
-        val listType: Type = object : TypeToken<List<MessageAction>?>() {}.type
-        val messageActions: List<MessageAction>? = gson.fromJson(s, listType)
+        if (s.isNullOrBlank()) return null
+        val messageActions = try {
+            notificationJson.decodeFromString(ListSerializer(MessageAction.serializer()), s)
+        } catch (_: Exception) {
+            return null
+        }
         return messageActions?.map { a ->
             Action(
                 id = a.id,

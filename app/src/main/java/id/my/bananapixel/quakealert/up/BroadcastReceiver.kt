@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.RequiresApi
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.app.Application
 import id.my.bananapixel.quakealert.db.Repository
@@ -72,7 +73,7 @@ class BroadcastReceiver : android.content.BroadcastReceiver() {
                 }
 
                 // Add subscription
-                val baseUrl = repository.getDefaultBaseUrl() ?: context.getString(R.string.app_base_url)
+                val baseUrl = repository.getDefaultBaseUrl() ?: BuildConfig.APP_BASE_URL
                 val topic = UP_PREFIX + randomString(TOPIC_RANDOM_ID_LENGTH)
                 val endpoint = topicUrlUp(baseUrl, topic)
                 val subscription = Subscription(

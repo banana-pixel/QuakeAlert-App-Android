@@ -1,7 +1,7 @@
 package id.my.bananapixel.quakealert.msg
 
 import android.content.Context
-import com.google.gson.Gson
+import kotlinx.serialization.json.Json
 import id.my.bananapixel.quakealert.db.Notification
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
@@ -24,7 +24,6 @@ import java.net.URLEncoder
 
 class ApiService(private val context: Context) {
     private val repository = Repository.getInstance(context)
-    private val gson = Gson()
     private val parser = NotificationParser()
 
     suspend fun publish(
@@ -101,7 +100,7 @@ class ApiService(private val context: Context) {
                 // Try to parse error response from server
                 val errorBody = response.body.string()
                 val apiError = try {
-                    gson.fromJson(errorBody, ErrorResponse::class.java)
+                    Json.decodeFromString<ErrorResponse>(errorBody)
                 } catch (e: Exception) {
                     null
                 }
@@ -190,10 +189,11 @@ class ApiService(private val context: Context) {
     class EntityTooLargeException : Exception()
     class ApiException(val error: String, val code: Int) : Exception(error)
 
+    @kotlinx.serialization.Serializable
     private data class ErrorResponse(
-        val code: Int?,
-        val http: Int?,
-        val error: String?
+        val code: Int? = null,
+        val http: Int? = null,
+        val error: String? = null,
     )
 
     companion object {

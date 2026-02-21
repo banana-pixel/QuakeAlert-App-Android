@@ -1,6 +1,7 @@
 package id.my.bananapixel.quakealert.api
 
 import android.content.Context
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.util.HttpUtil
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +51,7 @@ interface QuakeAlertApi {
          * Convenience: create API using [context.getString] for base URL.
          */
         suspend fun create(context: Context): QuakeAlertApi {
-            val baseUrl = context.getString(R.string.app_base_url).trimEnd('/')
+            val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
             return create(context, baseUrl)
         }
     }

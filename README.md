@@ -51,6 +51,10 @@ See [docs/TEST_COVERAGE.md](docs/TEST_COVERAGE.md) for what’s covered and how 
 
 The app is designed to work with the QuakeAlert backend (e.g. `quakealert.bananapixel.my.id`). Base URL and endpoints are configured in the app.
 
+### Building for your own server
+
+Override `quakealert.base.url` in `gradle.properties` or `local.properties`, then build. See [docs/BUILDING.md](docs/BUILDING.md).
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
