@@ -55,20 +55,25 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     suspend fun fetchQuakes(context: Context): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val reports = executeFetchReports(context)
-            val quakeEntities = reports.map { report ->
-                QuakeData(
-                    id = report.id.toString(),
-                    magnitude = 0.0,
-                    place = report.lokasi.ifEmpty { "Unknown" },
-                    time = QuakeReportParser.parseQuakeTime(report.waktu_kejadian),
-                    description = report.deskripsi,
-                    latitude = report.latitude.orZeroIfNaN(),
-                    longitude = report.longitude.orZeroIfNaN(),
-                    pga = report.pga_maks.ifEmpty { "0" },
-                    durasi = report.durasi.toInt(),
-                    station_id = report.station_id.ifEmpty { "N/A" },
-                    intensity = report.intensitas_maks.ifEmpty { "I" }
-                )
+            val quakeEntities = reports.mapNotNull { report ->
+                try {
+                    QuakeData(
+                        id = report.id.toString(),
+                        magnitude = 0.0,
+                        place = report.lokasi.ifEmpty { "Unknown" },
+                        time = QuakeReportParser.parseQuakeTime(report.waktu_kejadian),
+                        description = report.deskripsi,
+                        latitude = report.latitude.orZeroIfNaN(),
+                        longitude = report.longitude.orZeroIfNaN(),
+                        pga = report.pga_maks.ifEmpty { "0" },
+                        durasi = runCatching { report.durasi.toInt().coerceIn(0, Int.MAX_VALUE) }.getOrDefault(0),
+                        station_id = report.station_id.ifEmpty { "N/A" },
+                        intensity = report.intensitas_maks.ifEmpty { "I" }
+                    )
+                } catch (e: Exception) {
+                    Log.w("NtfyRepository", "Skipping malformed quake report: ${e.message}")
+                    null
+                }
             }
             quakeDao.upsertAll(quakeEntities)
             Result.success(Unit)

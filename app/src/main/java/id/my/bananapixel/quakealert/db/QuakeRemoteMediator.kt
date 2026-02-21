@@ -41,20 +41,24 @@ class QuakeRemoteMediator(
                 val reports = fetchReportsFromApi(page)
 
                 // 3. Map to Entity (Fixes 'intensity' and 'time' errors)
-                val quakeEntities = reports.map { report ->
-                    QuakeData(
-                        id = report.id.toString(),
-                        magnitude = 0.0,
-                        place = report.lokasi ?: "Unknown",
-                        time = QuakeReportParser.parseQuakeTime(report.waktu_kejadian),
-                        description = report.deskripsi ?: "",
-                        latitude = report.latitude,
-                        longitude = report.longitude,
-                        pga = report.pga_maks ?: "0",
-                        durasi = report.durasi.toInt(),
-                        station_id = report.station_id ?: "N/A",
-                        intensity = report.intensitas_maks ?: "I" // Fixes missing parameter
-                    )
+                val quakeEntities = reports.mapNotNull { report ->
+                    try {
+                        QuakeData(
+                            id = report.id.toString(),
+                            magnitude = 0.0,
+                            place = report.lokasi.ifEmpty { "Unknown" },
+                            time = QuakeReportParser.parseQuakeTime(report.waktu_kejadian),
+                            description = report.deskripsi,
+                            latitude = report.latitude.let { if (it.isNaN()) 0.0 else it },
+                            longitude = report.longitude.let { if (it.isNaN()) 0.0 else it },
+                            pga = report.pga_maks.ifEmpty { "0" },
+                            durasi = runCatching { report.durasi.toInt().coerceIn(0, Int.MAX_VALUE) }.getOrDefault(0),
+                            station_id = report.station_id.ifEmpty { "N/A" },
+                            intensity = report.intensitas_maks.ifEmpty { "I" }
+                        )
+                    } catch (e: Exception) {
+                        null
+                    }
                 }
 
                 // 4. Save to Database
