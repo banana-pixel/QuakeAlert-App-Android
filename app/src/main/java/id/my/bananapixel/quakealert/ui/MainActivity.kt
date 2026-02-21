@@ -118,8 +118,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as NavHostFragment
         val navController = navHostFragment.navController
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
-        // Do NOT use setupWithNavController - it uses default NavOptions (no popUpTo) and adds to back stack.
-        // We handle navigation manually with setPopUpTo to prevent TransactionTooLargeException.
+        // Custom nav setup: MainNavigationDelegate uses setPopUpTo to prevent TransactionTooLargeException.
+        // See MainNavigationDelegate class KDoc for rationale.
         navigationDelegate = MainNavigationDelegate(this)
         navigationDelegate.setupBottomNavClearBackStack(navController, bottomNav)
         navigationDelegate.addDestinationChangedListener(navController, bottomNav) {

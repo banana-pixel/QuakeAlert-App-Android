@@ -14,8 +14,18 @@ import id.my.bananapixel.quakealert.R
 
 /**
  * Handles bottom navigation: tab switching, destination changes (nav bar background + insets),
- * and back press. Also applies bottom inset to the current fragment's RecyclerView.
- * Enforces a max back stack size to prevent TransactionTooLargeException.
+ * and bottom inset for the current fragment's RecyclerView.
+ *
+ * ## Why not [NavigationUI.setupWithNavController]?
+ *
+ * `setupWithNavController` uses default [NavOptions] and adds each tab to the back stack,
+ * which leads to [TransactionTooLargeException] when the back stack grows too large.
+ *
+ * This delegate uses custom [NavOptions] with [setPopUpTo] + [setLaunchSingleTop] to clear
+ * the back stack on tab switch, and [trimBackStackIfNeeded] caps the stack at [MAX_NAV_BACK_STACK].
+ *
+ * See: https://developer.android.com/guide/navigation/backstack
+ * and https://developer.android.com/guide/navigation/navigation-ui#bottom_navigation
  */
 class MainNavigationDelegate(
     private val activity: FragmentActivity
@@ -27,22 +37,29 @@ class MainNavigationDelegate(
     private val navHostFragment: NavHostFragment?
         get() = activity.supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment
 
+    /**
+     * Connects bottom nav to NavController with back-stack-clearing behavior.
+     * Uses [setPopUpTo] to avoid TransactionTooLargeException (see class KDoc).
+     */
     fun setupBottomNavClearBackStack(
         navController: NavController,
         bottomNav: BottomNavigationView
     ) {
         bottomNav.setOnItemSelectedListener { item ->
             if (item.itemId != navController.currentDestination?.id) {
-                val navOptions = NavOptions.Builder()
-                    .setPopUpTo(navController.graph.startDestinationId, true)
-                    .setLaunchSingleTop(true)
-                    .setRestoreState(false)
-                    .build()
-                navController.navigate(item.itemId, null, navOptions)
+                navController.navigate(item.itemId, null, buildTabSwitchNavOptions(navController))
             }
             true
         }
     }
+
+    /** NavOptions that clear back stack on tab switch; prevents TransactionTooLargeException. */
+    private fun buildTabSwitchNavOptions(navController: NavController): NavOptions =
+        NavOptions.Builder()
+            .setPopUpTo(navController.graph.startDestinationId, true)
+            .setLaunchSingleTop(true)
+            .setRestoreState(false)
+            .build()
 
     fun addDestinationChangedListener(
         navController: NavController,
