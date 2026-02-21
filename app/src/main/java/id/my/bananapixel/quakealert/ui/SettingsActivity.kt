@@ -34,6 +34,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.*
 import androidx.preference.Preference.OnPreferenceClickListener
@@ -141,13 +142,22 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
         caller: PreferenceFragmentCompat,
         pref: Preference
     ): Boolean {
+        // Cap back stack to avoid TransactionTooLargeException when saving state.
+        // Each preference screen adds a fragment; too many cause Binder parcel size to exceed ~1MB.
+        val fm = supportFragmentManager
+        if (fm.backStackEntryCount >= MAX_PREFERENCE_BACK_STACK) {
+            val keepCount = MAX_PREFERENCE_BACK_STACK - 1
+            val entryToPopTo = fm.getBackStackEntryAt(keepCount - 1)
+            fm.popBackStack(entryToPopTo.id, 0) // Pop entries above this one; keep [0..keepCount-1]
+        }
+
         // Instantiate the new Fragment
         val fragmentClass = pref.fragment ?: return false
-        val fragment = supportFragmentManager.fragmentFactory.instantiate(classLoader, fragmentClass)
+        val fragment = fm.fragmentFactory.instantiate(classLoader, fragmentClass)
         fragment.arguments = pref.extras
 
         // Replace the existing Fragment with the new Fragment
-        supportFragmentManager.beginTransaction()
+        fm.beginTransaction()
             .replace(R.id.settings_layout, fragment)
             .addToBackStack(null)
             .commit()
@@ -1289,6 +1299,8 @@ class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPrefere
     companion object {
         private const val TAG = "NtfySettingsActivity"
         private const val TITLE_TAG = "title"
+        /** Max preference sub-screens in back stack; limits TransactionTooLargeException risk. */
+        private const val MAX_PREFERENCE_BACK_STACK = 4
         /** Set to true to show: Default server, Manage users, Show message bar, Back up to file, Restore from file. */
         private const val SHOW_HIDDEN_SETTINGS = false
         private const val REQUEST_CODE_WRITE_EXTERNAL_STORAGE_PERMISSION_FOR_AUTO_DOWNLOAD = 2586

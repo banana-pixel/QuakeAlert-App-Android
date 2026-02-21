@@ -2,6 +2,12 @@ package id.my.bananapixel.quakealert.util
 
 const val ANDROID_APP_MIME_TYPE = "application/vnd.android.package-archive"
 
+/** Tag used to identify earthquake alerts; checked by hasEarthquakeTag(). */
+const val EARTHQUAKE_TAG = "earthquake"
+
+/** Emergency topic for broadcast-based quake alerts. */
+const val EMERGENCY_TOPIC = "peringatan_gempa_darurat_xyz"
+
 const val PRIORITY_MIN = 1
 const val PRIORITY_LOW = 2
 const val PRIORITY_DEFAULT = 3

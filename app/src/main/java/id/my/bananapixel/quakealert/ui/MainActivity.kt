@@ -51,6 +51,7 @@ import id.my.bananapixel.quakealert.ui.delegates.MainBannersDelegate
 import id.my.bananapixel.quakealert.ui.delegates.MainConnectionStatusDelegate
 import id.my.bananapixel.quakealert.ui.delegates.MainKeyboardDelegate
 import id.my.bananapixel.quakealert.ui.delegates.MainNavigationDelegate
+import id.my.bananapixel.quakealert.domain.IntentActions
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.displayName
 import id.my.bananapixel.quakealert.util.formatDateShort
@@ -71,7 +72,6 @@ import androidx.core.view.get
 import androidx.core.net.toUri
 import androidx.navigation.NavOptions
 import androidx.navigation.fragment.NavHostFragment
-import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.activity.OnBackPressedCallback
 import androidx.navigation.ui.AppBarConfiguration
@@ -118,8 +118,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as NavHostFragment
         val navController = navHostFragment.navController
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
-        bottomNav.setupWithNavController(navController)
-
+        // Do NOT use setupWithNavController - it uses default NavOptions (no popUpTo) and adds to back stack.
+        // We handle navigation manually with setPopUpTo to prevent TransactionTooLargeException.
         navigationDelegate = MainNavigationDelegate(this)
         navigationDelegate.setupBottomNavClearBackStack(navController, bottomNav)
         navigationDelegate.addDestinationChangedListener(navController, bottomNav) {
@@ -329,8 +329,8 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
     private fun handleIntent(intent: Intent?) {
         when {
-            intent?.action == "OPEN_WARNING_PAGE" -> {
-                Log.d(TAG, "Intercepted OPEN_WARNING_PAGE action")
+            intent?.action == IntentActions.OPEN_WARNING_PAGE -> {
+                Log.d(TAG, "Intercepted ${IntentActions.OPEN_WARNING_PAGE} action")
 
                 val message = intent.getStringExtra("message") ?: ""
                 val distance = intent.getStringExtra("distance") ?: ""
@@ -567,7 +567,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     private fun onNotificationSettingsClick(enable: Boolean) {
         if (!enable) {
             Log.d(TAG, "Showing global notification settings dialog")
-            (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(R.id.nav_dialog_notification)
+            (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(
+                R.id.nav_dialog_notification, null,
+                NavOptions.Builder().setLaunchSingleTop(true).build()
+            )
         } else {
             Log.d(TAG, "Re-enabling global notifications")
             onNotificationMutedUntilChanged(Repository.MUTED_UNTIL_SHOW_ALL)
@@ -576,7 +579,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
 
     private fun onConnectionErrorClick() {
         Log.d(TAG, "Showing connection error dialog")
-        (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(R.id.nav_dialog_connection_error)
+        (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(
+            R.id.nav_dialog_connection_error, null,
+            NavOptions.Builder().setLaunchSingleTop(true).build()
+        )
     }
 
     override fun onNotificationMutedUntilChanged(mutedUntilTimestamp: Long) {
@@ -596,7 +602,10 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
     }
 
     private fun onSubscribeButtonClick() {
-        (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(R.id.nav_dialog_add)
+        (supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment)?.navController?.navigate(
+            R.id.nav_dialog_add, null,
+            NavOptions.Builder().setLaunchSingleTop(true).build()
+        )
     }
 
     override fun onSubscribe(topic: String, baseUrl: String, instant: Boolean) {

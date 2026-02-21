@@ -1,5 +1,7 @@
 package id.my.bananapixel.quakealert.ui.delegates
 
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.FragmentActivity
@@ -13,12 +15,14 @@ import id.my.bananapixel.quakealert.R
 /**
  * Handles bottom navigation: tab switching, destination changes (nav bar background + insets),
  * and back press. Also applies bottom inset to the current fragment's RecyclerView.
+ * Enforces a max back stack size to prevent TransactionTooLargeException.
  */
 class MainNavigationDelegate(
     private val activity: FragmentActivity
 ) {
     private var navController: NavController? = null
     private var destinationChangedListener: NavController.OnDestinationChangedListener? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val navHostFragment: NavHostFragment?
         get() = activity.supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment
@@ -46,14 +50,20 @@ class MainNavigationDelegate(
         onApplyBottomInset: () -> Unit
     ) {
         this.navController = navController
-        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+        val listener = NavController.OnDestinationChangedListener { controller, destination, _ ->
             if (activity.isDestroyed) return@OnDestinationChangedListener
+            // Sync bottom nav selection (replacement for setupWithNavController)
+            if (destination.id in TOP_LEVEL_DESTINATIONS) {
+                bottomNav.selectedItemId = destination.id
+            }
             if (destination.id == R.id.nav_warning) {
                 bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile_warning)
             } else {
                 bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile)
             }
             bottomNav.post { onApplyBottomInset() }
+            // Cap back stack to avoid TransactionTooLargeException when saving state
+            trimBackStackIfNeeded(controller)
         }
         this.destinationChangedListener = listener
         navController.addOnDestinationChangedListener(listener)
@@ -97,6 +107,40 @@ class MainNavigationDelegate(
         get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
     private val View.marginBottom: Int
         get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
+
+    /**
+     * Trims the NavController back stack when it exceeds the limit to prevent
+     * TransactionTooLargeException. Debounced so rapid tab switching doesn't cause
+     * fragment transactions during navigation. Safe-guarded to avoid crashes.
+     */
+    private fun trimBackStackIfNeeded(controller: NavController) {
+        if (activity.isDestroyed || activity.isFinishing) return
+        val fragmentCount = navHostFragment?.childFragmentManager?.fragments?.size ?: 0
+        if (fragmentCount <= MAX_NAV_BACK_STACK) return
+        val toPop = fragmentCount - MAX_NAV_BACK_STACK
+        mainHandler.postDelayed({
+            try {
+                if (activity.isDestroyed || activity.isFinishing) return@postDelayed
+                var remaining = toPop
+                while (remaining > 0) {
+                    if (!controller.popBackStack()) break
+                    remaining--
+                }
+            } catch (_: Exception) { /* ignore - avoid crash during navigation */ }
+        }, 300) // Debounce: wait for rapid navigation to settle
+    }
+
+    private companion object {
+        /** Max entries in nav back stack; prevents TransactionTooLargeException. */
+        const val MAX_NAV_BACK_STACK = 6
+        val TOP_LEVEL_DESTINATIONS = setOf(
+            R.id.nav_history,
+            R.id.nav_sensors,
+            R.id.nav_warning,
+            R.id.nav_chat,
+            R.id.nav_settings
+        )
+    }
 
     /**
      * Clears listeners when Activity is destroyed to prevent memory leaks.

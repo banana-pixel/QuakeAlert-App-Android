@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import id.my.bananapixel.quakealert.R
+import id.my.bananapixel.quakealert.domain.SensorStatus
 import id.my.bananapixel.quakealert.msg.Sensor
 
 class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(DiffCallback) {
@@ -56,7 +57,7 @@ class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(Diff
 
             // --- 3. Status Badge Logic (Drawable Swapping) ---
             // An item is online ONLY if server says so AND it pinged in the last 5 mins (300k ms)
-            val isOnline = sensor.status?.equals("online", ignoreCase = true) == true &&
+            val isOnline = SensorStatus.fromApi(sensor.status) == SensorStatus.ONLINE &&
                     (now - lastPingMs) < 300_000
 
             // Update Text

@@ -10,6 +10,7 @@ import com.google.android.material.color.DynamicColors
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
+import id.my.bananapixel.quakealert.util.EMERGENCY_TOPIC
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.randomSubscriptionId
 import id.my.bananapixel.quakealert.work.LocationWorker
@@ -49,7 +50,7 @@ class Application : Application(), KoinComponent {
     private fun addEmergencySubscription() {
         ioScope.launch {
             val appBaseUrl = getString(R.string.app_base_url)
-            val emergencyTopic = "peringatan_gempa_darurat_xyz"
+            val emergencyTopic = EMERGENCY_TOPIC
             val existing = repository.getSubscription(appBaseUrl, emergencyTopic)
             if (existing == null) {
                 val subscription = Subscription(

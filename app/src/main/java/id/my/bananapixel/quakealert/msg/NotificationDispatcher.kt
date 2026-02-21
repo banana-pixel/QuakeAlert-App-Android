@@ -7,6 +7,7 @@ import id.my.bananapixel.quakealert.db.Notification
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.up.Distributor
+import id.my.bananapixel.quakealert.util.EMERGENCY_TOPIC
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.decodeBytesMessage
 import id.my.bananapixel.quakealert.util.safeLet
@@ -28,7 +29,7 @@ class NotificationDispatcher(val context: Context, val repository: Repository) {
         Log.d(TAG, "Dispatching $notification for subscription $subscription")
 
         // Special handling for the emergency topic
-        if (subscription.topic == "peringatan_gempa_darurat_xyz") {
+        if (subscription.topic == EMERGENCY_TOPIC) {
             val intent = Intent(ACTION_QUAKE_ALERT)
             intent.putExtra("notification", notification)
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent)

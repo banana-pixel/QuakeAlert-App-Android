@@ -165,9 +165,9 @@ fun splitTags(tags: String?): List<String> {
     }
 }
 
-/** True if the tag string contains the "earthquake" tag (case-insensitive). Used for red warning screen. */
+/** True if the tag string contains the earthquake tag (case-insensitive). Used for red warning screen. */
 fun hasEarthquakeTag(tags: String?): Boolean {
-    return splitTags(tags).any { it.trim().equals("earthquake", ignoreCase = true) }
+    return splitTags(tags).any { it.trim().equals(EARTHQUAKE_TAG, ignoreCase = true) }
 }
 
 /**

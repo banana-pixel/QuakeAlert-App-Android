@@ -3,6 +3,7 @@ package id.my.bananapixel.quakealert.app
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import id.my.bananapixel.quakealert.db.Notification
+import id.my.bananapixel.quakealert.util.EARTHQUAKE_TAG
 
 object AlertState {
     private val _isAlertActive = MutableLiveData<Boolean>(false)
@@ -36,7 +37,7 @@ object AlertState {
             message = message,
             title = "Earthquake Alert",
             priority = 5,
-            tags = "warning,quake",
+            tags = "$EARTHQUAKE_TAG,warning",
             click = "",
             actions = null,
             deleted = false,

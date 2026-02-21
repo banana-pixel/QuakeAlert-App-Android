@@ -15,6 +15,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import id.my.bananapixel.quakealert.R
+import id.my.bananapixel.quakealert.domain.ServerHealthStatus
 import id.my.bananapixel.quakealert.msg.Sensor
 import okhttp3.*
 import java.io.IOException
@@ -63,7 +64,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
         // Start in CONNECTING state so we never show default "Server Healthy" + blue
         // before the first fetch completes (avoids wrong state when offline on first open).
-        updateHealthStatus("CONNECTING", 0)
+        updateHealthStatus(ServerHealthStatus.CONNECTING, 0)
 
         swipeRefreshLayout.setOnRefreshListener {
             fetchData()
@@ -111,7 +112,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                 errorContainer.visibility = View.GONE
                 // Show CONNECTING only on first load or user pull-to-refresh; avoid blinking to blue every 3s poll.
                 if (!hasReceivedFirstResult || swipeRefreshLayout.isRefreshing) {
-                    updateHealthStatus("CONNECTING", 0)
+                    updateHealthStatus(ServerHealthStatus.CONNECTING, 0)
                 }
             }
         }
@@ -147,7 +148,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                                 if (!isAdded) return@runOnUiThread
 
                                 hasReceivedFirstResult = true
-                                val status = if (latency > 300) "WARNING" else "HEALTHY"
+                                val status = if (latency > 300) ServerHealthStatus.WARNING else ServerHealthStatus.HEALTHY
                                 updateHealthStatus(status, latency.toInt())
                                 adapter.submitList(stations) {
                                     adapter.notifyDataSetChanged()
@@ -172,7 +173,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         activity?.runOnUiThread {
             if (isAdded) {
                 hasReceivedFirstResult = true
-                updateHealthStatus("CRITICAL", latency.toInt())
+                updateHealthStatus(ServerHealthStatus.CRITICAL, latency.toInt())
                 errorContainer.visibility = View.VISIBLE
                 emptyContainer.visibility = View.GONE
                 swipeRefreshLayout.isRefreshing = false
@@ -183,15 +184,16 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     /**
      * THE NEW 3D UI LOGIC
      * Updates the background resource and text colors based on the state.
+     * Strings and colors are applied only at this UI boundary.
      */
-    private fun updateHealthStatus(status: String, latency: Int) {
+    private fun updateHealthStatus(status: ServerHealthStatus, latency: Int) {
         // Latency: only show when we have a valid ping; hide when offline/connecting
-        val showLatency = (status == "HEALTHY" || status == "WARNING")
+        val showLatency = status.isConnectionHealthy
         appLatency.visibility = if (showLatency) View.VISIBLE else View.GONE
         if (showLatency) appLatency.text = "$latency ms"
 
         when (status) {
-            "HEALTHY" -> {
+            ServerHealthStatus.HEALTHY -> {
                 // GREEN STYLE
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_green2)
                 healthStatus.text = "Server Healthy"
@@ -199,7 +201,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                 healthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 appLatency.setTextColor(Color.parseColor("#E8F5E9")) // Very Light Green
             }
-            "CONNECTING" -> {
+            ServerHealthStatus.CONNECTING -> {
                 // BLUE STYLE (Connecting)
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_blue)
                 healthStatus.text = "Connecting..."
@@ -207,7 +209,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                 healthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 appLatency.setTextColor(Color.parseColor("#E1F5FE")) // Very Light Blue
             }
-            "WARNING" -> {
+            ServerHealthStatus.WARNING -> {
                 // ORANGE STYLE (High Latency)
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_orange)
                 healthStatus.text = "Unstable Connection"
@@ -215,7 +217,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
                 healthDot.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FFF3E0"))
                 appLatency.setTextColor(Color.parseColor("#FFF3E0"))
             }
-            "CRITICAL" -> {
+            ServerHealthStatus.CRITICAL -> {
                 // RED STYLE (Offline / Error)
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_red)
                 healthStatus.text = "Server Offline"

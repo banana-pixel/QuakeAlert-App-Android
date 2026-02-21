@@ -26,6 +26,7 @@ import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.msg.NotificationService
 import id.my.bananapixel.quakealert.util.Log
+import id.my.bananapixel.quakealert.util.EMERGENCY_TOPIC
 import id.my.bananapixel.quakealert.util.PRIORITY_MAX
 import id.my.bananapixel.quakealert.util.isIgnoringBatteryOptimizations
 import id.my.bananapixel.quakealert.work.LocationWorker
@@ -134,7 +135,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         val adapter = OnboardingAdapter(pages)
         viewPager.adapter = adapter
-        viewPager.offscreenPageLimit = 2
+        viewPager.offscreenPageLimit = 1
 
         // Disable swiping over-scroll effect for cleaner look
         viewPager.getChildAt(0)?.overScrollMode = View.OVER_SCROLL_NEVER
@@ -601,6 +602,5 @@ class OnboardingActivity : AppCompatActivity() {
         private const val VIEW_TYPE_INTRO = 0
         private const val VIEW_TYPE_PERMISSION = 1
         private const val VIEW_TYPE_TEST = 2
-        private const val EMERGENCY_TOPIC = "peringatan_gempa_darurat_xyz"
     }
 }

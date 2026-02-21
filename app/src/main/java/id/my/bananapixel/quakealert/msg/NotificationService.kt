@@ -19,6 +19,7 @@ import id.my.bananapixel.quakealert.db.Notification
 import id.my.bananapixel.quakealert.ui.Colors
 import id.my.bananapixel.quakealert.ui.DetailActivity
 import id.my.bananapixel.quakealert.ui.MainActivity
+import id.my.bananapixel.quakealert.domain.IntentActions
 import id.my.bananapixel.quakealert.util.*
 import java.util.*
 import androidx.core.net.toUri
@@ -601,7 +602,7 @@ class NotificationService(val context: Context) {
 
     private fun warningActivityIntent(subscription: Subscription, notification: Notification, distance: String?): PendingIntent? {
         val intent = Intent(context, MainActivity::class.java).apply {
-            action = "OPEN_WARNING_PAGE"
+            action = IntentActions.OPEN_WARNING_PAGE
             putExtra("message", notification.message)
             putExtra("distance", distance)
             putExtra(MainActivity.EXTRA_SUBSCRIPTION_ID, subscription.id)

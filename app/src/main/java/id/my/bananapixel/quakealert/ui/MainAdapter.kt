@@ -16,6 +16,7 @@ import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.ConnectionState
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
+import id.my.bananapixel.quakealert.util.EMERGENCY_TOPIC
 import id.my.bananapixel.quakealert.util.displayName
 import id.my.bananapixel.quakealert.util.readBitmapFromUriOrNull
 import java.text.DateFormat
@@ -136,7 +137,7 @@ class MainAdapter(
             itemView.setOnClickListener { onClick(subscription) }
             
             // Disable long click for the mandatory emergency topic
-            if (subscription.topic == "peringatan_gempa_darurat_xyz") {
+            if (subscription.topic == EMERGENCY_TOPIC) {
                 itemView.setOnLongClickListener(null)
             } else {
                 itemView.setOnLongClickListener { onLongClick(subscription); true }

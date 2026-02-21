@@ -24,6 +24,9 @@ import com.google.android.material.card.MaterialCardView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import id.my.bananapixel.quakealert.R
+import id.my.bananapixel.quakealert.domain.ServerHealthStatus
+import id.my.bananapixel.quakealert.util.EMERGENCY_TOPIC
+import id.my.bananapixel.quakealert.domain.SensorStatus
 import id.my.bananapixel.quakealert.app.AlertState
 import id.my.bananapixel.quakealert.msg.NotificationService
 import id.my.bananapixel.quakealert.msg.Sensor
@@ -195,7 +198,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             stopBackgroundWarningAnimation()
             radarIcon.startAnimation(pulseAnimation)
             safeActionsCard.visibility = View.GONE
-            updateWarningStatus("CONNECTING", 0, 0)
+            updateWarningStatus(ServerHealthStatus.CONNECTING, 0, 0)
             statusHandler.removeCallbacks(statusRefreshRunnable)
             warmupThenStartPolling()
         }
@@ -239,7 +242,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                 activity?.runOnUiThread {
                     if (isAdded && scanningLayout.visibility == View.VISIBLE) {
                         val latency = (System.currentTimeMillis() - startTime).toInt()
-                        updateWarningStatus("CRITICAL", latency, 0)
+                        updateWarningStatus(ServerHealthStatus.CRITICAL, latency, 0)
                     }
                 }
             }
@@ -250,7 +253,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                     if (!response.isSuccessful) {
                         activity?.runOnUiThread {
                             if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                                updateWarningStatus("CRITICAL", latency, 0)
+                                updateWarningStatus(ServerHealthStatus.CRITICAL, latency, 0)
                             }
                         }
                         return
@@ -260,8 +263,8 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                         try {
                             val type = object : TypeToken<List<Sensor>>() {}.type
                             val stations: List<Sensor> = gson.fromJson(bodyString, type)
-                            val onlineCount = stations.count { it.status == "online" }
-                            val status = if (latency > 300) "WARNING" else "HEALTHY"
+                            val onlineCount = stations.count { SensorStatus.fromApi(it.status) == SensorStatus.ONLINE }
+                            val status = if (latency > 300) ServerHealthStatus.WARNING else ServerHealthStatus.HEALTHY
                             activity?.runOnUiThread {
                                 if (isAdded && scanningLayout.visibility == View.VISIBLE) {
                                     updateWarningStatus(status, latency, onlineCount)
@@ -270,14 +273,14 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                         } catch (e: Exception) {
                             activity?.runOnUiThread {
                                 if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                                    updateWarningStatus("CRITICAL", latency, 0)
+                                    updateWarningStatus(ServerHealthStatus.CRITICAL, latency, 0)
                                 }
                             }
                         }
                     } else {
                         activity?.runOnUiThread {
                             if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                                updateWarningStatus("CRITICAL", latency, 0)
+                                updateWarningStatus(ServerHealthStatus.CRITICAL, latency, 0)
                             }
                         }
                     }
@@ -289,15 +292,16 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     /**
      * Updates the 3D status pill, title, subtitle, radar tint and container to match server/sensor state.
      * Status: HEALTHY, CONNECTING, WARNING, CRITICAL. Same semantics as SensorsFragment.
+     * Strings and colors are applied only at this UI boundary.
      */
-    private fun updateWarningStatus(status: String, latency: Int, onlineCount: Int) {
+    private fun updateWarningStatus(status: ServerHealthStatus, latency: Int, onlineCount: Int) {
         if (!::statusPill.isInitialized) return
         statusPill.setBackgroundResource(
             when (status) {
-                "HEALTHY" -> R.drawable.bg_pill_3d_green2
-                "CONNECTING" -> R.drawable.bg_pill_3d_blue
-                "WARNING" -> R.drawable.bg_pill_3d_orange
-                else -> R.drawable.bg_pill_3d_red
+                ServerHealthStatus.HEALTHY -> R.drawable.bg_pill_3d_green2
+                ServerHealthStatus.CONNECTING -> R.drawable.bg_pill_3d_blue
+                ServerHealthStatus.WARNING -> R.drawable.bg_pill_3d_orange
+                ServerHealthStatus.CRITICAL -> R.drawable.bg_pill_3d_red
             }
         )
         statusDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
@@ -311,7 +315,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         val circleBg: Int
 
         when (status) {
-            "HEALTHY" -> {
+            ServerHealthStatus.HEALTHY -> {
                 pillText = if (onlineCount == 0) {
                     getString(R.string.warning_status_no_sensors)
                 } else {
@@ -323,7 +327,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                 radarTint = if (onlineCount == 0) "#FF9800" else "#4CAF50"
                 circleBg = if (onlineCount == 0) R.drawable.bg_circle_3d_orange else R.drawable.bg_circle_3d_green
             }
-            "CONNECTING" -> {
+            ServerHealthStatus.CONNECTING -> {
                 pillText = getString(R.string.warning_status_pill_connecting)
                 titleRes = R.string.warning_status_connecting
                 subtitleRes = R.string.warning_subtitle_connecting
@@ -331,7 +335,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                 radarTint = "#2196F3"
                 circleBg = R.drawable.bg_circle_3d_green
             }
-            "WARNING" -> {
+            ServerHealthStatus.WARNING -> {
                 pillText = getString(R.string.warning_status_unstable)
                 titleRes = R.string.warning_status_unstable
                 subtitleRes = R.string.warning_subtitle_unstable
@@ -339,7 +343,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                 radarTint = "#FF9800"
                 circleBg = R.drawable.bg_circle_3d_orange
             }
-            else -> {
+            ServerHealthStatus.CRITICAL -> {
                 pillText = getString(R.string.warning_status_server_offline)
                 titleRes = R.string.warning_status_server_offline
                 subtitleRes = R.string.warning_subtitle_server_offline
@@ -383,7 +387,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         }
 
         viewLogsButton.setOnClickListener {
-            val topic = "peringatan_gempa_darurat_xyz"
+            val topic = EMERGENCY_TOPIC
             val baseUrl = "quakealert.bananapixel.my.id"
 
             viewLogsButton.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction {
