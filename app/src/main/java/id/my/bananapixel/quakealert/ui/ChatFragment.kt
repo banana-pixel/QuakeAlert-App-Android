@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.app.Application
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -80,7 +81,7 @@ class ChatFragment : Fragment() {
     private fun initSocket() {
         try {
             val opts = IO.Options().apply { transports = arrayOf(WebSocket.NAME) }
-            socket = IO.socket("https://quakealert.bananapixel.my.id", opts)
+            socket = IO.socket(BuildConfig.APP_BASE_URL, opts)
 
             socket?.on("chat_history") { args ->
                 val jsonString = (args[0] as JSONArray).toString()

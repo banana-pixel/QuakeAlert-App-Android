@@ -387,17 +387,18 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
 
         viewLogsButton.setOnClickListener {
             val topic = EMERGENCY_TOPIC
-            val baseUrl = "quakealert.bananapixel.my.id"
+            val baseUrl = BuildConfig.APP_BASE_URL
+            val host = android.net.Uri.parse(baseUrl).host ?: baseUrl
 
             viewLogsButton.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction {
                 viewLogsButton.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
                 viewLifecycleOwner.lifecycleScope.launch {
                     val repository = (requireActivity().application as App).repository
                     val subscription = withContext(Dispatchers.IO) {
-                        repository.getSubscription("https://$baseUrl", topic)
+                        repository.getSubscription(baseUrl, topic)
                     }
 
-                    val uriString = "ntfy://$baseUrl/$topic"
+                    val uriString = "ntfy://$host/$topic"
                     val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uriString)).apply {
                         `package` = requireContext().packageName
                         if (subscription != null) {
