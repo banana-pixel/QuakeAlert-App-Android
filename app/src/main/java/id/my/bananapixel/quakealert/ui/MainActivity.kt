@@ -12,7 +12,6 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.ActivityCompat
@@ -77,12 +76,13 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.activity.OnBackPressedCallback
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
+import androidx.activity.viewModels
+import org.koin.android.ext.android.inject
+import org.koin.core.component.KoinComponent
 
-class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener {
-    private val viewModel by viewModels<SubscriptionsViewModel> {
-        SubscriptionsViewModelFactory((application as Application).repository)
-    }
-    private val repository by lazy { (application as Application).repository }
+class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener, KoinComponent {
+    private val viewModel: SubscriptionsViewModel by viewModels { SubscriptionsViewModelFactory(repository) }
+    private val repository: Repository by inject()
     private val api by lazy { ApiService(this) }
     private val poller by lazy { Poller(api, repository) }
     private val messenger = FirebaseMessenger()
@@ -360,6 +360,14 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
         }
+    }
+
+    override fun onDestroy() {
+        if (::connectionStatusDelegate.isInitialized) connectionStatusDelegate.clear()
+        if (::actionModeDelegate.isInitialized) actionModeDelegate.cleanup()
+        if (::keyboardDelegate.isInitialized) keyboardDelegate.cleanup()
+        if (::navigationDelegate.isInitialized) navigationDelegate.cleanup()
+        super.onDestroy()
     }
 
     override fun onResume() {

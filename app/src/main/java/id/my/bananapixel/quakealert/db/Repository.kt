@@ -737,7 +737,15 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         private const val TAG = "NtfyRepository"
         private var instance: Repository? = null
 
+        /**
+         * Set by Hilt module so [getInstance] returns the injected singleton.
+         * Enables backward compatibility during DI migration.
+         */
+        @Volatile
+        var hiltInstance: Repository? = null
+
         fun getInstance(context: Context): Repository {
+            hiltInstance?.let { return it }
             val database = Database.getInstance(context.applicationContext)
             val sharedPrefs = context.getSharedPreferences(SHARED_PREFS_ID, Context.MODE_PRIVATE)
             return getInstance(sharedPrefs, database)

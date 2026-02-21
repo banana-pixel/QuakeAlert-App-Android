@@ -7,9 +7,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import id.my.bananapixel.quakealert.app.Application
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import id.my.bananapixel.quakealert.app.Application
 import id.my.bananapixel.quakealert.databinding.FragmentChatBinding
 import id.my.bananapixel.quakealert.db.ChatMessage
 import id.my.bananapixel.quakealert.msg.ChatMessagePayload
@@ -28,9 +28,7 @@ class ChatFragment : Fragment() {
     private val binding get() = _binding!!
 
     // Link to ViewModel for Database access
-    private val viewModel by viewModels<SubscriptionsViewModel> {
-        SubscriptionsViewModelFactory((requireActivity().application as Application).repository)
-    }
+    private val viewModel: SubscriptionsViewModel by viewModels { SubscriptionsViewModelFactory((requireActivity().application as Application).repository) }
 
     private lateinit var chatAdapter: ChatAdapter
     private var socket: Socket? = null

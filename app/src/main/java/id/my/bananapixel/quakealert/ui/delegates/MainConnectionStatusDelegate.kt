@@ -25,6 +25,14 @@ class MainConnectionStatusDelegate(
         this.menu = menu
     }
 
+    /**
+     * Clears references when Activity is destroyed to prevent memory leaks.
+     * Call from Activity.onDestroy().
+     */
+    fun clear() {
+        menu = null
+    }
+
     fun observeConnectionDetails(lifecycleOwner: LifecycleOwner) {
         repository.getConnectionDetailsLiveData().observe(lifecycleOwner) { details ->
             showHideConnectionErrorMenuItem(details)
@@ -47,8 +55,10 @@ class MainConnectionStatusDelegate(
     }
 
     fun showHideConnectionErrorMenuItem(details: Map<String, ConnectionDetails>) {
+        if (activity.isDestroyed) return
         val m = menu ?: return
         activity.runOnUiThread {
+            if (activity.isDestroyed) return@runOnUiThread
             val connectionErrorItem = m.findItem(R.id.main_menu_connection_error)
             val hasErrors = details.values.any { it.hasError() }
             connectionErrorItem?.isVisible = hasErrors
@@ -56,6 +66,7 @@ class MainConnectionStatusDelegate(
     }
 
     fun updateHealthStatus(status: String, latency: Int) {
+        if (activity.isDestroyed) return
         val healthBar = activity.findViewById<ConstraintLayout>(R.id.health_bar) ?: return
         val tvHealthStatus = activity.findViewById<TextView>(R.id.tv_health_status) ?: return
         val tvAppLatency = activity.findViewById<TextView>(R.id.tv_app_latency) ?: return

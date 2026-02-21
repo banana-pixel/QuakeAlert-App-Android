@@ -4,8 +4,8 @@ import android.os.Bundle
 import android.view.View
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import com.google.android.material.button.MaterialButton
 import androidx.fragment.app.viewModels
+import com.google.android.material.button.MaterialButton
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -16,9 +16,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 class HistoryFragment : Fragment(R.layout.fragment_history) {
-    private val viewModel by viewModels<SubscriptionsViewModel> {
-        SubscriptionsViewModelFactory((requireActivity().application as Application).repository)
-    }
+    private val viewModel: SubscriptionsViewModel by viewModels { SubscriptionsViewModelFactory((requireActivity().application as Application).repository) }
 
     private lateinit var historyAdapter: HistoryAdapter
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout

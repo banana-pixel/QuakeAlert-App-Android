@@ -77,7 +77,7 @@ class MainActionModeDelegate(
             .setDuration(ANIMATION_DURATION)
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    fab.visibility = View.GONE
+                    if (!activity.isDestroyed) fab.visibility = View.GONE
                 }
             })
     }
@@ -86,8 +86,10 @@ class MainActionModeDelegate(
         MaterialAlertDialogBuilder(activity)
             .setMessage(R.string.main_action_mode_delete_dialog_message)
             .setPositiveButton(R.string.main_action_mode_delete_dialog_permanently_delete) { _, _ ->
-                adapter.selected.forEach { subscriptionId ->
-                    viewModel.remove(activity, subscriptionId)
+                if (!activity.isDestroyed) {
+                    adapter.selected.forEach { subscriptionId ->
+                        viewModel.remove(activity, subscriptionId)
+                    }
                 }
                 finishActionMode()
             }
@@ -111,6 +113,7 @@ class MainActionModeDelegate(
     private fun endActionModeAndRedraw() {
         actionMode = null
         adapter.selected.clear()
+        if (activity.isDestroyed) return
         onRedrawList()
 
         fab.alpha = 0f
@@ -120,8 +123,20 @@ class MainActionModeDelegate(
             .setDuration(ANIMATION_DURATION)
             .setListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    fab.visibility = View.VISIBLE
+                    if (!activity.isDestroyed) fab.visibility = View.VISIBLE
                 }
             })
+    }
+
+    /**
+     * Cleans up when Activity is destroyed to prevent memory leaks.
+     * Finishes action mode if active. Call from Activity.onDestroy().
+     */
+    fun cleanup() {
+        if (actionMode != null) {
+            actionMode?.finish()
+            actionMode = null
+            adapter.selected.clear()
+        }
     }
 }

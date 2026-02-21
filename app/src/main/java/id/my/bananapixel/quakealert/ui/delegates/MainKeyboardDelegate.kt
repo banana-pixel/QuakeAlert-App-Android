@@ -19,13 +19,16 @@ class MainKeyboardDelegate(
     private val activity: androidx.fragment.app.FragmentActivity,
     private val navigationDelegate: MainNavigationDelegate
 ) {
+    private var rootView: View? = null
 
     fun setupKeyboardListener(
         bottomNav: BottomNavigationView,
         navHostFragment: NavHostFragment,
         rootView: View
     ) {
+        this.rootView = rootView
         ViewCompat.setOnApplyWindowInsetsListener(rootView) { _, insets ->
+            if (activity.isDestroyed) return@setOnApplyWindowInsetsListener insets
             val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
             val imeHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
 
@@ -108,5 +111,14 @@ class MainKeyboardDelegate(
 
             insets
         }
+    }
+
+    /**
+     * Clears listener when Activity is destroyed to prevent memory leaks.
+     * Call from Activity.onDestroy().
+     */
+    fun cleanup() {
+        rootView?.let { ViewCompat.setOnApplyWindowInsetsListener(it, null) }
+        rootView = null
     }
 }

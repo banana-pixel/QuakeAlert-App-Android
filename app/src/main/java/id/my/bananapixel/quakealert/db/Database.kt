@@ -335,9 +335,9 @@ abstract class Database : RoomDatabase() {
         @Volatile
         private var instance: Database? = null
 
-        fun getInstance(context: Context): Database {
-            return instance ?: synchronized(this) {
-                val instance = Room
+        /** Used by Hilt for dependency injection. */
+        fun build(context: Context): Database {
+            return Room
                     .databaseBuilder(context.applicationContext, Database::class.java, "AppDatabase")
                     .addMigrations(MIGRATION_1_2)
                     .addMigrations(MIGRATION_2_3)
@@ -360,8 +360,19 @@ abstract class Database : RoomDatabase() {
                     .addMigrations(MIGRATION_19_20)
                     .fallbackToDestructiveMigration(true)
                     .build()
-                this.instance = instance
-                instance
+        }
+
+        /**
+         * Set by Hilt module so [getInstance] returns the injected singleton.
+         * Enables backward compatibility during DI migration.
+         */
+        @Volatile
+        var hiltInstance: Database? = null
+
+        fun getInstance(context: Context): Database {
+            hiltInstance?.let { return it }
+            return instance ?: synchronized(this) {
+                instance ?: build(context.applicationContext).also { instance = it }
             }
         }
 

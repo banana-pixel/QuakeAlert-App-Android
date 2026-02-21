@@ -17,22 +17,28 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import id.my.bananapixel.quakealert.di.appModule
+import org.koin.android.ext.android.inject
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.context.startKoin
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
-class Application : Application() {
+class Application : Application(), KoinComponent {
     val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    val repository by lazy {
-        val repository = Repository.getInstance(applicationContext)
-        if (repository.getRecordLogs()) {
-            Log.setRecord(true)
-        }
-        repository
-    }
+    val repository: Repository by inject()
 
     override fun onCreate() {
         super.onCreate()
+        startKoin {
+            androidContext(this@Application)
+            modules(appModule)
+        }
+        if (repository.getRecordLogs()) {
+            Log.setRecord(true)
+        }
         if (repository.getDynamicColorsEnabled()) {
             DynamicColors.applyToActivitiesIfAvailable(this)
         }

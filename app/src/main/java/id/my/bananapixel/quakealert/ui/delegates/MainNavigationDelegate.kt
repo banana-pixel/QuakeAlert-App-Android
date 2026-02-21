@@ -17,6 +17,9 @@ import id.my.bananapixel.quakealert.R
 class MainNavigationDelegate(
     private val activity: FragmentActivity
 ) {
+    private var navController: NavController? = null
+    private var destinationChangedListener: NavController.OnDestinationChangedListener? = null
+
     private val navHostFragment: NavHostFragment?
         get() = activity.supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment
 
@@ -42,7 +45,9 @@ class MainNavigationDelegate(
         bottomNav: BottomNavigationView,
         onApplyBottomInset: () -> Unit
     ) {
-        navController.addOnDestinationChangedListener { _, destination, _ ->
+        this.navController = navController
+        val listener = NavController.OnDestinationChangedListener { _, destination, _ ->
+            if (activity.isDestroyed) return@OnDestinationChangedListener
             if (destination.id == R.id.nav_warning) {
                 bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile_warning)
             } else {
@@ -50,12 +55,15 @@ class MainNavigationDelegate(
             }
             bottomNav.post { onApplyBottomInset() }
         }
+        this.destinationChangedListener = listener
+        navController.addOnDestinationChangedListener(listener)
     }
 
     /**
      * Applies bottom inset to the current fragment's root (floating UI margin + RecyclerView padding).
      */
     fun applyBottomInset(bottomNav: View) {
+        if (activity.isDestroyed) return
         val currentFragment = navHostFragment?.childFragmentManager?.fragments?.firstOrNull() ?: return
         val fragmentView = currentFragment.view ?: return
 
@@ -89,4 +97,16 @@ class MainNavigationDelegate(
         get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.topMargin ?: 0
     private val View.marginBottom: Int
         get() = (layoutParams as? ViewGroup.MarginLayoutParams)?.bottomMargin ?: 0
+
+    /**
+     * Clears listeners when Activity is destroyed to prevent memory leaks.
+     * Call from Activity.onDestroy().
+     */
+    fun cleanup() {
+        destinationChangedListener?.let { listener ->
+            navController?.removeOnDestinationChangedListener(listener)
+        }
+        navController = null
+        destinationChangedListener = null
+    }
 }

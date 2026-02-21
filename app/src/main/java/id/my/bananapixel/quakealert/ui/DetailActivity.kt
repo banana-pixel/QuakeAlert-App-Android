@@ -65,12 +65,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import android.widget.ImageButton
 import com.google.android.material.color.MaterialColors
+import org.koin.android.ext.android.inject
+import org.koin.core.component.KoinComponent
 
-class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSettingsListener, PublishFragment.PublishListener {
-    private val viewModel by viewModels<DetailViewModel> {
-        DetailViewModelFactory((application as Application).repository)
-    }
-    private val repository by lazy { (application as Application).repository }
+class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSettingsListener, PublishFragment.PublishListener, KoinComponent {
+    private val viewModel: DetailViewModel by viewModels { DetailViewModelFactory(repository) }
+    private val repository: Repository by inject()
     private val api by lazy { ApiService(this) }
     private val poller by lazy { Poller(api, repository) }
     private val messenger = FirebaseMessenger()

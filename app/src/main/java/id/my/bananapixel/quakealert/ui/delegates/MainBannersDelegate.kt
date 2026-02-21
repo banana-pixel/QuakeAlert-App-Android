@@ -33,6 +33,7 @@ class MainBannersDelegate(
     private val tag = "MainBannersDelegate"
 
     fun setupClickListeners(onWsReconnectBannerNeedsUpdate: () -> Unit) {
+        if (activity.isDestroyed) return
         // Battery banner
         val batteryBanner = activity.findViewById<View>(R.id.main_banner_battery)
         activity.findViewById<Button>(R.id.main_banner_battery_dontaskagain).setOnClickListener {
@@ -94,6 +95,7 @@ class MainBannersDelegate(
     }
 
     fun showHideBatteryBanner(subscriptions: List<Subscription>) {
+        if (activity.isDestroyed) return
         val hasInstantSubscriptions = subscriptions.count { it.instant } > 0
         val batteryRemindTimeReached = repository.getBatteryOptimizationsRemindTime() < System.currentTimeMillis()
         val ignoringOptimizations = isIgnoringBatteryOptimizations(activity)
@@ -103,6 +105,7 @@ class MainBannersDelegate(
     }
 
     fun showHideWebSocketBanner(subscriptions: List<Subscription>) {
+        if (activity.isDestroyed) return
         val hasSelfHosted = subscriptions.count { it.baseUrl != appBaseUrl } > 0
         val usingWebSockets = repository.getConnectionProtocol() == Repository.CONNECTION_PROTOCOL_WS
         val wsRemindTimeReached = repository.getWebSocketRemindTime() < System.currentTimeMillis()
@@ -121,6 +124,7 @@ class MainBannersDelegate(
     }
 
     fun showHideWebSocketReconnectBanner() {
+        if (activity.isDestroyed) return
         val wsReconnectBanner = activity.findViewById<View>(R.id.main_banner_websocket_reconnect)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val usingWebSockets = repository.getConnectionProtocol() == Repository.CONNECTION_PROTOCOL_WS

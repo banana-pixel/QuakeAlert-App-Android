@@ -1,9 +1,7 @@
-
 package id.my.bananapixel.quakealert.ui
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.paging.*
 import id.my.bananapixel.quakealert.db.Database
@@ -26,10 +24,8 @@ class QuakeViewModel(private val appContext: Context, private val database: Data
     ).flow.cachedIn(viewModelScope)
 }
 
-class QuakeViewModelFactory(private val context: Context, private val database: Database) : ViewModelProvider.Factory {
+class QuakeViewModelFactory(private val context: Context, private val database: Database) : androidx.lifecycle.ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        // Use applicationContext to prevent memory leaks when ViewModel holds Context
-        return QuakeViewModel(context.applicationContext, database) as T
-    }
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
+        QuakeViewModel(context.applicationContext, database) as T
 }

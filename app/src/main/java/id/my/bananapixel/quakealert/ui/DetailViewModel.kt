@@ -3,7 +3,6 @@ package id.my.bananapixel.quakealert.ui
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
 import id.my.bananapixel.quakealert.db.Notification
@@ -39,13 +38,11 @@ class DetailViewModel(private val repository: Repository) : ViewModel() {
     }
 }
 
-class DetailViewModelFactory(private val repository: Repository) : ViewModelProvider.Factory {
+class DetailViewModelFactory(private val repository: Repository) : androidx.lifecycle.ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T =
-        with(modelClass){
-            when {
-                isAssignableFrom(DetailViewModel::class.java) -> DetailViewModel(repository) as T
-                else -> throw IllegalArgumentException("Unknown viewModel class $modelClass")
-            }
+    override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
+        when {
+            modelClass.isAssignableFrom(DetailViewModel::class.java) -> DetailViewModel(repository) as T
+            else -> throw IllegalArgumentException("Unknown viewModel class $modelClass")
         }
 }
