@@ -163,6 +163,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
 
         val cleanMessage = message.split("\n")
             .filterNot { it.contains("Waktu:", ignoreCase = true) }
+            .filterNot { it.contains("Time:", ignoreCase = true) }
             .joinToString("\n").trim()
 
         val intensityRegex = "(?:Intensitas|Intensity)\\s*:\\s*([IVX]+(?:\\+)?)".toRegex(RegexOption.IGNORE_CASE)

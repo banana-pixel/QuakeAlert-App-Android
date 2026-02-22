@@ -183,7 +183,7 @@ fun quakeDisplayPriority(distanceKm: Double?, alertRadiusKm: Double, notificatio
 }
 
 fun toEmojis(tags: List<String>): List<String> {
-    return tags.mapNotNull { tag -> toEmoji(tag) }
+    return tags.mapNotNull { tag -> toEmoji(tag) }.distinct()
 }
 
 fun toEmoji(tag: String): String? {

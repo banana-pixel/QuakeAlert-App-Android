@@ -8,11 +8,11 @@
     <string name="channel_subscriber_service_name">Layanan Peringatan Gempa</string>
     <string name="channel_subscriber_notification_title">Mendengarkan peringatan gempa</string>
     <string name="channel_subscriber_notification_instant_text">Peringatan gempa instan aktif</string>
-    <string name="channel_subscriber_notification_instant_text_one">Peringatan gempa instan pada 1 topik</string>
-    <string name="channel_subscriber_notification_instant_text_two">Peringatan gempa instan pada 2 topik</string>
-    <string name="channel_subscriber_notification_instant_text_three">Peringatan gempa instan pada 3 topik</string>
-    <string name="channel_subscriber_notification_instant_text_four">Peringatan gempa instan pada 4 topik</string>
-    <string name="channel_subscriber_notification_noinstant_text_two">Menerima peringatan pada 2 topik</string>
+    <string name="channel_subscriber_notification_instant_text_one">Peringatan gempa instan aktif</string>
+    <string name="channel_subscriber_notification_instant_text_two">Peringatan gempa instan aktif</string>
+    <string name="channel_subscriber_notification_instant_text_three">Peringatan gempa instan aktif</string>
+    <string name="channel_subscriber_notification_instant_text_four">Peringatan gempa instan aktif</string>
+    <string name="channel_subscriber_notification_noinstant_text_two">Menerima peringatan gempa</string>
     <string name="refresh_message_no_results">Semua sudah terkini</string>
     <string name="refresh_message_error">Tidak dapat memuat ulang langganan %1$d
 \n
@@ -207,7 +207,7 @@
     <string name="user_dialog_description_add">Anda dapat menambahkan sebuah pengguna di sini. Semua topik untuk server yang dicantumkan akan menggunakan pengguna ini.</string>
     <string name="user_dialog_description_edit">Anda dapat mengubah nama pengguna/kata sandi untuk pengguna yang dipilih, atau hapus pengguna itu.</string>
     <string name="common_service_url">URL Layanan</string>
-    <string name="channel_subscriber_notification_noinstant_text_one">Menerima peringatan pada 1 topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_one">Menerima peringatan gempa</string>
     <string name="detail_item_cannot_open_url">Tidak dapat membuka URL: %1$s</string>
     <string name="settings_notifications_min_priority_summary_any">Menampilkan semua notifikasi</string>
     <string name="settings_notifications_min_priority_summary_x_or_higher">Tampilkan notifikasi jika prioritas adalah %1$d (%2$s) atau di atas</string>
@@ -216,11 +216,11 @@
     <string name="common_priority_high_name">Prioritas tinggi</string>
     <string name="main_action_mode_delete_dialog_permanently_delete">Hapus secara permanen</string>
     <string name="add_dialog_button_subscribe">Berlangganan</string>
-    <string name="channel_subscriber_notification_instant_text_more">Peringatan gempa instan pada %1$d topik</string>
-    <string name="channel_subscriber_notification_noinstant_text_four">Menerima peringatan pada 4 topik</string>
+    <string name="channel_subscriber_notification_instant_text_more">Peringatan gempa instan aktif</string>
+    <string name="channel_subscriber_notification_noinstant_text_four">Menerima peringatan gempa</string>
     <string name="refresh_message_result">%1$d notifikasi diterima</string>
-    <string name="channel_subscriber_notification_noinstant_text_three">Menerima peringatan pada 3 topik</string>
-    <string name="channel_subscriber_notification_noinstant_text_more">Menerima peringatan pada %1$d topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_three">Menerima peringatan gempa</string>
+    <string name="channel_subscriber_notification_noinstant_text_more">Menerima peringatan gempa</string>
     <string name="add_dialog_instant_delivery_description">Memastikan pesan dikirim dengan segera, bahkan jika perangkatnya tidak aktif.</string>
     <string name="add_dialog_button_cancel">Batal</string>
     <string name="main_item_status_reconnecting">menghubungkan ulang …</string>
@@ -301,10 +301,10 @@
     <string name="settings_notifications_channel_prefs_summary">Timpaan DND, suara, dll.</string>
     <string name="settings_notifications_channel_prefs_title">Pengaturan saluran</string>
     <string name="notification_popup_user_action_failed">%1$s gagal: %2$s</string>
-    <string name="channel_subscriber_notification_instant_text_five">Peringatan gempa instan pada 5 topik</string>
-    <string name="channel_subscriber_notification_instant_text_six">Peringatan gempa instan pada 6 topik</string>
-    <string name="channel_subscriber_notification_noinstant_text_five">Menerima peringatan pada 5 topik</string>
-    <string name="channel_subscriber_notification_noinstant_text_six">Menerima peringatan pada 6 topik</string>
+    <string name="channel_subscriber_notification_instant_text_five">Peringatan gempa instan aktif</string>
+    <string name="channel_subscriber_notification_instant_text_six">Peringatan gempa instan aktif</string>
+    <string name="channel_subscriber_notification_noinstant_text_five">Menerima peringatan gempa</string>
+    <string name="channel_subscriber_notification_noinstant_text_six">Menerima peringatan gempa</string>
     <string name="detail_settings_notifications_instant_summary_on">Notifikasi dikirim secara instan. Membutuhkan sebuah layanan latar depan dan mengkonsumsi lebih banyak baterai.</string>
     <string name="detail_settings_appearance_header">Tampilan</string>
     <string name="detail_settings_appearance_icon_set_summary">Tetapkan sebuah ikon untuk ditampilkan di notifikasi</string>
