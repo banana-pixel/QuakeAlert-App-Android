@@ -14,6 +14,7 @@ import com.bumptech.glide.Glide
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.QuakeData
+import id.my.bananapixel.quakealert.util.MmiDescription
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -40,7 +41,7 @@ class HistoryAdapter(
         // 1. Text Data Binding
         holder.locationText.text = item.place
         holder.timeText.text = convertLongToDate(item.time)
-        holder.descriptionText.text = item.description
+        holder.descriptionText.text = MmiDescription.getDescription(context, item.intensity)
         holder.pgaValue.text = item.pga
         holder.durValue.text = "${item.durasi}s"
         holder.stationIdText.text = item.station_id

@@ -594,6 +594,18 @@
     <string name="history_pga_value">%1$s</string>
     <string name="history_dur_value">%1$ds</string>
     <string name="history_empty_text">No earthquake records yet.\nPull down to refresh.</string>
+
+    <!-- MMI intensity descriptions (Modified Mercalli scale) -->
+    <string name="mmi_desc_i">Instrumental only.</string>
+    <string name="mmi_desc_ii_iii">Felt by people at rest indoors.</string>
+    <string name="mmi_desc_iv">Windows and doors rattle.</string>
+    <string name="mmi_desc_v">Light objects may fall.</string>
+    <string name="mmi_desc_vi">Plaster cracks.</string>
+    <string name="mmi_desc_vii">Hard to stand; minor damage.</string>
+    <string name="mmi_desc_viii">Walls collapse; chimneys fall.</string>
+    <string name="mmi_desc_ix">Severe damage; foundations shift.</string>
+    <string name="mmi_desc_x">Total destruction.</string>
+    <string name="mmi_desc_unknown">No data.</string>
     <string name="chat_empty_text">No messages yet.\nSend a message to start the conversation.</string>
     <string name="sensors_empty_text">No sensors found.\nPull down to refresh.</string>
 </resources>

@@ -473,4 +473,16 @@
     <string name="channel_subscriber_notification_reconnecting_one">Menghubungkan kembali ke 1 topik …</string>
     <string name="channel_subscriber_notification_reconnecting_other">Menghubungkan kembali ke %1$d topik …</string>
     <string name="default_server_dialog_url_error_invalid">Masukkan URL layanan yang sah, misalnya https://ntfy.example.com</string>
+
+    <!-- MMI intensity descriptions (Modified Mercalli scale) -->
+    <string name="mmi_desc_i">Hanya tercatat instrumen.</string>
+    <string name="mmi_desc_ii_iii">Dirasakan orang diam di atas.</string>
+    <string name="mmi_desc_iv">Jendela/pintu berderik.</string>
+    <string name="mmi_desc_v">Barang ringan terpelanting.</string>
+    <string name="mmi_desc_vi">Plester dinding retak.</string>
+    <string name="mmi_desc_vii">Sulit berdiri, kerusakan ringan.</string>
+    <string name="mmi_desc_viii">Dinding lepas, cerobong roboh.</string>
+    <string name="mmi_desc_ix">Kerusakan hebat, pondasi geser.</string>
+    <string name="mmi_desc_x">Hancur total.</string>
+    <string name="mmi_desc_unknown">Tidak ada data.</string>
 </resources>
