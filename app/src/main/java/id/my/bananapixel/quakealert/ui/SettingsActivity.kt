@@ -665,13 +665,17 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
                             BACKUP_EVERYTHING_NO_USERS -> backuper.backup(uri, withUsers = false)
                             BACKUP_SETTINGS_ONLY -> backuper.backup(uri, withUsers = false, withSubscriptions = false)
                         }
-                        requireActivity().runOnUiThread {
-                            Toast.makeText(context, getString(R.string.settings_backup_restore_backup_successful), Toast.LENGTH_LONG).show()
+                        activity?.let { act ->
+                            act.runOnUiThread {
+                                Toast.makeText(act, getString(R.string.settings_backup_restore_backup_successful), Toast.LENGTH_LONG).show()
+                            }
                         }
                     } catch (e: Exception) {
                         Log.w(TAG, "Backup failed", e)
-                        requireActivity().runOnUiThread {
-                            Toast.makeText(context, getString(R.string.settings_backup_restore_backup_failed, e.message), Toast.LENGTH_LONG).show()
+                        activity?.let { act ->
+                            act.runOnUiThread {
+                                Toast.makeText(act, getString(R.string.settings_backup_restore_backup_failed, e.message), Toast.LENGTH_LONG).show()
+                            }
                         }
                     }
                 }
@@ -704,18 +708,22 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
                     try {
                         val currentDarkMode = repository.getDarkMode()
                         backuper.restore(uri)
-                        requireActivity().runOnUiThread {
-                            Toast.makeText(context, getString(R.string.settings_backup_restore_restore_successful), Toast.LENGTH_LONG).show()
-                            requireActivity().recreate()
-                            val newDarkMode = repository.getDarkMode()
-                            if (newDarkMode != currentDarkMode) {
-                                AppCompatDelegate.setDefaultNightMode(newDarkMode)
+                        activity?.let { act ->
+                            act.runOnUiThread {
+                                Toast.makeText(act, getString(R.string.settings_backup_restore_restore_successful), Toast.LENGTH_LONG).show()
+                                act.recreate()
+                                val newDarkMode = repository.getDarkMode()
+                                if (newDarkMode != currentDarkMode) {
+                                    AppCompatDelegate.setDefaultNightMode(newDarkMode)
+                                }
                             }
                         }
                     } catch (e: Exception) {
                         Log.w(TAG, "Restore failed", e)
-                        requireActivity().runOnUiThread {
-                            Toast.makeText(context, getString(R.string.settings_backup_restore_restore_failed, e.message), Toast.LENGTH_LONG).show()
+                        activity?.let { act ->
+                            act.runOnUiThread {
+                                Toast.makeText(act, getString(R.string.settings_backup_restore_restore_failed, e.message), Toast.LENGTH_LONG).show()
+                            }
                         }
                     }
                 }
