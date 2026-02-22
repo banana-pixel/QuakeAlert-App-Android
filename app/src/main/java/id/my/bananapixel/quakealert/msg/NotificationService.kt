@@ -140,7 +140,7 @@ class NotificationService(val context: Context) {
         val insistent = displayPriority == PRIORITY_MAX &&
                 (repository.getInsistentMaxPriorityEnabled() || subscription.insistent == Repository.INSISTENT_MAX_PRIORITY_ENABLED)
         val builder = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.drawable.ic_notification_quakealert)
             .setColor(Colors.notificationIcon(context))
             .setContentTitle(title)
             .setWhen(notification.timestamp * 1000) // Set timestamp (convert seconds to millis)

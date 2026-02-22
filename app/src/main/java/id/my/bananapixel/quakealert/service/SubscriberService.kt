@@ -408,7 +408,7 @@ class SubscriberService : Service() {
             PendingIntent.getActivity(this, 0, notificationIntent, PendingIntent.FLAG_IMMUTABLE)
         }
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification_instant)
+            .setSmallIcon(R.drawable.ic_notification_quakealert)
             .setColor(Colors.notificationIcon(this))
             .setContentTitle(title)
             .setContentText(text)
