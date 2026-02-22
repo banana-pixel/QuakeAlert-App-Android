@@ -8,7 +8,7 @@ import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.ui.Colors
 import id.my.bananapixel.quakealert.util.isDarkThemeOn
 
-class AboutActivity : AppCompatActivity() {
+class AboutActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()

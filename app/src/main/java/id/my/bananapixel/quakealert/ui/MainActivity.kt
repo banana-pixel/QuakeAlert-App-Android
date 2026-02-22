@@ -80,7 +80,7 @@ import androidx.activity.viewModels
 import org.koin.android.ext.android.inject
 import org.koin.core.component.KoinComponent
 
-class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener, KoinComponent {
+class MainActivity : BaseActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener, KoinComponent {
     private val viewModel: SubscriptionsViewModel by viewModels { SubscriptionsViewModelFactory(repository) }
     private val repository: Repository by inject()
     private val api by lazy { ApiService(this) }

@@ -215,6 +215,10 @@ dependencies {
     // Koin (Dependency Injection) - Kotlin-first, no annotation processing conflicts
     implementation 'io.insert-koin:koin-android:3.5.6'
 
+    // Calligraphy – apply custom font at inflation time (fragments, RecyclerView, dialogs)
+    implementation 'io.github.inflationx:calligraphy3:3.1.1'
+    implementation 'io.github.inflationx:viewpump:2.0.3'
+
     // Unit tests (JVM, no device)
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.9.24'

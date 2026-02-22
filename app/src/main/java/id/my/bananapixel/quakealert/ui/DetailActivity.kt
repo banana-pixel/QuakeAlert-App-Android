@@ -68,7 +68,7 @@ import com.google.android.material.color.MaterialColors
 import org.koin.android.ext.android.inject
 import org.koin.core.component.KoinComponent
 
-class DetailActivity : AppCompatActivity(), NotificationFragment.NotificationSettingsListener, PublishFragment.PublishListener, KoinComponent {
+class DetailActivity : BaseActivity(), NotificationFragment.NotificationSettingsListener, PublishFragment.PublishListener, KoinComponent {
     private val viewModel: DetailViewModel by viewModels { DetailViewModelFactory(repository) }
     private val repository: Repository by inject()
     private val api by lazy { ApiService(this) }

@@ -65,7 +65,7 @@ import java.util.concurrent.TimeUnit
  * The "nested screen" navigation stuff (for user management) has been taken from
  * https://github.com/googlearchive/android-preferences/blob/master/app/src/main/java/com/example/androidx/preference/sample/MainActivity.kt
  */
-class SettingsActivity : AppCompatActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback,
+class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback,
     UserFragment.UserDialogListener, CustomHeaderFragment.CustomHeaderDialogListener,
     DefaultServerFragment.DefaultServerDialogListener {
     private lateinit var settingsFragment: SettingsFragment

@@ -129,8 +129,7 @@
                     android:layout_height="wrap_content"
                     android:text="PGA"
                     android:textColor="#9E9E9E"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:textSize="10sp" />
 
                 <TextView
                     android:id="@+id/history_pga_value"
@@ -139,8 +138,7 @@
                     android:layout_marginStart="4dp"
                     android:text="230.5"
                     android:textColor="#37474F"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -159,8 +157,7 @@
                     android:layout_height="wrap_content"
                     android:text="DUR"
                     android:textColor="#9E9E9E"
-                    android:textSize="10sp"
-                    android:textStyle="bold" />
+                    android:textSize="10sp" />
 
                 <TextView
                     android:id="@+id/history_dur_value"
@@ -169,8 +166,7 @@
                     android:layout_marginStart="4dp"
                     android:text="15s"
                     android:textColor="#37474F"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                    android:textSize="12sp" />
             </LinearLayout>
         </LinearLayout>
 

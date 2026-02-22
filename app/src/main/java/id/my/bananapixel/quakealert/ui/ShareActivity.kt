@@ -25,7 +25,7 @@ import kotlinx.coroutines.withContext
 import androidx.core.view.size
 import androidx.core.view.get
 
-class ShareActivity : AppCompatActivity() {
+class ShareActivity : BaseActivity() {
     private val repository by lazy { (application as Application).repository }
     private val api by lazy { ApiService(this) }
 

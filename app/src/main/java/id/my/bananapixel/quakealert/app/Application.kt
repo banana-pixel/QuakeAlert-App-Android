@@ -8,7 +8,11 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.android.material.color.DynamicColors
 import id.my.bananapixel.quakealert.BuildConfig
+import io.github.inflationx.calligraphy3.CalligraphyConfig
+import io.github.inflationx.calligraphy3.CalligraphyInterceptor
+import io.github.inflationx.viewpump.ViewPump
 import id.my.bananapixel.quakealert.R
+import id.my.bananapixel.quakealert.util.InterFontInterceptor
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.util.EMERGENCY_TOPIC
@@ -44,6 +48,12 @@ class Application : Application(), KoinComponent {
         if (repository.getDynamicColorsEnabled()) {
             DynamicColors.applyToActivitiesIfAvailable(this)
         }
+        ViewPump.init(ViewPump.builder()
+            .addInterceptor(InterFontInterceptor("fonts/Inter_28pt-SemiBold.ttf"))
+            .addInterceptor(CalligraphyInterceptor(CalligraphyConfig.Builder()
+                .setDefaultFontPath("fonts/Inter_28pt-Regular.ttf")
+                .build()))
+            .build())
         scheduleLocationWorker()
         addEmergencySubscription()
     }

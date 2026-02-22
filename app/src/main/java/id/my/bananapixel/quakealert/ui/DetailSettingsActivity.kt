@@ -35,7 +35,7 @@ import androidx.core.net.toUri
 /**
  * Subscription settings
  */
-class DetailSettingsActivity : AppCompatActivity() {
+class DetailSettingsActivity : BaseActivity() {
     private lateinit var repository: Repository
     private lateinit var serviceManager: SubscriberServiceManager
     private lateinit var settingsFragment: SettingsFragment
