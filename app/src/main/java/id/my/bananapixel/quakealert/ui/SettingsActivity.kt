@@ -815,16 +815,18 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
             lifecycleScope.launch(Dispatchers.IO) {
                 val context = context ?: return@launch
                 val log = Log.getFormatted(context, scrub = scrub)
-                requireActivity().runOnUiThread {
-                    val clipboard = context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText("ntfy logs", log)
-                    clipboard.setPrimaryClip(clip)
-                    if (scrub) {
-                        showScrubDialog(getString(R.string.settings_advanced_export_logs_copied_logs))
-                    } else {
-                        Toast
-                            .makeText(context, getString(R.string.settings_advanced_export_logs_copied_logs), Toast.LENGTH_LONG)
-                            .show()
+                activity?.let { act ->
+                    act.runOnUiThread {
+                        val clipboard = context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("ntfy logs", log)
+                        clipboard.setPrimaryClip(clip)
+                        if (scrub) {
+                            showScrubDialog(getString(R.string.settings_advanced_export_logs_copied_logs))
+                        } else {
+                            Toast
+                                .makeText(context, getString(R.string.settings_advanced_export_logs_copied_logs), Toast.LENGTH_LONG)
+                                .show()
+                        }
                     }
                 }
             }
@@ -836,10 +838,12 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
                 val context = context ?: return@launch
                 val log = Log.getFormatted(context, scrub = scrub)
                 if (log.length > EXPORT_LOGS_UPLOAD_NOTIFY_SIZE_THRESHOLD) {
-                    requireActivity().runOnUiThread {
-                        Toast
-                            .makeText(context, getString(R.string.settings_advanced_export_logs_uploading), Toast.LENGTH_SHORT)
-                            .show()
+                    activity?.let { act ->
+                        act.runOnUiThread {
+                            Toast
+                                .makeText(context, getString(R.string.settings_advanced_export_logs_uploading), Toast.LENGTH_SHORT)
+                                .show()
+                        }
                     }
                 }
                 val request = HttpUtil.requestBuilder(EXPORT_LOGS_UPLOAD_URL)
@@ -855,25 +859,29 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
                         if (body.isEmpty()) throw Exception("Return body is empty")
                         Log.d(TAG, "Logs uploaded successfully: $body")
                         val resp = Json.decodeFromString<NopasteResponse>(body)
-                        requireActivity().runOnUiThread {
-                            val clipboard = context.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                            val clip = ClipData.newPlainText("logs URL", resp.url)
-                            clipboard.setPrimaryClip(clip)
-                            if (scrub) {
-                                showScrubDialog(getString(R.string.settings_advanced_export_logs_copied_url))
-                            } else {
-                                Toast
-                                    .makeText(context, getString(R.string.settings_advanced_export_logs_copied_url), Toast.LENGTH_LONG)
-                                    .show()
+                        activity?.let { act ->
+                            act.runOnUiThread {
+                                val clipboard = act.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("logs URL", resp.url)
+                                clipboard.setPrimaryClip(clip)
+                                if (scrub) {
+                                    showScrubDialog(getString(R.string.settings_advanced_export_logs_copied_url))
+                                } else {
+                                    Toast
+                                        .makeText(act, getString(R.string.settings_advanced_export_logs_copied_url), Toast.LENGTH_LONG)
+                                        .show()
+                                }
                             }
                         }
                     }
                 } catch (e: Exception) {
                     Log.w(TAG, "Error uploading logs", e)
-                    requireActivity().runOnUiThread {
-                        Toast
-                            .makeText(context, getString(R.string.settings_advanced_export_logs_error_uploading, e.message), Toast.LENGTH_LONG)
-                            .show()
+                    activity?.let { act ->
+                        act.runOnUiThread {
+                            Toast
+                                .makeText(context, getString(R.string.settings_advanced_export_logs_error_uploading, e.message), Toast.LENGTH_LONG)
+                                .show()
+                        }
                     }
                 }
             }
@@ -899,10 +907,12 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
             lifecycleScope.launch(Dispatchers.IO) {
                 Log.deleteAll()
                 val context = context ?: return@launch
-                requireActivity().runOnUiThread {
-                    Toast
-                        .makeText(context, getString(R.string.settings_advanced_clear_logs_deleted_toast), Toast.LENGTH_LONG)
-                        .show()
+                activity?.let { act ->
+                    act.runOnUiThread {
+                        Toast
+                            .makeText(context, getString(R.string.settings_advanced_clear_logs_deleted_toast), Toast.LENGTH_LONG)
+                            .show()
+                    }
                 }
             }
         }
