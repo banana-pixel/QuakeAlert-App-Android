@@ -52,8 +52,7 @@
         <ImageView
             android:layout_width="16dp"
             android:layout_height="16dp"
-            android:src="@android:drawable/ic_menu_mylocation"
-            app:tint="#FFFFFF" />
+            android:src="@drawable/ic_location_white" />
 
         <TextView
             android:id="@+id/tv_location_name"
@@ -208,12 +207,9 @@
             android:stateListAnimator="@null"
             android:text="Recenter Map"
             android:textAllCaps="false"
+            android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold"
-            app:icon="@drawable/ic_menu_mylocation"
-            app:iconGravity="textStart"
-            app:iconPadding="10dp"
-            app:iconTint="#FFFFFF"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tv_range_desc" />
 

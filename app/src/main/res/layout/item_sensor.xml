@@ -49,12 +49,12 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:drawablePadding="4dp"
+            android:gravity="center_vertical"
             android:text="Bandung, Indonesia"
             android:textColor="#546E7A"
             android:textSize="12sp"
             android:textStyle="bold"
-            app:drawableStartCompat="@drawable/ic_location_on_red"
-            app:drawableTint="#546E7A"
+            app:drawableStartCompat="@drawable/ic_location_small"
             app:layout_constraintEnd_toStartOf="@id/sensor_status_badge"
             app:layout_constraintStart_toStartOf="@id/sensor_station_name"
             app:layout_constraintTop_toBottomOf="@id/sensor_station_id_badge" />
@@ -82,26 +82,46 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
-            android:id="@+id/sensor_last_ping"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="Last ping: 2026-02-09 17:05:12 WIB"
-            android:textColor="#78909C"
-            android:textSize="11sp"
-            app:layout_constraintEnd_toStartOf="@id/sensor_status_badge"
-            app:layout_constraintStart_toStartOf="@id/sensor_station_name"
-            app:layout_constraintTop_toBottomOf="@id/sensor_location" />
-
         <LinearLayout
             android:id="@+id/sensor_stats_badges_container"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:orientation="horizontal"
             app:layout_constraintStart_toStartOf="@id/sensor_station_name"
-            app:layout_constraintTop_toBottomOf="@id/sensor_last_ping">
+            app:layout_constraintTop_toBottomOf="@id/sensor_location">
+
+            <LinearLayout
+                android:id="@+id/sensor_last_ping_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/bg_badge_3d_white"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:minWidth="60dp"
+                android:paddingHorizontal="8dp"
+                android:paddingTop="6dp"
+                android:paddingBottom="9dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="LAST PING"
+                    android:textColor="#9E9E9E"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/sensor_last_ping_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="2 min ago"
+                    android:textColor="#424242"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="2 min ago" />
+            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/sensor_rssi_badge"

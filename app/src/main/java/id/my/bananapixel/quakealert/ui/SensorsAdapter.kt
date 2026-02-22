@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -20,7 +21,7 @@ class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(Diff
         private val statusBadge: TextView = view.findViewById(R.id.sensor_status_badge)
         private val stationName: TextView = view.findViewById(R.id.sensor_station_name)
         private val stationIdBadge: TextView = view.findViewById(R.id.sensor_station_id_badge)
-        private val lastPing: TextView = view.findViewById(R.id.sensor_last_ping)
+        private val lastPingValue: TextView = view.findViewById(R.id.sensor_last_ping_value)
         private val rssiValue: TextView = view.findViewById(R.id.sensor_rssi_value)
         private val latencyValue: TextView = view.findViewById(R.id.sensor_latency_value)
         private val location: TextView = view.findViewById(R.id.sensor_location)
@@ -50,9 +51,9 @@ class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(Diff
                         DateUtils.MINUTE_IN_MILLIS
                     ).toString()
                 }
-                lastPing.text = "Last ping: $timeText"
+                lastPingValue.text = timeText
             } else {
-                lastPing.text = "Last ping: Never"
+                lastPingValue.text = "Never"
             }
 
             // --- 3. Status Badge Logic (Drawable Swapping) ---
@@ -72,8 +73,9 @@ class SensorsAdapter : ListAdapter<Sensor, SensorsAdapter.SensorViewHolder>(Diff
             statusBadge.setBackgroundResource(bgRes)
 
             // Update Icons
-            val iconRes = if (isOnline) R.drawable.ic_bolt_white_24dp else R.drawable.ic_warning_white_24dp
-            val icon = ContextCompat.getDrawable(context, iconRes)
+            val iconRes = if (isOnline) R.drawable.ic_bolt_white_24dp else R.drawable.alert_triangle
+            val icon = ContextCompat.getDrawable(context, iconRes)?.mutate()
+            icon?.let { DrawableCompat.setTint(it, Color.WHITE) }
             statusBadge.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null)
             statusBadge.compoundDrawablePadding = 8
 
