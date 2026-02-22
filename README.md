@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon.png" alt="QuakeAlert" width="128">
+</p>
+
 # QuakeAlert Android App
 
 Android app for **QuakeAlert** — earthquake alerts and station monitoring. It connects to the QuakeAlert backend to receive push notifications, view quake history, check station health, and use in-app chat.
