@@ -248,6 +248,9 @@
     <string name="notification_dialog_muted_forever_toast_message">Notifikasi dibisukan</string>
     <string name="notification_dialog_8h">8 jam</string>
     <string name="notification_dialog_forever">Sampai dilanjutkan</string>
+    <string name="notification_danger_quake">⚠️ BAHAYA: Gempa (%1$s km)</string>
+    <string name="notification_silent_quake">Peringatan Senyap: Gempa (%1$s km)</string>
+    <string name="notification_view_on_map">Lihat di Peta</string>
     <string name="notification_popup_action_open">Buka</string>
     <string name="settings_notifications_min_priority_default">Prioritas default dan di atas</string>
     <string name="settings_notifications_priority_high">tinggi</string>

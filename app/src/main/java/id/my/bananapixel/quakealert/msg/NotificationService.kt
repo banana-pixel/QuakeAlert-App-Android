@@ -117,8 +117,8 @@ class NotificationService(val context: Context) {
         val displayPriority = quakeDisplayPriority(distance, alertRadiusKm, notification.priority)
         val title = when {
             distanceLabel == null -> baseTitle
-            distance != null && distance > alertRadiusKm -> "Silent Alert: Quake (${distanceLabel}km)"
-            else -> "⚠️ DANGER: Quake (${distanceLabel}km) ⚠️"
+            distance != null && distance > alertRadiusKm -> context.getString(R.string.notification_silent_quake, distanceLabel)
+            else -> context.getString(R.string.notification_danger_quake, distanceLabel)
         }
 
         // Trigger global alert only for earthquake-tagged messages (red warning page)
@@ -169,7 +169,7 @@ class NotificationService(val context: Context) {
                 mapIntent,
                 PendingIntent.FLAG_IMMUTABLE
             )
-            builder.addAction(android.R.drawable.ic_dialog_map, "View on Map", mapPendingIntent)
+            builder.addAction(android.R.drawable.ic_dialog_map, context.getString(R.string.notification_view_on_map), mapPendingIntent)
         }
         maybeAddUserActions(builder, notification)
 

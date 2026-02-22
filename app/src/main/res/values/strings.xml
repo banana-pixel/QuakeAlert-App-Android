@@ -313,6 +313,9 @@
     <string name="connection_error_dialog_retrying">Retrying…</string>
 
     <!-- Notification popup -->
+    <string name="notification_danger_quake">⚠️ DANGER: Quake (%1$s km)</string>
+    <string name="notification_silent_quake">Silent Alert: Quake (%1$s km)</string>
+    <string name="notification_view_on_map">View on Map</string>
     <string name="notification_popup_action_open">Open</string>
     <string name="notification_popup_action_browse">Browse</string>
     <string name="notification_popup_action_download">Download</string>
