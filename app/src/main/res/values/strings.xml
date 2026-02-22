@@ -388,6 +388,16 @@
     <string name="warning_radar_icon_content_description">Monitoring status indicator</string>
     <string name="warning_intensity_content_description">Shaking intensity</string>
 
+    <!-- Warning alert page (user-facing text) -->
+    <string name="warning_earthquake_alert_title">EARTHQUAKE ALERT</string>
+    <string name="warning_what_should_i_do">WHAT SHOULD I DO?</string>
+    <string name="warning_life_saving_actions">LIFE-SAVING ACTIONS</string>
+    <string name="warning_drop">• DROP: Get down on your hands and knees.</string>
+    <string name="warning_cover">• COVER: Protect your head and neck under a sturdy table.</string>
+    <string name="warning_hold_on">• HOLD ON: Stay there until the shaking stops.</string>
+    <string name="warning_share">Share</string>
+    <string name="warning_dismiss">Dismiss</string>
+
     <!-- Warning scanning status (server/sensor sync) -->
     <string name="warning_status_sensors_active">SENSORS ACTIVE</string>
     <string name="warning_status_connecting">WAITING FOR CONNECTION</string>
@@ -411,6 +421,17 @@
     <string name="settings_earthquake_update_location_summary">Use your current network location</string>
     <string name="settings_earthquake_location_permission_missing">Location permission is required to update your coordinates.</string>
     <string name="settings_earthquake_location_unavailable">Location is unavailable. Please try again.</string>
+    <string name="settings_earthquake_locating">Locating…</string>
+    <string name="settings_earthquake_alert_radius">Alert Radius</string>
+    <string name="settings_earthquake_radius_km">%1$d km</string>
+    <string name="settings_earthquake_radius_global">Global</string>
+    <string name="settings_earthquake_range_desc">Only receive notifications for quakes within this range</string>
+    <string name="settings_earthquake_recenter_map">Recenter Map</string>
+    <string name="sensors_status_healthy">Server Healthy</string>
+    <string name="sensors_status_connecting">Connecting…</string>
+    <string name="sensors_status_unstable">Unstable Connection</string>
+    <string name="sensors_status_offline">Server Offline</string>
+    <string name="sensors_latency_format">%1$d ms</string>
     <string name="settings_general_header">General</string>
     <string name="settings_appearance_header">Appearance</string>
     <string name="settings_general_default_base_url_title">Default server</string>
@@ -607,5 +628,38 @@
     <string name="mmi_desc_x">Total destruction.</string>
     <string name="mmi_desc_unknown">No data.</string>
     <string name="chat_empty_text">No messages yet.\nSend a message to start the conversation.</string>
+    <string name="chat_message_hint">Type a message…</string>
+
+    <!-- Onboarding / Initialization -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_back">Back</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_intro1_title">Welcome to\nQuakeAlert App</string>
+    <string name="onboarding_intro1_subtitle">Real-time earthquake early warning system.\nKeep safe with instant seismic alerts powered by IoT technology.</string>
+    <string name="onboarding_intro2_title">ESP32 Powered\nDetection</string>
+    <string name="onboarding_intro2_subtitle">QuakeAlert connects to a network of ESP32 microcontrollers equipped with seismic sensors.\n\nWhen an earthquake is detected, you receive a notification so you can prepare.</string>
+    <string name="onboarding_perm_notification_title">Notification\nPermission</string>
+    <string name="onboarding_perm_notification_desc">To receive earthquake alerts, QuakeAlert needs permission to send you notifications. This is critical for your app functionality.</string>
+    <string name="onboarding_perm_notification_btn">Enable Notifications</string>
+    <string name="onboarding_perm_battery_title">Battery\nOptimization</string>
+    <string name="onboarding_perm_battery_desc">To ensure alerts are never delayed, QuakeAlert needs to run without battery restrictions. It keeps connection alive 24/7.</string>
+    <string name="onboarding_perm_battery_btn">Disable Restriction</string>
+    <string name="onboarding_perm_location_title">Location\nAccess</string>
+    <string name="onboarding_perm_location_desc">QuakeAlert uses your location to calculate distance from earthquakes and show relevant alerts. Required for accurate warnings.</string>
+    <string name="onboarding_perm_location_btn">Grant Location</string>
+    <string name="onboarding_perm_granted">Permission granted</string>
+    <string name="onboarding_perm_already_enabled">Already Enabled</string>
+    <string name="onboarding_perm_required">REQUIRED</string>
+    <string name="onboarding_perm_optional">OPTIONAL</string>
+    <string name="onboarding_test_title">Test Your\nAlerts</string>
+    <string name="onboarding_test_subtitle">Send a test notification to make sure everything is working. This simulates a max-priority earthquake alert.</string>
+    <string name="onboarding_test_keep_alerting">Keep Alerting</string>
+    <string name="onboarding_test_keep_alerting_desc">Sound alarm continuously until you dismiss the notification</string>
+    <string name="onboarding_test_send_btn">Send Test Alert</string>
+    <string name="onboarding_test_firing">Firing test alert…</string>
+    <string name="onboarding_test_fired">Test alert fired! Check your notifications.</string>
+    <string name="onboarding_toast_permission_required">%1$s is required to continue</string>
+    <string name="onboarding_toast_grant_first">Please grant %1$s first</string>
     <string name="sensors_empty_text">No sensors found.\nPull down to refresh.</string>
 </resources>

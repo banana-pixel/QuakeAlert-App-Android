@@ -132,7 +132,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
-                    android:text="Permission granted"
+                    android:text="@string/onboarding_perm_granted"
                     android:textColor="@color/intensity_green"
                     android:textSize="13sp"
                     android:fontFamily="sans-serif-medium"

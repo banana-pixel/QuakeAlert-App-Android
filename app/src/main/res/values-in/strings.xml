@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="channel_subscriber_notification_noinstant_text">Berlangganan ke topik</string>
+    <string name="channel_subscriber_notification_noinstant_text">Menerima peringatan gempa</string>
     <string name="common_priority_default_name">Prioritas bawaan</string>
     <string name="common_priority_max_name">Prioritas maks</string>
     <string name="common_priority_min_name">Prioritas min</string>
     <string name="common_priority_low_name">Prioritas rendah</string>
-    <string name="channel_subscriber_service_name">Layanan Langganan</string>
-    <string name="channel_subscriber_notification_title">Mendengarkan notifikasi masuk</string>
-    <string name="channel_subscriber_notification_instant_text">Berlangganan ke topik pengiriman instan</string>
-    <string name="channel_subscriber_notification_instant_text_one">Berlangganan ke satu topik pengiriman instan</string>
-    <string name="channel_subscriber_notification_instant_text_two">Berlangganan ke dua topik pengiriman instan</string>
-    <string name="channel_subscriber_notification_instant_text_three">Berlangganan ke tiga topik pengiriman instan</string>
-    <string name="channel_subscriber_notification_instant_text_four">Berlangganan ke empat topik pengiriman instan</string>
-    <string name="channel_subscriber_notification_noinstant_text_two">Berlangganan ke dua topik</string>
+    <string name="channel_subscriber_service_name">Layanan Peringatan Gempa</string>
+    <string name="channel_subscriber_notification_title">Mendengarkan peringatan gempa</string>
+    <string name="channel_subscriber_notification_instant_text">Peringatan gempa instan aktif</string>
+    <string name="channel_subscriber_notification_instant_text_one">Peringatan gempa instan pada 1 topik</string>
+    <string name="channel_subscriber_notification_instant_text_two">Peringatan gempa instan pada 2 topik</string>
+    <string name="channel_subscriber_notification_instant_text_three">Peringatan gempa instan pada 3 topik</string>
+    <string name="channel_subscriber_notification_instant_text_four">Peringatan gempa instan pada 4 topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_two">Menerima peringatan pada 2 topik</string>
     <string name="refresh_message_no_results">Semua sudah terkini</string>
     <string name="refresh_message_error">Tidak dapat memuat ulang langganan %1$d
 \n
@@ -23,7 +23,7 @@
     <string name="main_menu_notifications_disabled_forever">Notifikasi dibisukan</string>
     <string name="main_menu_notifications_disabled_until">Notifikasi dibisukan sampai %1$s</string>
     <string name="main_menu_settings_title">Pengaturan</string>
-    <string name="main_menu_report_bug_title">Laporkan kutu</string>
+    <string name="main_menu_report_bug_title">Laporkan bug</string>
     <string name="main_menu_docs_title">Baca dokumentasi</string>
     <string name="main_menu_rate_title">Beri nilai aplikasi ⭐</string>
     <string name="main_action_mode_menu_unsubscribe">Batalkan langganan</string>
@@ -53,7 +53,7 @@
     <string name="add_dialog_login_password_hint">Kata sandi</string>
     <string name="add_dialog_login_error_not_authorized">Login gagal. Pengguna %1$s tidak diizinkan.</string>
     <string name="add_dialog_login_new_user">Pengguna baru</string>
-    <string name="detail_no_notifications_text">Anda belum menerima notifikasi apa pun.</string>
+    <string name="detail_no_notifications_text">Belum ada peringatan gempa.</string>
     <string name="detail_how_to_intro">Untuk mengirimkan notifikasi ke topik ini, lakukan PUT atau POST ke URL topik.</string>
     <string name="detail_how_to_example"><![CDATA[ Contoh (menggunakan curl):<br/><tt>$ curl -d \"Hi\" %1$s</tt> ]]></string>
     <string name="detail_how_to_link">Instruksi rinci tersedia di ntfy.sh, dan dalam dokumentasi.</string>
@@ -207,7 +207,7 @@
     <string name="user_dialog_description_add">Anda dapat menambahkan sebuah pengguna di sini. Semua topik untuk server yang dicantumkan akan menggunakan pengguna ini.</string>
     <string name="user_dialog_description_edit">Anda dapat mengubah nama pengguna/kata sandi untuk pengguna yang dipilih, atau hapus pengguna itu.</string>
     <string name="common_service_url">URL Layanan</string>
-    <string name="channel_subscriber_notification_noinstant_text_one">Berlangganan ke satu topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_one">Menerima peringatan pada 1 topik</string>
     <string name="detail_item_cannot_open_url">Tidak dapat membuka URL: %1$s</string>
     <string name="settings_notifications_min_priority_summary_any">Menampilkan semua notifikasi</string>
     <string name="settings_notifications_min_priority_summary_x_or_higher">Tampilkan notifikasi jika prioritas adalah %1$d (%2$s) atau di atas</string>
@@ -216,11 +216,11 @@
     <string name="common_priority_high_name">Prioritas tinggi</string>
     <string name="main_action_mode_delete_dialog_permanently_delete">Hapus secara permanen</string>
     <string name="add_dialog_button_subscribe">Berlangganan</string>
-    <string name="channel_subscriber_notification_instant_text_more">Berlangganan ke %1$d topik pengiriman instan</string>
-    <string name="channel_subscriber_notification_noinstant_text_four">Berlangganan ke empat topik</string>
+    <string name="channel_subscriber_notification_instant_text_more">Peringatan gempa instan pada %1$d topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_four">Menerima peringatan pada 4 topik</string>
     <string name="refresh_message_result">%1$d notifikasi diterima</string>
-    <string name="channel_subscriber_notification_noinstant_text_three">Berlangganan ke tiga topik</string>
-    <string name="channel_subscriber_notification_noinstant_text_more">Berlangganan ke %1$d topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_three">Menerima peringatan pada 3 topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_more">Menerima peringatan pada %1$d topik</string>
     <string name="add_dialog_instant_delivery_description">Memastikan pesan dikirim dengan segera, bahkan jika perangkatnya tidak aktif.</string>
     <string name="add_dialog_button_cancel">Batal</string>
     <string name="main_item_status_reconnecting">menghubungkan ulang …</string>
@@ -295,13 +295,13 @@
     <string name="user_dialog_button_add">Tambahkan pengguna</string>
     <string name="user_dialog_button_cancel">Batal</string>
     <string name="detail_deep_link_subscribed_toast_message">Berlangganan ke topik %1$s</string>
-    <string name="settings_notifications_channel_prefs_summary">Timpaan Jangan Ganggu (DND), suara, dll.</string>
+    <string name="settings_notifications_channel_prefs_summary">Timpaan DND, suara, dll.</string>
     <string name="settings_notifications_channel_prefs_title">Pengaturan saluran</string>
     <string name="notification_popup_user_action_failed">%1$s gagal: %2$s</string>
-    <string name="channel_subscriber_notification_instant_text_five">Berlangganan ke lima topik pengiriman instan</string>
-    <string name="channel_subscriber_notification_instant_text_six">Berlangganan ke enam topik pengiriman instan</string>
-    <string name="channel_subscriber_notification_noinstant_text_five">Berlangganan ke lima topik</string>
-    <string name="channel_subscriber_notification_noinstant_text_six">Berlangganan ke enam topik</string>
+    <string name="channel_subscriber_notification_instant_text_five">Peringatan gempa instan pada 5 topik</string>
+    <string name="channel_subscriber_notification_instant_text_six">Peringatan gempa instan pada 6 topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_five">Menerima peringatan pada 5 topik</string>
+    <string name="channel_subscriber_notification_noinstant_text_six">Menerima peringatan pada 6 topik</string>
     <string name="detail_settings_notifications_instant_summary_on">Notifikasi dikirim secara instan. Membutuhkan sebuah layanan latar depan dan mengkonsumsi lebih banyak baterai.</string>
     <string name="detail_settings_appearance_header">Tampilan</string>
     <string name="detail_settings_appearance_icon_set_summary">Tetapkan sebuah ikon untuk ditampilkan di notifikasi</string>
@@ -325,7 +325,7 @@
     <string name="detail_item_cannot_open_apk">Aplikasi tidak dapat dipasang lagi. Unduh melalui peramban. Lihat masalah #531 untuk detail lebih lanjut.</string>
     <string name="settings_notifications_insistent_max_priority_summary_disabled">Notifikasi prioritas maks hanya memperingati sekali</string>
     <string name="detail_settings_notifications_open_channels_title">Atur pengaturan notifikasi</string>
-    <string name="detail_settings_notifications_open_channels_summary">Sampingan Jangan Ganggu, suara, dll.</string>
+    <string name="detail_settings_notifications_open_channels_summary">Timpaan DND, suara, dll.</string>
     <string name="detail_settings_notifications_insistent_max_priority_list_item_disabled">Peringati hanya sekali</string>
     <string name="channel_notifications_group_default_name">Bawaan</string>
     <string name="detail_settings_notifications_insistent_max_priority_list_item_enabled">Tetap memperingati</string>
@@ -474,9 +474,114 @@
     <string name="channel_subscriber_notification_reconnecting_other">Menghubungkan kembali ke %1$d topik …</string>
     <string name="default_server_dialog_url_error_invalid">Masukkan URL layanan yang sah, misalnya https://ntfy.example.com</string>
 
+    <!-- History -->
+    <string name="history_location">Lokasi</string>
+    <string name="history_station_id">[%1$s]</string>
+    <string name="history_pga_label">PGA</string>
+    <string name="history_dur_label">DUR</string>
+    <string name="history_pga_value">%1$s</string>
+    <string name="history_dur_value">%1$ds</string>
+    <string name="history_empty_text">Belum ada riwayat gempa.\nTarik ke bawah untuk memuat ulang.</string>
+
+    <!-- Sensors -->
+    <string name="sensors_empty_text">Belum ada sensor terdeteksi.\nTarik ke bawah untuk memuat ulang.</string>
+    <string name="error_sensors_hint">Tidak dapat memuat. Tarik ke bawah untuk coba lagi.</string>
+    <string name="error_retry">Coba lagi</string>
+
+    <!-- Chat -->
+    <string name="chat_empty_text">Belum ada pesan.\nKirim pesan untuk memulai obrolan.</string>
+    <string name="chat_message_hint">Ketik pesan…</string>
+
+    <!-- Onboarding / Initialization -->
+    <string name="onboarding_skip">Lewati</string>
+    <string name="onboarding_back">Kembali</string>
+    <string name="onboarding_next">Lanjut</string>
+    <string name="onboarding_get_started">Mulai</string>
+    <string name="onboarding_intro1_title">Selamat datang di\nQuakeAlert</string>
+    <string name="onboarding_intro1_subtitle">Sistem peringatan dini gempa waktu nyata.\nTetap aman dengan peringatan seismik instan berbasis teknologi IoT.</string>
+    <string name="onboarding_intro2_title">Deteksi Berbasis\nESP32</string>
+    <string name="onboarding_intro2_subtitle">QuakeAlert terhubung ke jaringan mikrokontroler ESP32 yang dilengkapi sensor seismik.\n\nSaat gempa terdeteksi, Anda akan menerima notifikasi untuk bersiap.</string>
+    <string name="onboarding_perm_notification_title">Izin\nNotifikasi</string>
+    <string name="onboarding_perm_notification_desc">Untuk menerima peringatan gempa, QuakeAlert membutuhkan izin untuk mengirim notifikasi. Ini penting agar aplikasi berfungsi optimal.</string>
+    <string name="onboarding_perm_notification_btn">Aktifkan Notifikasi</string>
+    <string name="onboarding_perm_battery_title">Pengoptimalan\nBaterai</string>
+    <string name="onboarding_perm_battery_desc">Agar peringatan tidak tertunda, QuakeAlert perlu berjalan tanpa batasan baterai. Koneksi tetap aktif 24/7.</string>
+    <string name="onboarding_perm_battery_btn">Nonaktifkan Pembatasan</string>
+    <string name="onboarding_perm_location_title">Akses\nLokasi</string>
+    <string name="onboarding_perm_location_desc">QuakeAlert menggunakan lokasi Anda untuk menghitung jarak dari sumber gempa dan menampilkan peringatan yang relevan.</string>
+    <string name="onboarding_perm_location_btn">Izinkan Lokasi</string>
+    <string name="onboarding_perm_granted">Izin diberikan</string>
+    <string name="onboarding_perm_already_enabled">Sudah Aktif</string>
+    <string name="onboarding_perm_required">WAJIB</string>
+    <string name="onboarding_perm_optional">OPSIONAL</string>
+    <string name="onboarding_test_title">Uji Coba\nPeringatan</string>
+    <string name="onboarding_test_subtitle">Kirim notifikasi uji untuk memastikan semuanya berjalan. Ini mensimulasikan peringatan gempa prioritas maksimum.</string>
+    <string name="onboarding_test_keep_alerting">Tetap Berbunyi</string>
+    <string name="onboarding_test_keep_alerting_desc">Alarm tetap berbunyi sampai Anda menutup notifikasi</string>
+    <string name="onboarding_test_send_btn">Kirim Peringatan Uji</string>
+    <string name="onboarding_test_firing">Mengirim peringatan uji…</string>
+    <string name="onboarding_test_fired">Peringatan uji terkirim! Periksa notifikasi Anda.</string>
+    <string name="onboarding_toast_permission_required">%1$s diperlukan untuk melanjutkan</string>
+    <string name="onboarding_toast_grant_first">Izinkan %1$s terlebih dahulu</string>
+
+    <!-- Warning (alert page) -->
+    <string name="warning_screen_alert_content_description">Layar peringatan gempa</string>
+    <string name="warning_screen_scanning_content_description">Memantau aktivitas seismik. Status server dan sensor ditampilkan di bawah.</string>
+    <string name="warning_alert_icon_content_description">Peringatan gempa</string>
+    <string name="warning_safe_actions_button_content_description">Tampilkan langkah aman saat gempa. Jatuh, lindungi kepala, berpegangan.</string>
+    <string name="warning_safe_actions_card_content_description">Langkah penyelamatan. Jatuh ke tangan dan lutut. Lindungi kepala dan leher di bawah meja kuat. Berpegangan sampai guncangan berhenti.</string>
+    <string name="warning_share_button_content_description">Bagikan peringatan gempa ini</string>
+    <string name="warning_dismiss_button_content_description">Tutup peringatan</string>
+    <string name="warning_view_logs_content_description">Lihat log peringatan</string>
+    <string name="warning_radar_icon_content_description">Indikator status pemantauan</string>
+    <string name="warning_intensity_content_description">Intensitas guncangan</string>
+    <string name="warning_status_sensors_active">SENSOR AKTIF</string>
+    <string name="warning_status_connecting">MENUNGGU KONEKSI</string>
+    <string name="warning_status_server_offline">SERVER OFFLINE</string>
+    <string name="warning_status_no_sensors">TIDAK ADA SENSOR ONLINE</string>
+    <string name="warning_status_unstable">KONEKSI TIDAK STABIL</string>
+    <string name="warning_subtitle_monitoring">Memantau aktivitas seismik…</string>
+    <string name="warning_subtitle_connecting">Menghubungkan ke server…</string>
+    <string name="warning_subtitle_server_offline">Periksa internet atau coba lagi nanti.</string>
+    <string name="warning_subtitle_no_sensors">Server aktif namun tidak ada sensor online.</string>
+    <string name="warning_subtitle_unstable">Koneksi lambat atau tidak stabil.</string>
+    <string name="warning_sensors_online_count">%1$d sensor online</string>
+    <string name="warning_status_pill_healthy">Server sehat • %1$d sensor online</string>
+    <string name="warning_status_pill_connecting">Menghubungkan…</string>
+    <string name="warning_earthquake_alert_title">PERINGATAN GEMPA</string>
+    <string name="warning_what_should_i_do">APA YANG HARUS SAYA LAKUKAN?</string>
+    <string name="warning_life_saving_actions">LANGKAH PENYELAMATAN</string>
+    <string name="warning_drop">• JATUH: Berlutut dengan tangan di lantai.</string>
+    <string name="warning_cover">• LINDUNGI: Lindungi kepala dan leher di bawah meja yang kuat.</string>
+    <string name="warning_hold_on">• PEGANG: Tetap di sana sampai guncangan berhenti.</string>
+    <string name="warning_share">Bagikan</string>
+    <string name="warning_dismiss">Tutup</string>
+
+    <!-- Settings - Earthquake Alert -->
+    <string name="settings_earthquake_alert_header">Peringatan Gempa</string>
+    <string name="settings_earthquake_location_summary_title">Lokasi saat ini</string>
+    <string name="settings_earthquake_location_not_set">Belum diatur</string>
+    <string name="settings_earthquake_location_summary_format">(%1$s, %2$s)</string>
+    <string name="settings_earthquake_location_updated_toast">Lokasi diperbarui ke %1$s!</string>
+    <string name="settings_earthquake_update_location_title">Perbarui lokasi</string>
+    <string name="settings_earthquake_update_location_summary">Gunakan lokasi jaringan saat ini</string>
+    <string name="settings_earthquake_location_permission_missing">Izin lokasi diperlukan untuk memperbarui koordinat.</string>
+    <string name="settings_earthquake_location_unavailable">Lokasi tidak tersedia. Coba lagi.</string>
+    <string name="settings_earthquake_locating">Mencari lokasi…</string>
+    <string name="settings_earthquake_alert_radius">Jarak Radius Peringatan</string>
+    <string name="settings_earthquake_radius_km">%1$d km</string>
+    <string name="settings_earthquake_radius_global">Global</string>
+    <string name="settings_earthquake_range_desc">Hanya terima notifikasi untuk gempa dalam jangkauan ini</string>
+    <string name="settings_earthquake_recenter_map">Pusatkan Peta</string>
+    <string name="sensors_status_healthy">Server Sehat</string>
+    <string name="sensors_status_connecting">Menghubungkan…</string>
+    <string name="sensors_status_unstable">Koneksi Tidak Stabil</string>
+    <string name="sensors_status_offline">Server Offline</string>
+    <string name="sensors_latency_format">%1$d ms</string>
+
     <!-- MMI intensity descriptions (Modified Mercalli scale) -->
     <string name="mmi_desc_i">Hanya tercatat instrumen.</string>
-    <string name="mmi_desc_ii_iii">Dirasakan orang diam di atas.</string>
+    <string name="mmi_desc_ii_iii">Dirasakan oleh orang yang berdiam di dalam ruangan.</string>
     <string name="mmi_desc_iv">Jendela/pintu berderik.</string>
     <string name="mmi_desc_v">Barang ringan terpelanting.</string>
     <string name="mmi_desc_vi">Plester dinding retak.</string>

@@ -293,9 +293,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private fun updateRadiusLabel(valueView: TextView, progress: Int) {
         val radius = progress * STEP_KM
         valueView.text = if (radius >= MAX_RADIUS_KM) {
-            "Global"
+            getString(R.string.settings_earthquake_radius_global)
         } else {
-            "${radius} km"
+            getString(R.string.settings_earthquake_radius_km, radius)
         }
     }
 

@@ -189,13 +189,13 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         // Latency: only show when we have a valid ping; hide when offline/connecting
         val showLatency = status.isConnectionHealthy
         appLatency.visibility = if (showLatency) View.VISIBLE else View.GONE
-        if (showLatency) appLatency.text = "$latency ms"
+        if (showLatency) appLatency.text = getString(R.string.sensors_latency_format, latency)
 
         when (status) {
             ServerHealthStatus.HEALTHY -> {
                 // GREEN STYLE
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_green2)
-                healthStatus.text = "Server Healthy"
+                healthStatus.text = getString(R.string.sensors_status_healthy)
                 healthStatus.setTextColor(Color.WHITE)
                 healthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 appLatency.setTextColor(Color.parseColor("#E8F5E9")) // Very Light Green
@@ -203,7 +203,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
             ServerHealthStatus.CONNECTING -> {
                 // BLUE STYLE (Connecting)
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_blue)
-                healthStatus.text = "Connecting..."
+                healthStatus.text = getString(R.string.sensors_status_connecting)
                 healthStatus.setTextColor(Color.WHITE)
                 healthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 appLatency.setTextColor(Color.parseColor("#E1F5FE")) // Very Light Blue
@@ -211,7 +211,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
             ServerHealthStatus.WARNING -> {
                 // ORANGE STYLE (High Latency)
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_orange)
-                healthStatus.text = "Unstable Connection"
+                healthStatus.text = getString(R.string.sensors_status_unstable)
                 healthStatus.setTextColor(Color.parseColor("#FFF3E0")) // Very light orange
                 healthDot.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FFF3E0"))
                 appLatency.setTextColor(Color.parseColor("#FFF3E0"))
@@ -219,7 +219,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
             ServerHealthStatus.CRITICAL -> {
                 // RED STYLE (Offline / Error)
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_red)
-                healthStatus.text = "Server Offline"
+                healthStatus.text = getString(R.string.sensors_status_offline)
                 healthStatus.setTextColor(Color.WHITE)
                 healthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 appLatency.setTextColor(Color.parseColor("#FFEBEE")) // Very light red

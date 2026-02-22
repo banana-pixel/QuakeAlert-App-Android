@@ -45,46 +45,46 @@ class OnboardingActivity : BaseActivity() {
     private lateinit var repository: Repository
     private val notifier by lazy { NotificationService(this) }
 
-    private val pages = listOf(
-        OnboardingPage.Intro(
-            iconRes = R.drawable.ic_onboarding_logo,
-            title = "Welcome to\nQuakeAlert App",
-            subtitle = "Real-time earthquake early warning system.\nKeep safe with instant seismic alerts powered by IoT technology.",
-            showIconCircle = false
-        ),
-        OnboardingPage.Intro(
-            iconRes = R.drawable.ic_onboarding_esp32,
-            title = "ESP32 Powered\nDetection",
-            subtitle = "QuakeAlert connects to a network of ESP32 microcontrollers equipped with seismic sensors.\n\nWhen an earthquake is detected, you receive an notification for you to prepare."
-        ),
-        // Required permissions first
-        OnboardingPage.Permission(
-            iconRes = R.drawable.ic_onboarding_notification,
-            title = "Notification\nPermission",
-            description = "To receive earthquake alerts, QuakeAlert needs permission to send you notifications. This is critical for your app functionality.",
-            buttonText = "Enable Notifications",
-            type = PermissionType.NOTIFICATION,
-            required = true
-        ),
-        OnboardingPage.Permission(
-            iconRes = R.drawable.ic_onboarding_battery,
-            title = "Battery\nOptimization",
-            description = "To ensure alerts are never delayed, QuakeAlert needs to run without battery restrictions. It keeps connection alive 24/7.",
-            buttonText = "Disable Restriction",
-            type = PermissionType.BATTERY,
-            required = true
-        ),
-        // Location is required for distance-based alerts
-        OnboardingPage.Permission(
-            iconRes = R.drawable.ic_onboarding_location,
-            title = "Location\nAccess",
-            description = "QuakeAlert uses your location to calculate distance from earthquakes and show relevant alerts. Required for accurate warnings.",
-            buttonText = "Grant Location",
-            type = PermissionType.LOCATION,
-            required = true
-        ),
-        OnboardingPage.TestNotification
-    )
+    private val pages: List<OnboardingPage> by lazy {
+        listOf(
+            OnboardingPage.Intro(
+                iconRes = R.drawable.ic_onboarding_logo,
+                title = getString(R.string.onboarding_intro1_title),
+                subtitle = getString(R.string.onboarding_intro1_subtitle),
+                showIconCircle = false
+            ),
+            OnboardingPage.Intro(
+                iconRes = R.drawable.ic_onboarding_esp32,
+                title = getString(R.string.onboarding_intro2_title),
+                subtitle = getString(R.string.onboarding_intro2_subtitle)
+            ),
+            OnboardingPage.Permission(
+                iconRes = R.drawable.ic_onboarding_notification,
+                title = getString(R.string.onboarding_perm_notification_title),
+                description = getString(R.string.onboarding_perm_notification_desc),
+                buttonText = getString(R.string.onboarding_perm_notification_btn),
+                type = PermissionType.NOTIFICATION,
+                required = true
+            ),
+            OnboardingPage.Permission(
+                iconRes = R.drawable.ic_onboarding_battery,
+                title = getString(R.string.onboarding_perm_battery_title),
+                description = getString(R.string.onboarding_perm_battery_desc),
+                buttonText = getString(R.string.onboarding_perm_battery_btn),
+                type = PermissionType.BATTERY,
+                required = true
+            ),
+            OnboardingPage.Permission(
+                iconRes = R.drawable.ic_onboarding_location,
+                title = getString(R.string.onboarding_perm_location_title),
+                description = getString(R.string.onboarding_perm_location_desc),
+                buttonText = getString(R.string.onboarding_perm_location_btn),
+                type = PermissionType.LOCATION,
+                required = true
+            ),
+            OnboardingPage.TestNotification
+        )
+    }
 
     // Indices of all required permission pages
     private val requiredPageIndices: List<Int>
@@ -158,7 +158,7 @@ class OnboardingActivity : BaseActivity() {
             // Block if on a required permission page and not granted
             if (isOnRequiredPage(current)) {
                 val page = pages[current] as OnboardingPage.Permission
-                Toast.makeText(this, "${page.title.replace("\n", " ")} is required to continue", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.onboarding_toast_permission_required, page.title.replace("\n", " ")), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (current < pages.size - 1) {
@@ -195,7 +195,7 @@ class OnboardingActivity : BaseActivity() {
                         val page = pages[firstBlockedIndex] as OnboardingPage.Permission
                         Toast.makeText(
                             this@OnboardingActivity,
-                            "Please grant ${page.title.replace("\n", " ").lowercase()} first",
+                            getString(R.string.onboarding_toast_grant_first, page.title.replace("\n", " ").lowercase()),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -282,7 +282,7 @@ class OnboardingActivity : BaseActivity() {
         val isLastPage = position == pages.size - 1
         val isFirstPage = position == 0
 
-        btnNext.text = if (isLastPage) "Get Started" else "Next"
+        btnNext.text = if (isLastPage) getString(R.string.onboarding_get_started) else getString(R.string.onboarding_next)
         btnBack.visibility = if (isFirstPage) View.GONE else View.VISIBLE
 
         // Adjust weights
@@ -368,7 +368,7 @@ class OnboardingActivity : BaseActivity() {
 
     private fun sendTestNotification(insistent: Boolean, statusText: TextView) {
         statusText.visibility = View.VISIBLE
-        statusText.text = "Firing test alert..."
+        statusText.text = getString(R.string.onboarding_test_firing)
         statusText.setTextColor(android.graphics.Color.parseColor("#AA84D6C2"))
 
         // Enable or disable insistent max priority globally for the test
@@ -428,7 +428,7 @@ class OnboardingActivity : BaseActivity() {
             notifier.createDefaultNotificationChannels()
             notifier.display(subscription, notification)
 
-            statusText.text = "Test alert fired! Check your notifications."
+            statusText.text = getString(R.string.onboarding_test_fired)
             statusText.setTextColor(android.graphics.Color.parseColor("#66BB6A"))
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fire test notification", e)
@@ -522,11 +522,11 @@ class OnboardingActivity : BaseActivity() {
 
                 // Show "REQUIRED" or "OPTIONAL" 3D badge
                 if (page.required) {
-                    badge.text = "REQUIRED"
+                    badge.text = getString(R.string.onboarding_perm_required)
                     badge.setTextColor(android.graphics.Color.WHITE)
                     badge.setBackgroundResource(R.drawable.bg_badge_3d_red_small)
                 } else {
-                    badge.text = "OPTIONAL"
+                    badge.text = getString(R.string.onboarding_perm_optional)
                     badge.setTextColor(android.graphics.Color.WHITE)
                     badge.setBackgroundResource(R.drawable.bg_badge_3d_green_small)
                 }
@@ -541,10 +541,10 @@ class OnboardingActivity : BaseActivity() {
             fun updateStatus(granted: Boolean) {
                 if (granted) {
                     actionBtn.alpha = 1f
-                    actionBtn.text = "Already Enabled"
+                    actionBtn.text = getString(R.string.onboarding_perm_already_enabled)
                     actionBtn.setBackgroundResource(R.drawable.bg_pill_3d_green)
                     statusContainer.visibility = View.VISIBLE
-                    statusText.text = "Permission granted"
+                    statusText.text = getString(R.string.onboarding_perm_granted)
                 } else {
                     actionBtn.alpha = 1f
                     actionBtn.setBackgroundResource(R.drawable.bg_onboarding_btn_action_3d)

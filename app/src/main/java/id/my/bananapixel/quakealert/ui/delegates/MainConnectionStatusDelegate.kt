@@ -74,33 +74,33 @@ class MainConnectionStatusDelegate(
 
         val showLatency = status == "HEALTHY" || status == "WARNING"
         tvAppLatency.visibility = if (showLatency) View.VISIBLE else View.GONE
-        if (showLatency) tvAppLatency.text = "$latency ms"
+        if (showLatency) tvAppLatency.text = activity.getString(R.string.sensors_latency_format, latency)
 
         when (status) {
             "HEALTHY" -> {
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_green2)
-                tvHealthStatus.text = "Server Healthy"
+                tvHealthStatus.text = activity.getString(R.string.sensors_status_healthy)
                 tvHealthStatus.setTextColor(Color.WHITE)
                 viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 tvAppLatency.setTextColor(Color.parseColor("#E8F5E9"))
             }
             "CONNECTING" -> {
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_blue)
-                tvHealthStatus.text = "Connecting..."
+                tvHealthStatus.text = activity.getString(R.string.sensors_status_connecting)
                 tvHealthStatus.setTextColor(Color.WHITE)
                 viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 tvAppLatency.setTextColor(Color.parseColor("#E1F5FE"))
             }
             "WARNING" -> {
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_orange)
-                tvHealthStatus.text = "Unstable Connection"
+                tvHealthStatus.text = activity.getString(R.string.sensors_status_unstable)
                 tvHealthStatus.setTextColor(Color.parseColor("#FFF3E0"))
                 viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.parseColor("#FFF3E0"))
                 tvAppLatency.setTextColor(Color.parseColor("#FFF3E0"))
             }
             "CRITICAL" -> {
                 healthBar.setBackgroundResource(R.drawable.bg_pill_3d_red)
-                tvHealthStatus.text = "Server Offline"
+                tvHealthStatus.text = activity.getString(R.string.sensors_status_offline)
                 tvHealthStatus.setTextColor(Color.WHITE)
                 viewHealthDot.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 tvAppLatency.setTextColor(Color.parseColor("#FFEBEE"))

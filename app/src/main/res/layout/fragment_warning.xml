@@ -126,7 +126,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="EARTHQUAKE ALERT"
+                android:text="@string/warning_earthquake_alert_title"
                 android:textColor="#FFFFFF"
                 android:textSize="22sp"
                 android:textStyle="bold"
@@ -180,11 +180,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="72dp"
                 android:contentDescription="@string/warning_safe_actions_button_content_description"
-                android:text="WHAT SHOULD I DO?"
+                android:text="@string/warning_what_should_i_do"
                 android:textSize="18sp"
                 app:backgroundTint="#FFFFFF"
                 app:cornerRadius="16dp"
                 app:icon="@drawable/help_circle"
+                app:iconTint="#000000"
                 android:textColor="#B71C1C" />
 
             <com.google.android.material.card.MaterialCardView
@@ -208,7 +209,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="LIFE-SAVING ACTIONS"
+                        android:text="@string/warning_life_saving_actions"
                         android:textColor="#B71C1C"
                         android:textSize="14sp"
                         android:textStyle="bold"
@@ -218,7 +219,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="• DROP: Get down on your hands and knees."
+                        android:text="@string/warning_drop"
                         android:textColor="#000000"
                         android:textSize="16sp" />
 
@@ -234,7 +235,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="• HOLD ON: Stay there until the shaking stops."
+                        android:text="@string/warning_hold_on"
                         android:textColor="#000000"
                         android:textSize="16sp" />
 
@@ -254,7 +255,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:contentDescription="@string/warning_share_button_content_description"
-                    android:text="Share"
+                    android:text="@string/warning_share"
                     android:textColor="#FFFFFF"
                     app:strokeColor="#FFFFFF" />
 
@@ -265,7 +266,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:contentDescription="@string/warning_dismiss_button_content_description"
-                    android:text="Dismiss"
+                    android:text="@string/warning_dismiss"
                     android:textColor="#FFFFFF" />
 
             </LinearLayout>
