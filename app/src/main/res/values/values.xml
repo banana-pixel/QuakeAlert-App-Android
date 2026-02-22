@@ -45,7 +45,7 @@
     <string name="settings_about_version_format" translatable="false">QuakeAlert %1$s (%2$s)</string>
     <string name="settings_about_ntfy_version_format" translatable="false">ntfy %1$s</string>
     <string name="settings_about_ntfy_version_number" translatable="false">1.23.0</string>
-    <string name="settings_about_quakealert_version_number" translatable="false">0.2</string>
+    <string name="settings_about_quakealert_version_number" translatable="false">0.3</string>
     <string name="settings_about_credit" translatable="false">Based on ntfy by Philipp C. Heckel · QuakeAlert by Banana Pixel</string>
     <string name="settings_about_ntfy_version_copy_label" translatable="false">ntfy version</string>
     <string name="settings_about_quakealert_version_copy_label" translatable="false">QuakeAlert version</string>

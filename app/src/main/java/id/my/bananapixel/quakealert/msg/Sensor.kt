@@ -9,8 +9,10 @@ import kotlinx.serialization.Serializable
 data class Sensor(
     @SerialName("RSSI") val rssi: String? = null,
     @SerialName("last_ping") val lastPing: Long? = null,
+    val latitude: Double? = null,
     val latency: String? = null,
     val location: String? = null,
+    val longitude: Double? = null,
     @SerialName("station_id") val stationId: String? = null,
     val status: String? = null,
 )

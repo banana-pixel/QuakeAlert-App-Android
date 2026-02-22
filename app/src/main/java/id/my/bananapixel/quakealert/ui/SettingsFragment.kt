@@ -20,7 +20,15 @@ import com.google.android.material.button.MaterialButton
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Repository
+import id.my.bananapixel.quakealert.msg.Sensor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.content.Context
@@ -30,11 +38,13 @@ import id.my.bananapixel.quakealert.util.systemDarkThemeOn
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polygon
+import java.io.IOException
 import java.util.Locale
 import android.graphics.Point
 import android.view.ViewTreeObserver
 
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
+    private val httpClient = OkHttpClient()
     private lateinit var repository: Repository
     private lateinit var mapView: MapView
     private lateinit var tvLocationName: TextView
@@ -183,11 +193,69 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
         btnZoomIn.setOnClickListener { mapView.controller.zoomIn() }
         btnZoomOut.setOnClickListener { mapView.controller.zoomOut() }
+
+        // Sensor dots: fetch stations and add markers (no toggle, no map recenter on tap)
+        fetchStationsAndAddMarkers()
+    }
+
+    private fun fetchStationsAndAddMarkers() {
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
+        val request = Request.Builder().url("$baseUrl/stations").build()
+        httpClient.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (!response.isSuccessful) return@use
+                    val body = response.body?.string() ?: return@use
+                    if (!body.trim().startsWith("[")) return@use
+                    try {
+                        val stations: List<Sensor> = Json.decodeFromString(
+                            ListSerializer(Sensor.serializer()),
+                            body
+                        )
+                        activity?.runOnUiThread {
+                            if (isAdded) addSensorMarkers(stations)
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        })
+    }
+
+    private fun addSensorMarkers(stations: List<Sensor>) {
+        val sensorOverlays = mapView.overlays.filterIsInstance<org.osmdroid.views.overlay.Marker>()
+            .filter { it.relatedObject is Sensor }
+        sensorOverlays.forEach { mapView.overlays.remove(it) }
+
+        val statusCard = MapStatusCard(R.layout.map_status_card, mapView)
+        val dotIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_sensor_dot_map)
+
+        for (sensor in stations) {
+            val lat = sensor.latitude ?: continue
+            val lon = sensor.longitude ?: continue
+            if (lat !in -90.0..90.0 || lon !in -180.0..180.0) continue
+
+            val marker = org.osmdroid.views.overlay.Marker(mapView).apply {
+                position = GeoPoint(lat, lon)
+                setAnchor(
+                    org.osmdroid.views.overlay.Marker.ANCHOR_CENTER,
+                    org.osmdroid.views.overlay.Marker.ANCHOR_CENTER
+                )
+                icon = dotIcon
+                setPanToView(false)
+                relatedObject = sensor
+                setInfoWindow(statusCard)
+            }
+            mapView.overlays.add(marker)
+        }
+        mapView.invalidate()
     }
 
     /** Returns the map center GeoPoint so the target appears above the bottom panel. */
     private fun getOffsetCenter(target: GeoPoint): GeoPoint {
-        val offsetPixels = bottomPanel.height / 2
+        val baseOffset = bottomPanel.height / 2
+        val extraUp = (24 * resources.displayMetrics.density).toInt()
+        val offsetPixels = baseOffset + extraUp
         if (offsetPixels <= 0) return target
         val projection = mapView.projection
         val targetPointPixels = projection.toPixels(target, null)
