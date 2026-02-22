@@ -1,7 +1,5 @@
 package id.my.bananapixel.quakealert.ui.delegates
 
-import android.os.Handler
-import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.FragmentActivity
@@ -32,7 +30,6 @@ class MainNavigationDelegate(
 ) {
     private var navController: NavController? = null
     private var destinationChangedListener: NavController.OnDestinationChangedListener? = null
-    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val navHostFragment: NavHostFragment?
         get() = activity.supportFragmentManager.findFragmentById(R.id.main_nav_host) as? NavHostFragment
@@ -53,10 +50,13 @@ class MainNavigationDelegate(
         }
     }
 
-    /** NavOptions that clear back stack on tab switch; prevents TransactionTooLargeException. */
+    /** NavOptions that clear back stack on tab switch; prevents TransactionTooLargeException.
+     * Uses inclusive=false so nav_history stays in the stack as popUpTo target. With inclusive=true,
+     * the start destination gets popped on first tab switch, so subsequent switches to History find
+     * nothing to pop and the stack grows indefinitely during rapid navigation. */
     private fun buildTabSwitchNavOptions(navController: NavController): NavOptions =
         NavOptions.Builder()
-            .setPopUpTo(navController.graph.startDestinationId, true)
+            .setPopUpTo(navController.graph.startDestinationId, false)
             .setLaunchSingleTop(true)
             .setRestoreState(false)
             .build()
@@ -127,29 +127,39 @@ class MainNavigationDelegate(
 
     /**
      * Trims the NavController back stack when it exceeds the limit to prevent
-     * TransactionTooLargeException. Debounced so rapid tab switching doesn't cause
-     * fragment transactions during navigation. Safe-guarded to avoid crashes.
+     * TransactionTooLargeException. Runs immediately so we catch growth before
+     * it causes TransactionTooLargeException on activity pause.
      */
     private fun trimBackStackIfNeeded(controller: NavController) {
         if (activity.isDestroyed || activity.isFinishing) return
         val fragmentCount = navHostFragment?.childFragmentManager?.fragments?.size ?: 0
         if (fragmentCount <= MAX_NAV_BACK_STACK) return
-        val toPop = fragmentCount - MAX_NAV_BACK_STACK
-        mainHandler.postDelayed({
-            try {
-                if (activity.isDestroyed || activity.isFinishing) return@postDelayed
-                var remaining = toPop
-                while (remaining > 0) {
-                    if (!controller.popBackStack()) break
-                    remaining--
-                }
-            } catch (_: Exception) { /* ignore - avoid crash during navigation */ }
-        }, 300) // Debounce: wait for rapid navigation to settle
+        try {
+            // Pop back to start destination - collapses to 1 fragment, minimal state
+            controller.popBackStack(controller.graph.startDestinationId, false)
+        } catch (_: Exception) { /* ignore - avoid crash during navigation */ }
+    }
+
+    /**
+     * Aggressively trims the nav back stack before the activity goes to background.
+     * Call from Activity.onPause() to ensure saved state stays under Binder limit
+     * (e.g. when opening Settings from the 3-dot menu after rapid tab switching).
+     */
+    fun trimBackStackBeforeBackground() {
+        if (activity.isDestroyed || activity.isFinishing) return
+        val controller = navHostFragment?.navController ?: return
+        val fragmentCount = navHostFragment?.childFragmentManager?.fragments?.size ?: 0
+        if (fragmentCount <= MAX_NAV_BACK_STACK) return
+        try {
+            // Pop back to start destination - leaves 1 fragment, minimal saved state
+            controller.popBackStack(controller.graph.startDestinationId, false)
+        } catch (_: Exception) { /* ignore */ }
     }
 
     private companion object {
-        /** Max entries in nav back stack; prevents TransactionTooLargeException. */
-        const val MAX_NAV_BACK_STACK = 6
+        /** Max entries in nav back stack; prevents TransactionTooLargeException.
+         * With popUpTo(nav_history, false) we expect at most 2 (History + current tab). */
+        const val MAX_NAV_BACK_STACK = 3
         val TOP_LEVEL_DESTINATIONS = setOf(
             R.id.nav_history,
             R.id.nav_sensors,

@@ -370,6 +370,13 @@ class MainActivity : AppCompatActivity(), AddFragment.SubscribeListener, Notific
         super.onDestroy()
     }
 
+    override fun onPause() {
+        // Trim nav back stack before going to background to avoid TransactionTooLargeException
+        // when saved state exceeds Binder limit (e.g. after rapid tab switching, then opening Settings)
+        if (::navigationDelegate.isInitialized) navigationDelegate.trimBackStackBeforeBackground()
+        super.onPause()
+    }
+
     override fun onResume() {
         super.onResume()
         showHideNotificationMenuItems()
