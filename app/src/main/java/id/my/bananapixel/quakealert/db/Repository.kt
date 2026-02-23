@@ -468,7 +468,8 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     }
 
     fun getInsistentMaxPriorityEnabled(): Boolean {
-        return sharedPrefs.getBoolean(SHARED_PREFS_INSISTENT_MAX_PRIORITY_ENABLED, false)
+        // Default to true so "Keep alerting" starts enabled for new installs
+        return sharedPrefs.getBoolean(SHARED_PREFS_INSISTENT_MAX_PRIORITY_ENABLED, true)
     }
 
     fun setInsistentMaxPriorityEnabled(enabled: Boolean) {

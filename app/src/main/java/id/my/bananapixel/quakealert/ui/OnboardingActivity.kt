@@ -563,7 +563,19 @@ class OnboardingActivity : BaseActivity() {
             private val statusText: TextView = view.findViewById(R.id.onboarding_test_status)
 
             fun bind() {
-                insistentToggle.isChecked = true
+                // Reflect the current global "Keep alerting" setting in the initial toggle state
+                insistentToggle.isChecked = repository.getInsistentMaxPriorityEnabled()
+
+                // Ensure the currently visible state is also saved as the global default,
+                // so simply visiting this page (without pressing the test button)
+                // configures the ntfy setting consistently.
+                repository.setInsistentMaxPriorityEnabled(insistentToggle.isChecked)
+
+                // Persist changes immediately so Settings screen stays in sync,
+                // even if the user skips firing a test alert
+                insistentToggle.setOnCheckedChangeListener { _, isChecked ->
+                    repository.setInsistentMaxPriorityEnabled(isChecked)
+                }
 
                 sendBtn.setOnClickListener {
                     sendTestNotification(insistentToggle.isChecked, statusText)
