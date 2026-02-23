@@ -1,0 +1,21 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Soft glow behind the sensor icon -->
+    <item>
+        <shape android:shape="oval">
+            <size
+                android:width="30dp"
+                android:height="30dp" />
+            <!-- Semi-transparent blue to simulate a glow -->
+            <solid android:color="#6601579B" />
+        </shape>
+    </item>
+
+    <!-- Centered sensors icon, tinted white -->
+    <item
+        android:drawable="@drawable/ic_sensors"
+        android:gravity="center"
+        android:tint="@android:color/white" />
+
+</layer-list>
+

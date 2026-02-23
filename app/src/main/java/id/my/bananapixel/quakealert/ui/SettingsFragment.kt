@@ -228,7 +228,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         sensorOverlays.forEach { mapView.overlays.remove(it) }
 
         val statusCard = MapStatusCard(R.layout.map_status_card, mapView)
-        val dotIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_sensor_dot_map)
+        // Use a blue circular marker with white outline and white sensors icon
+        val dotIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_sensor_marker)
 
         for (sensor in stations) {
             val lat = sensor.latitude ?: continue
