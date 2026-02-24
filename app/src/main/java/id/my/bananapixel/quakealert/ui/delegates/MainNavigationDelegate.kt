@@ -73,11 +73,7 @@ class MainNavigationDelegate(
             if (destination.id in TOP_LEVEL_DESTINATIONS) {
                 bottomNav.selectedItemId = destination.id
             }
-            if (destination.id == R.id.nav_warning) {
-                bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile_warning)
-            } else {
-                bottomNav.setItemBackgroundResource(R.drawable.inset_nav_tile)
-            }
+            // Background is now handled per-item in MainActivity.setupBottomNavBackgrounds()
             bottomNav.post { onApplyBottomInset() }
             // Cap back stack to avoid TransactionTooLargeException when saving state
             trimBackStackIfNeeded(controller)

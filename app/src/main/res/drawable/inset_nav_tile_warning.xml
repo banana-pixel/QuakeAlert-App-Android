@@ -3,5 +3,5 @@
     android:drawable="@drawable/nav_item_background_warning"
     android:insetLeft="4dp"
     android:insetRight="4dp"
-    android:insetTop="0dp"
-    android:insetBottom="0dp" />
+    android:insetTop="8dp"
+    android:insetBottom="8dp" />

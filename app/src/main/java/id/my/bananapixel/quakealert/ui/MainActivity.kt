@@ -31,6 +31,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import id.my.bananapixel.quakealert.BuildConfig
@@ -107,6 +108,7 @@ class MainActivity : BaseActivity(), AddFragment.SubscribeListener, Notification
     private lateinit var actionModeDelegate: MainActionModeDelegate
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(repository.getDarkMode())
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         setContentView(R.layout.activity_main)
@@ -118,12 +120,42 @@ class MainActivity : BaseActivity(), AddFragment.SubscribeListener, Notification
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.main_nav_host) as NavHostFragment
         val navController = navHostFragment.navController
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
-        // Custom nav setup: MainNavigationDelegate uses setPopUpTo to prevent TransactionTooLargeException.
-        // See MainNavigationDelegate class KDoc for rationale.
+        setupBottomNavBackgrounds(bottomNav)
         navigationDelegate = MainNavigationDelegate(this)
-        navigationDelegate.setupBottomNavClearBackStack(navController, bottomNav)
         navigationDelegate.addDestinationChangedListener(navController, bottomNav) {
-            navigationDelegate.applyBottomInset(bottomNav)
+            // navigationDelegate.applyBottomInset(bottomNav) // No longer needed with fixed bottom nav
+        }
+
+        val viewPager = findViewById<ViewPager2>(R.id.main_view_pager).apply {
+            adapter = MainPagerAdapter(this@MainActivity)
+            offscreenPageLimit = MainPagerAdapter.TAB_COUNT - 1
+        }
+
+        bottomNav.setOnItemSelectedListener { item ->
+            val position = MainPagerAdapter.navIdToPosition(item.itemId)
+            viewPager.setCurrentItem(position, true)
+            true
+        }
+
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+                val navId = MainPagerAdapter.positionToNavId(position)
+                if (bottomNav.selectedItemId != navId) {
+                    bottomNav.selectedItemId = navId
+                }
+                if (position in 0 until MainPagerAdapter.TAB_TITLES.size) {
+                    supportActionBar?.title = MainPagerAdapter.TAB_TITLES[position]
+                }
+            }
+        })
+
+        // Ensure initial bottom nav selection & title match the first tab
+        val initialPosition = viewPager.currentItem
+        val initialNavId = MainPagerAdapter.positionToNavId(initialPosition)
+        bottomNav.selectedItemId = initialNavId
+        if (initialPosition in 0 until MainPagerAdapter.TAB_TITLES.size) {
+            supportActionBar?.title = MainPagerAdapter.TAB_TITLES[initialPosition]
         }
 
         keyboardDelegate = MainKeyboardDelegate(this, navigationDelegate)
@@ -277,9 +309,6 @@ class MainActivity : BaseActivity(), AddFragment.SubscribeListener, Notification
 
         // Subscribe to control Firebase channel (so we can re-start the foreground service if it dies)
         messenger.subscribe(ApiService.CONTROL_TOPIC)
-
-        // Darrkkkk mode
-        AppCompatDelegate.setDefaultNightMode(repository.getDarkMode())
 
         // Background things
         schedulePeriodicPollWorker()
@@ -744,6 +773,22 @@ class MainActivity : BaseActivity(), AddFragment.SubscribeListener, Notification
             return
         }
         adapter.notifyItemRangeChanged(0, adapter.currentList.size)
+    }
+
+    private fun setupBottomNavBackgrounds(bottomNav: com.google.android.material.bottomnavigation.BottomNavigationView) {
+        val menuView = bottomNav.getChildAt(0) as? android.view.ViewGroup ?: return
+
+        for (i in 0 until menuView.childCount) {
+            val itemView = menuView.getChildAt(i)
+            val item = bottomNav.menu.getItem(i)
+
+            // Assign the red 3D background to Warning, and the blue 3D background to everything else
+            if (item.itemId == R.id.nav_warning) {
+                itemView.setBackgroundResource(R.drawable.inset_nav_tile_warning)
+            } else {
+                itemView.setBackgroundResource(R.drawable.inset_nav_tile)
+            }
+        }
     }
 
     companion object {
