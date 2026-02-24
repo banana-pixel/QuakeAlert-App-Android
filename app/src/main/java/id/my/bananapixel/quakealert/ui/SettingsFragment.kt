@@ -155,7 +155,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                 } else {
                     Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
                 }
-                updateMapCircle(radius, GeoPoint(lat, lon))
+                val currentCenter = GeoPoint(lat, lon)
+                updateMapCircle(radius, currentCenter)
                 if (fromUser) {
                     sharedPrefs.edit { putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius) }
                 }
@@ -209,12 +210,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     }
 
     private fun addSensorMarkers(stations: List<Sensor>) {
-        // 1. Remove all sensor markers
         val sensorMarkers = mapView.overlays.filterIsInstance<org.osmdroid.views.overlay.Marker>()
             .filter { it.relatedObject is Sensor }
         sensorMarkers.forEach { mapView.overlays.remove(it) }
 
-        // 2. Add sensor markers
         val statusCard = MapStatusCard(R.layout.map_status_card, mapView)
         val dotIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_sensor_marker)
 
@@ -234,17 +233,17 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             mapView.overlays.add(marker)
         }
 
-        // 3. IMPORTANT: Re-add the center marker (crosshair) so it's on top
         lastCenter?.let { updateCenterMarker(it) }
-
         mapView.invalidate()
     }
 
     private fun getOffsetCenter(target: GeoPoint): GeoPoint {
-        val baseOffset = bottomPanel.height / 2
-        val extraUp = (8 * resources.displayMetrics.density).toInt() // Corrected: Reduced to move crosshair down
-        val offsetPixels = baseOffset + extraUp
-        if (offsetPixels <= 0) return target
+        val panelHeight = bottomPanel.height.takeIf { it > 0 } ?: (resources.displayMetrics.heightPixels / 3)
+        val baseOffset = panelHeight / 2
+        // Use a more aggressive negative offset to move crosshair LOWER on the screen
+        val extraUp = ((-36) * resources.displayMetrics.density).toInt()
+        val offsetPixels = (baseOffset + extraUp).coerceAtLeast(0)
+        
         val projection = mapView.projection
         val targetPointPixels = projection.toPixels(target, null)
         val newCenterPixels = Point(targetPointPixels.x, targetPointPixels.y + offsetPixels)
@@ -266,15 +265,12 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
     private fun updateCenterMarker(center: GeoPoint) {
         lastCenter = center
-        if (centerMarker != null) {
-            mapView.overlays.remove(centerMarker)
-        }
+        centerMarker?.let { mapView.overlays.remove(it) }
         centerMarker = org.osmdroid.views.overlay.Marker(mapView).apply {
             position = center
             setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
             icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_custom_crosshair)
             setInfoWindow(null)
-            // Fix: returning false allows the click to pass through to overlays underneath
             setOnMarkerClickListener { _, _ -> false }
         }
         mapView.overlays.add(centerMarker)
@@ -335,19 +331,32 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     }
 
     private fun updateMapCircle(radiusKm: Int, center: GeoPoint) {
-        if (mapCircle != null) mapView.overlays.remove(mapCircle)
-        updateCenterMarker(center)
-        if (radiusKm >= MAX_RADIUS_KM) {
-            mapView.invalidate()
-            return
+        // 1. Remove the old circle
+        mapCircle?.let { mapView.overlays.remove(it) }
+
+        if (radiusKm < MAX_RADIUS_KM) {
+            // 2. Create the new circle
+            mapCircle = Polygon(mapView).apply {
+                points = Polygon.pointsAsCircle(center, radiusKm * 1000.0)
+                fillPaint.color = 0x22FF0000
+                outlinePaint.color = 0x88FF0000.toInt()
+                outlinePaint.strokeWidth = 8.0f
+                // Fix: disable the default white bubble
+                setInfoWindow(null)
+                // Fix: allow clicks to pass through to overlays underneath
+                setOnClickListener { _, _, _ -> false }
+            }
+            // 3. Insert at index 0 to ensure it's behind markers and crosshair
+            mapView.overlays.add(0, mapCircle)
         }
-        mapCircle = Polygon().apply {
-            points = Polygon.pointsAsCircle(center, radiusKm * 1000.0)
-            fillPaint.color = 0x22FF0000
-            outlinePaint.color = 0x88FF0000.toInt()
-            outlinePaint.strokeWidth = 8.0f
+
+        // 4. Update crosshair position
+        centerMarker?.let {
+            it.position = center
+        } ?: run {
+            updateCenterMarker(center)
         }
-        mapView.overlays.add(mapCircle)
+
         mapView.invalidate()
     }
 
