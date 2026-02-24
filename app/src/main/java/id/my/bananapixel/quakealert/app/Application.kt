@@ -40,7 +40,7 @@ class Application : Application(), KoinComponent {
         super.onCreate()
         startKoin {
             androidContext(this@Application)
-            modules(appModule)
+            modules(*appModule.toTypedArray())
         }
         if (repository.getRecordLogs()) {
             Log.setRecord(true)

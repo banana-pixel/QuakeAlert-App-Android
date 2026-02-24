@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import id.my.bananapixel.quakealert.BuildConfig
-import id.my.bananapixel.quakealert.app.Application
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import id.my.bananapixel.quakealert.databinding.FragmentChatBinding
@@ -22,14 +21,15 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.json.JSONArray
 import org.json.JSONObject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import java.net.URISyntaxException
 
 class ChatFragment : Fragment() {
     private var _binding: FragmentChatBinding? = null
     private val binding get() = _binding!!
 
-    // Link to ViewModel for Database access
-    private val viewModel: SubscriptionsViewModel by viewModels { SubscriptionsViewModelFactory((requireActivity().application as Application).repository) }
+    // Use Koin to inject ChatViewModel (modern approach)
+    private val viewModel: ChatViewModel by viewModel()
 
     private lateinit var chatAdapter: ChatAdapter
     private var socket: Socket? = null

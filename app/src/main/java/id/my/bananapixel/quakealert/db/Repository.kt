@@ -15,14 +15,10 @@ import androidx.lifecycle.map
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.msg.ApiService
-import id.my.bananapixel.quakealert.ui.QuakeReport
-import id.my.bananapixel.quakealert.api.QuakeAlertApi
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.validUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.withContext
-import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -42,66 +38,6 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     private val connectionDetailsLiveData = MutableLiveData<Map<String, ConnectionDetails>>(connectionDetails)
 
     // --- QUAKE LOGIC: Single Source of Truth ---
-
-    // The UI observes this Flow. It stays populated even when offline.
-    val quakes: Flow<List<QuakeData>> = quakeDao.getAll()
-
-    // Inside Repository.kt
-
-    /**
-     * Fetches quake reports from API and updates local DB.
-     * @return [Result.success] on success, [Result.failure] with message on network/parse error.
-     */
-    suspend fun fetchQuakes(context: Context): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val reports = executeFetchReports(context)
-            val quakeEntities = reports.mapNotNull { report ->
-                try {
-                    QuakeData(
-                        id = report.id.toString(),
-                        magnitude = 0.0,
-                        place = report.lokasi.ifEmpty { "Unknown" },
-                        time = QuakeReportParser.parseQuakeTime(report.waktu_kejadian),
-                        description = report.deskripsi,
-                        latitude = report.latitude.orZeroIfNaN(),
-                        longitude = report.longitude.orZeroIfNaN(),
-                        pga = report.pga_maks.ifEmpty { "0" },
-                        durasi = runCatching { report.durasi.toInt().coerceIn(0, Int.MAX_VALUE) }.getOrDefault(0),
-                        station_id = report.station_id.ifEmpty { "N/A" },
-                        intensity = report.intensitas_maks.ifEmpty { "I" }
-                    )
-                } catch (e: Exception) {
-                    Log.w("NtfyRepository", "Skipping malformed quake report: ${e.message}")
-                    null
-                }
-            }
-            quakeDao.upsertAll(quakeEntities)
-            Result.success(Unit)
-        } catch (e: IOException) {
-            Result.failure(e)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    private suspend fun executeFetchReports(context: Context): List<QuakeReport> {
-        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
-        val api = QuakeAlertApi.create(context, baseUrl)
-        val body = api.getLaporan()
-        return QuakeReportParser.parseReports(body)
-    }
-
-    private fun Double.orZeroIfNaN(): Double = if (this.isNaN()) 0.0 else this
-
-    // --- CHAT LOGIC ---
-    // Inside Repository class
-    val chatMessages: Flow<List<ChatMessage>> = chatDao.getAll()
-
-    suspend fun saveChatMessages(messages: List<ChatMessage>) {
-        withContext(Dispatchers.IO) {
-            chatDao.insertAll(messages) // Persists to disk
-        }
-    }
 
     // --- EXISTING ntfy LOGIC (Keep as is) ---
     private val connectionForceReconnectVersions = ConcurrentHashMap<String, Long>()

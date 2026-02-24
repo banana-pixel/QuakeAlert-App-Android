@@ -42,10 +42,11 @@ import java.util.Locale
 import android.graphics.Point
 import android.view.ViewTreeObserver
 import kotlinx.coroutines.Dispatchers
+import org.koin.android.ext.android.inject
 
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private val httpClient = OkHttpClient()
-    private lateinit var repository: Repository
+    private val repository: Repository by inject()
     private lateinit var mapView: MapView
     private lateinit var tvLocationName: TextView
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -68,7 +69,6 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
-        repository = Repository.getInstance(requireContext())
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
     }
 

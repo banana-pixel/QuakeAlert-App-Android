@@ -40,8 +40,8 @@ android {
         minSdk 26
         targetSdk 36
 
-        versionCode 3
-        versionName "0.3"
+        versionCode 4
+        versionName "0.4"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -223,4 +223,8 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.9.24'
     testImplementation 'org.json:json:20231013' // Real org.json on JVM (Android jar only stubs)
+    
+    // Mocking for unit tests
+    testImplementation 'io.mockk:mockk:1.13.8'
+    testImplementation 'io.insert-koin:koin-test:3.5.6'
 }

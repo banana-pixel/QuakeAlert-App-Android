@@ -11,12 +11,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import id.my.bananapixel.quakealert.R
-import id.my.bananapixel.quakealert.app.Application
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class HistoryFragment : Fragment(R.layout.fragment_history) {
-    private val viewModel: SubscriptionsViewModel by viewModels { SubscriptionsViewModelFactory((requireActivity().application as Application).repository) }
+    // Use Koin to inject QuakeHistoryViewModel (modern approach)
+    private val viewModel: QuakeHistoryViewModel by viewModel()
 
     private lateinit var historyAdapter: HistoryAdapter
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout

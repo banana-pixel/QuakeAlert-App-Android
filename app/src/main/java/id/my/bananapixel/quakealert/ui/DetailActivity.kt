@@ -66,10 +66,11 @@ import com.google.android.material.textfield.TextInputEditText
 import android.widget.ImageButton
 import com.google.android.material.color.MaterialColors
 import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.component.KoinComponent
 
 class DetailActivity : BaseActivity(), NotificationFragment.NotificationSettingsListener, PublishFragment.PublishListener, KoinComponent {
-    private val viewModel: DetailViewModel by viewModels { DetailViewModelFactory(repository) }
+    private val viewModel: DetailViewModel by viewModel()
     private val repository: Repository by inject()
     private val api by lazy { ApiService(this) }
     private val poller by lazy { Poller(api, repository) }
