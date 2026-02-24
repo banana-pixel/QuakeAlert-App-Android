@@ -5,7 +5,7 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.os.Bundle
 import android.view.View
-import android.widget.SeekBar // Import SeekBar
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +21,6 @@ import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.msg.Sensor
-import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import okhttp3.Call
@@ -42,6 +41,7 @@ import java.io.IOException
 import java.util.Locale
 import android.graphics.Point
 import android.view.ViewTreeObserver
+import kotlinx.coroutines.Dispatchers
 
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private val httpClient = OkHttpClient()
@@ -51,6 +51,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var mapCircle: Polygon? = null
     private var centerMarker: org.osmdroid.views.overlay.Marker? = null
+    private var lastCenter: GeoPoint? = null
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -78,14 +79,14 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         mapView = view.findViewById(R.id.mapview)
         bottomPanel = view.findViewById(R.id.bottom_floating_ui)
         val valueView = view.findViewById<TextView>(R.id.alert_radius_value)
-        val slider = view.findViewById<SeekBar>(R.id.alert_radius_slider) // Correct Type
+        val slider = view.findViewById<SeekBar>(R.id.alert_radius_slider)
         tvLocationName = view.findViewById(R.id.tv_location_name)
         val btnRefresh = view.findViewById<MaterialButton>(R.id.btn_refresh_location)
         val btnRecenter = view.findViewById<MaterialButton>(R.id.btn_recenter)
         val btnZoomIn = view.findViewById<MaterialButton>(R.id.btn_zoom_in)
         val btnZoomOut = view.findViewById<MaterialButton>(R.id.btn_zoom_out)
 
-        // 2. CONFIGURE MAP BASICS (CARTO basemaps: Positron for light, Dark Matter for dark)
+        // 2. CONFIGURE MAP BASICS
         mapView.setTileSource(getCartoTileSource(requireContext()))
         mapView.setMultiTouchControls(true)
         mapView.setBuiltInZoomControls(false)
@@ -98,20 +99,13 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         mapView.setScrollableAreaLimitDouble(worldBox)
         mapView.minZoomLevel = 3.0
 
-//        // 4. ADD OVERLAYS (Scale Bar)
-//        val scaleBarOverlay = org.osmdroid.views.overlay.ScaleBarOverlay(mapView).apply {
-//            setAlignBottom(true)
-//            setScaleBarOffset(20, 20)
-//            setTextSize(12f * resources.displayMetrics.density)
-//            setUnitsOfMeasure(org.osmdroid.views.overlay.ScaleBarOverlay.UnitsOfMeasure.metric)
-//        }
-//        mapView.overlays.add(scaleBarOverlay)
-
         // 5. TOUCH & GESTURES
-        mapView.setOnTouchListener { v, event ->
+        mapView.setOnTouchListener { v, _ ->
             v.parent.requestDisallowInterceptTouchEvent(true)
             false
         }
+
+        bottomPanel.setOnTouchListener { _, _ -> true }
 
         // 6. INITIAL DATA LOAD
         val (currentLat, currentLon) = if (repository.isUserLocationSet()) {
@@ -120,6 +114,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
         }
         val startPoint = GeoPoint(currentLat, currentLon)
+        lastCenter = startPoint
         val currentCity = repository.getUserCityName()
 
         if (!repository.isUserLocationSet()) {
@@ -130,8 +125,6 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", currentLat, currentLon)
         }
 
-        // Wait for layout, then center with a subtle zoom-in animation
-        // Use zoom 7 for getOffsetCenter so it matches recenter (projection depends on zoom)
         mapView.controller.setZoom(7.0)
         mapView.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
@@ -144,45 +137,39 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             }
         })
 
-        // --- SLIDER LOGIC UPDATED FOR SEEKBAR ---
+        // --- SLIDER LOGIC ---
         val sharedPrefs = requireContext().getSharedPreferences(Repository.SHARED_PREFS_ID, 0)
         val initialRadius = sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
-
-        // Convert radius back to progress steps (0-50)
         val initialProgress = (initialRadius / STEP_KM).coerceIn(0, MAX_PROGRESS)
 
-        slider.progress = initialProgress // Use .progress instead of .value
+        slider.progress = initialProgress
         updateRadiusLabel(valueView, initialProgress)
-        updateCenterMarker(startPoint)
         updateMapCircle(initialRadius, startPoint)
 
-        // Handle the slider moving
         slider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 val radius = progress * STEP_KM
                 updateRadiusLabel(valueView, progress)
-
-                // Only update visual circle while dragging
                 val (lat, lon) = if (repository.isUserLocationSet()) {
                     Pair(repository.getUserLatitude(), repository.getUserLongitude())
                 } else {
                     Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
                 }
                 updateMapCircle(radius, GeoPoint(lat, lon))
-
                 if (fromUser) {
                     sharedPrefs.edit { putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius) }
                 }
             }
 
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(false)
+            }
         })
-        // ----------------------------------------
 
-        // Handle the buttons
         btnRefresh.setOnClickListener { checkPermissionAndRefresh() }
-        // UPDATED: Use the new helper for manual Recenter
         btnRecenter.setOnClickListener {
             val (lat, lon) = if (repository.isUserLocationSet()) {
                 Pair(repository.getUserLatitude(), repository.getUserLongitude())
@@ -194,7 +181,6 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         btnZoomIn.setOnClickListener { mapView.controller.zoomIn() }
         btnZoomOut.setOnClickListener { mapView.controller.zoomOut() }
 
-        // Sensor dots: fetch stations and add markers (no toggle, no map recenter on tap)
         fetchStationsAndAddMarkers()
     }
 
@@ -223,12 +209,13 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     }
 
     private fun addSensorMarkers(stations: List<Sensor>) {
-        val sensorOverlays = mapView.overlays.filterIsInstance<org.osmdroid.views.overlay.Marker>()
+        // 1. Remove all sensor markers
+        val sensorMarkers = mapView.overlays.filterIsInstance<org.osmdroid.views.overlay.Marker>()
             .filter { it.relatedObject is Sensor }
-        sensorOverlays.forEach { mapView.overlays.remove(it) }
+        sensorMarkers.forEach { mapView.overlays.remove(it) }
 
+        // 2. Add sensor markers
         val statusCard = MapStatusCard(R.layout.map_status_card, mapView)
-        // Use a blue circular marker with white outline and white sensors icon
         val dotIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_sensor_marker)
 
         for (sensor in stations) {
@@ -238,10 +225,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
             val marker = org.osmdroid.views.overlay.Marker(mapView).apply {
                 position = GeoPoint(lat, lon)
-                setAnchor(
-                    org.osmdroid.views.overlay.Marker.ANCHOR_CENTER,
-                    org.osmdroid.views.overlay.Marker.ANCHOR_CENTER
-                )
+                setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
                 icon = dotIcon
                 setPanToView(false)
                 relatedObject = sensor
@@ -249,13 +233,16 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             }
             mapView.overlays.add(marker)
         }
+
+        // 3. IMPORTANT: Re-add the center marker (crosshair) so it's on top
+        lastCenter?.let { updateCenterMarker(it) }
+
         mapView.invalidate()
     }
 
-    /** Returns the map center GeoPoint so the target appears above the bottom panel. */
     private fun getOffsetCenter(target: GeoPoint): GeoPoint {
         val baseOffset = bottomPanel.height / 2
-        val extraUp = (24 * resources.displayMetrics.density).toInt()
+        val extraUp = (8 * resources.displayMetrics.density).toInt() // Corrected: Reduced to move crosshair down
         val offsetPixels = baseOffset + extraUp
         if (offsetPixels <= 0) return target
         val projection = mapView.projection
@@ -270,65 +257,45 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     }
 
     private fun checkPermissionAndRefresh() {
-        when {
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                refreshLocation()
-            }
-            else -> {
-                requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-            }
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            refreshLocation()
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
 
     private fun updateCenterMarker(center: GeoPoint) {
+        lastCenter = center
         if (centerMarker != null) {
             mapView.overlays.remove(centerMarker)
         }
-
         centerMarker = org.osmdroid.views.overlay.Marker(mapView).apply {
             position = center
             setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
             icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_custom_crosshair)
             setInfoWindow(null)
+            // Fix: returning false allows the click to pass through to overlays underneath
+            setOnMarkerClickListener { _, _ -> false }
         }
-
         mapView.overlays.add(centerMarker)
         mapView.invalidate()
     }
 
     private fun refreshLocation() {
-        if (ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
         fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { location ->
                 if (location != null) {
                     val lat = location.latitude
                     val lon = location.longitude
-
                     repository.setUserLatitude(lat)
                     repository.setUserLongitude(lon)
-
                     val newPoint = GeoPoint(lat, lon)
-
-                    // USE THE HELPER HERE
                     animateToOffset(newPoint)
-
                     updateCenterMarker(newPoint)
-
                     val slider = view?.findViewById<SeekBar>(R.id.alert_radius_slider)
                     val progress = slider?.progress ?: 0
-                    val radius = progress * STEP_KM
-                    updateMapCircle(radius, newPoint)
-
+                    updateMapCircle(progress * STEP_KM, newPoint)
                     updateCityName(lat, lon)
                 } else {
                     Toast.makeText(requireContext(), "Could not get current location", Toast.LENGTH_SHORT).show()
@@ -348,7 +315,6 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                     } else null
                 } catch (e: Exception) { null }
             }
-
             if (!cityName.isNullOrBlank()) {
                 repository.setUserCityName(cityName)
                 tvLocationName.text = cityName
@@ -369,24 +335,18 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     }
 
     private fun updateMapCircle(radiusKm: Int, center: GeoPoint) {
-        if (mapCircle != null) {
-            mapView.overlays.remove(mapCircle)
-        }
-
+        if (mapCircle != null) mapView.overlays.remove(mapCircle)
         updateCenterMarker(center)
-
         if (radiusKm >= MAX_RADIUS_KM) {
             mapView.invalidate()
             return
         }
-
         mapCircle = Polygon().apply {
             points = Polygon.pointsAsCircle(center, radiusKm * 1000.0)
             fillPaint.color = 0x22FF0000
             outlinePaint.color = 0x88FF0000.toInt()
             outlinePaint.strokeWidth = 8.0f
         }
-
         mapView.overlays.add(mapCircle)
         mapView.invalidate()
     }
@@ -403,29 +363,17 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
 
     private fun getCartoTileSource(context: Context): XYTileSource {
         val isDark = context.systemDarkThemeOn()
-        return if (isDark) {
-            XYTileSource(
-                "Carto Dark Matter",
-                0, 20, 256, ".png",
-                arrayOf(
-                    "https://a.basemaps.cartocdn.com/rastertiles/dark_all/",
-                    "https://b.basemaps.cartocdn.com/rastertiles/dark_all/",
-                    "https://c.basemaps.cartocdn.com/rastertiles/dark_all/",
-                    "https://d.basemaps.cartocdn.com/rastertiles/dark_all/"
-                )
+        val path = if (isDark) "dark_all" else "light_all"
+        return XYTileSource(
+            if (isDark) "Carto Dark Matter" else "Carto Positron",
+            0, 20, 256, ".png",
+            arrayOf(
+                "https://a.basemaps.cartocdn.com/rastertiles/$path/",
+                "https://b.basemaps.cartocdn.com/rastertiles/$path/",
+                "https://c.basemaps.cartocdn.com/rastertiles/$path/",
+                "https://d.basemaps.cartocdn.com/rastertiles/$path/"
             )
-        } else {
-            XYTileSource(
-                "Carto Positron",
-                0, 20, 256, ".png",
-                arrayOf(
-                    "https://a.basemaps.cartocdn.com/rastertiles/light_all/",
-                    "https://b.basemaps.cartocdn.com/rastertiles/light_all/",
-                    "https://c.basemaps.cartocdn.com/rastertiles/light_all/",
-                    "https://d.basemaps.cartocdn.com/rastertiles/light_all/"
-                )
-            )
-        }
+        )
     }
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
