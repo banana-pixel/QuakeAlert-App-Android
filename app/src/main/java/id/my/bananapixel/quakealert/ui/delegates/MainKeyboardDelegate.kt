@@ -39,12 +39,9 @@ class MainKeyboardDelegate(
             val isChatPage = currentFragment is ChatFragment
 
             if (imeVisible && imeHeight > 0) {
-                // Keyboard visible: hide bottom nav
-                bottomNav.animate()
-                    .translationY(bottomNav.height.toFloat())
-                    .setDuration(200)
-                    .withEndAction { bottomNav.visibility = View.GONE }
-                    .start()
+                // Keyboard visible: hide bottom nav immediately
+                bottomNav.visibility = View.GONE
+                bottomNav.translationY = bottomNav.height.toFloat()
 
                 floatingUi?.let { ui ->
                     val params = ui.layoutParams as ViewGroup.MarginLayoutParams
@@ -72,15 +69,13 @@ class MainKeyboardDelegate(
                     }
                 }
             } else {
-                // Keyboard hidden: show bottom nav, restore layout
+                // Keyboard hidden: show bottom nav immediately
                 bottomNav.visibility = View.VISIBLE
-                bottomNav.animate().translationY(0f).setDuration(200).start()
+                bottomNav.translationY = 0f
 
                 bottomNav.post {
                     if (isChatPage && recyclerView != null) {
                         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager
-                        val lastVisiblePosition = layoutManager?.findLastCompletelyVisibleItemPosition() ?: -1
-
                         navigationDelegate.applyBottomInset(bottomNav)
 
                         recyclerView.post {
