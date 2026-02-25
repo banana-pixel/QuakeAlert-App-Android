@@ -23,7 +23,7 @@ class Log(private val logsDao: LogDao) {
 
     private fun log(level: Int, tag: String, message: String, exception: Throwable?) {
         if (!record.get()) return
-        GlobalScope.launch(Dispatchers.IO) { // FIXME This does not guarantee the log order
+        GlobalScope.launch(Dispatchers.IO) {
             logsDao.insert(LogEntry(System.currentTimeMillis(), tag, level, message, exception?.stackTraceToString()))
             val current = count.incrementAndGet()
             if (current >= PRUNE_EVERY) {

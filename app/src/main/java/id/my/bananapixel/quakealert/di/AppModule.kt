@@ -75,7 +75,7 @@ val uiModule = module {
     viewModel { ChatViewModel(get<ChatRepository>()) }
     viewModel { DetailViewModel(get<Repository>()) }
     viewModel { SubscriptionsViewModel(get<Repository>()) }
-    viewModel { QuakeViewModel(androidContext(), get<Database>()) }
+    viewModel { QuakeViewModel(androidContext(), get<QuakeRepository>(), get<Database>()) }
 }
 
 /**

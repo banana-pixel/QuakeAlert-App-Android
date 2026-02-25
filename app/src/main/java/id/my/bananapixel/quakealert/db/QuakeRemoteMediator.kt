@@ -9,6 +9,8 @@ import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import id.my.bananapixel.quakealert.api.QuakeAlertApi
 import id.my.bananapixel.quakealert.ui.QuakeReport
+import id.my.bananapixel.quakealert.util.ValidationUtil
+import id.my.bananapixel.quakealert.util.toValidOrNull
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,8 +18,8 @@ import androidx.room.withTransaction
 
 @OptIn(ExperimentalPagingApi::class)
 class QuakeRemoteMediator(
-    private val context: Context,
-    private val database: Database
+    private val database: Database,
+    private val context: android.content.Context
 ) : RemoteMediator<Int, QuakeData>() {
 
     override suspend fun load(
@@ -32,7 +34,6 @@ class QuakeRemoteMediator(
                     LoadType.PREPEND -> return@withContext MediatorResult.Success(endOfPaginationReached = true)
                     LoadType.APPEND -> {
                         val lastItem = state.lastItemOrNull()
-                        // If no items, we might need page 1, otherwise increment page count
                         if (lastItem == null) 1 else (state.pages.size + 1)
                     }
                 }
@@ -40,21 +41,45 @@ class QuakeRemoteMediator(
                 // 2. Fetch data safely
                 val reports = fetchReportsFromApi(page)
 
-                // 3. Map to Entity (Fixes 'intensity' and 'time' errors)
+                // 3. Map to Entity (with validation)
                 val quakeEntities = reports.mapNotNull { report ->
                     try {
+                        // Validate coordinates
+                        val (lat, lon) = ValidationUtil.validateCoordinates(
+                            report.latitude.toValidOrNull(), 
+                            report.longitude.toValidOrNull()
+                        ) ?: (0.0 to 0.0)
+                        
+                        // Validate intensity
+                        val intensity = ValidationUtil.validateIntensity(report.intensitas_maks) ?: "I"
+                        
+                        // Validate location
+                        val location = ValidationUtil.validateLocation(report.lokasi) ?: "Unknown"
+                        
+                        // Validate earthquake time
+                        val earthquakeTime = QuakeReportParser.parseQuakeTime(report.waktu_kejadian)
+                        if (!ValidationUtil.validateEarthquakeTime(earthquakeTime).let { it != null }) {
+                            return@mapNotNull null // Skip invalid times
+                        }
+                        
+                        // Validate duration
+                        val duration = ValidationUtil.validateDuration(
+                            runCatching { report.durasi.toInt() }.getOrNull()
+                        ) ?: 0
+                        
                         QuakeData(
                             id = report.id.toString(),
                             magnitude = 0.0,
-                            place = report.lokasi.ifEmpty { "Unknown" },
-                            time = QuakeReportParser.parseQuakeTime(report.waktu_kejadian),
+                            place = location,
+                            time = earthquakeTime,
+                            sync_time = System.currentTimeMillis(),
                             description = report.deskripsi,
-                            latitude = report.latitude.let { if (it.isNaN()) 0.0 else it },
-                            longitude = report.longitude.let { if (it.isNaN()) 0.0 else it },
+                            latitude = lat,
+                            longitude = lon,
                             pga = report.pga_maks.ifEmpty { "0" },
-                            durasi = runCatching { report.durasi.toInt().coerceIn(0, Int.MAX_VALUE) }.getOrDefault(0),
+                            durasi = duration,
                             station_id = report.station_id.ifEmpty { "N/A" },
-                            intensity = report.intensitas_maks.ifEmpty { "I" }
+                            intensity = intensity
                         )
                     } catch (e: Exception) {
                         null

@@ -23,7 +23,8 @@ data class QuakeData(
     val pga: String,
     val durasi: Int,
     val station_id: String,
-    val intensity: String
+    val intensity: String,
+    val sync_time: Long = System.currentTimeMillis() // When data was fetched from API
 )
 
 @Entity(tableName = "chat_messages")

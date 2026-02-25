@@ -316,7 +316,7 @@ data class LogEntry(
 }
 
 @androidx.room.Database(
-    version = 20,
+    version = 21,
     entities = [
         Subscription::class,
         Notification::class,
@@ -368,6 +368,7 @@ abstract class Database : RoomDatabase() {
                     .addMigrations(MIGRATION_17_18)
                     .addMigrations(MIGRATION_18_19)
                     .addMigrations(MIGRATION_19_20)
+                    .addMigrations(MIGRATION_20_21)
                     .fallbackToDestructiveMigration(true)
                     .build()
         }
@@ -564,6 +565,14 @@ abstract class Database : RoomDatabase() {
                 """.trimIndent())
                 db.execSQL("DROP TABLE chat_messages")
                 db.execSQL("ALTER TABLE chat_messages_new RENAME TO chat_messages")
+            }
+        }
+
+        private val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Add sync_time column to quake_history for data freshness tracking.
+                // Use default 0 for existing rows; app will set real sync_time on next fetch.
+                db.execSQL("ALTER TABLE quake_history ADD COLUMN sync_time INTEGER NOT NULL DEFAULT(0)")
             }
         }
     }

@@ -6,12 +6,20 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.*
 import id.my.bananapixel.quakealert.db.Database
 import id.my.bananapixel.quakealert.db.QuakeData
+import id.my.bananapixel.quakealert.db.QuakeRepository
 import id.my.bananapixel.quakealert.db.QuakeRemoteMediator
 import kotlinx.coroutines.flow.Flow
 
-class QuakeViewModel(private val appContext: Context, private val database: Database) : ViewModel() {
-    // Uses Application context to avoid memory leaks (Context must not be Activity)
-
+/**
+ * ViewModel for quake data with paging.
+ * Note: Context is only used for RemoteMediator's HTTP layer (passed by factory).
+ */
+class QuakeViewModel(
+    private val appContext: Context,
+    private val quakeRepository: QuakeRepository,
+    private val database: Database
+) : ViewModel() {
+    
     @OptIn(ExperimentalPagingApi::class)
     val quakes: Flow<PagingData<QuakeData>> = Pager(
         config = PagingConfig(
@@ -19,13 +27,17 @@ class QuakeViewModel(private val appContext: Context, private val database: Data
             enablePlaceholders = false,
             initialLoadSize = 20
         ),
-        remoteMediator = QuakeRemoteMediator(appContext, database),
-        pagingSourceFactory = { database.quakeHistoryDao().getPaged() } // Points to Room DAO
+        remoteMediator = QuakeRemoteMediator(database, appContext),
+        pagingSourceFactory = { database.quakeHistoryDao().getPaged() }
     ).flow.cachedIn(viewModelScope)
 }
 
-class QuakeViewModelFactory(private val context: Context, private val database: Database) : androidx.lifecycle.ViewModelProvider.Factory {
+class QuakeViewModelFactory(
+    private val context: Context,
+    private val quakeRepository: QuakeRepository,
+    private val database: Database
+) : androidx.lifecycle.ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-        QuakeViewModel(context.applicationContext, database) as T
+        QuakeViewModel(context.applicationContext, quakeRepository, database) as T
 }
