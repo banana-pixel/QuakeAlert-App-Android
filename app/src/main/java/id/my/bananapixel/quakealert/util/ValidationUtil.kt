@@ -67,7 +67,7 @@ object ValidationUtil {
     fun validateEarthquakeTime(timeMillis: Long?): Long? {
         if (timeMillis == null || timeMillis <= 0) return null
         val now = System.currentTimeMillis()
-        val oneYearAgo = now - (365 * 24 * 60 * 60 * 1000)
+        val oneYearAgo = now - (365 * 24 * 60 * 60 * 1000L)
         // Allow times up to 1 year in past, reject future times
         return if (timeMillis in oneYearAgo..now) timeMillis else null
     }

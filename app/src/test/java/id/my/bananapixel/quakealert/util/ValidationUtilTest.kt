@@ -152,7 +152,7 @@ class ValidationUtilTest {
     @Test
     fun validateEarthquakeTime_recentPast() {
         val now = System.currentTimeMillis()
-        val oneDayAgo = now - (24 * 60 * 60 * 1000)
+        val oneDayAgo = now - (24 * 60 * 60 * 1000L)
         assertEquals(oneDayAgo, ValidationUtil.validateEarthquakeTime(oneDayAgo))
     }
 
@@ -164,13 +164,13 @@ class ValidationUtilTest {
 
     @Test
     fun validateEarthquakeTime_tooOld() {
-        val moreThanOneYearAgo = System.currentTimeMillis() - (400 * 24 * 60 * 60 * 1000)
+        val moreThanOneYearAgo = System.currentTimeMillis() - (400 * 24 * 60 * 60 * 1000L)
         assertNull(ValidationUtil.validateEarthquakeTime(moreThanOneYearAgo))
     }
 
     @Test
     fun validateEarthquakeTime_futureRejected() {
-        val future = System.currentTimeMillis() + (24 * 60 * 60 * 1000)
+        val future = System.currentTimeMillis() + (24 * 60 * 60 * 1000L)
         assertNull(ValidationUtil.validateEarthquakeTime(future))
     }
 
