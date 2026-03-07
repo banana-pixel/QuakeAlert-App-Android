@@ -12,6 +12,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.databinding.FragmentChatTelegramBinding
@@ -63,6 +64,9 @@ class TelegramChatFragment : Fragment() {
             Settings.Secure.ANDROID_ID
         )
         
+        // Debug: Log fragment creation
+        android.util.Log.d("TelegramChat", "📱 Fragment created - DeviceID: ${deviceId.take(8)}")
+        
         setupRecyclerView()
         setupInputView()
         setupSocketConnection()
@@ -82,12 +86,21 @@ class TelegramChatFragment : Fragment() {
                 verticalSpacing = resources.getDimensionPixelSize(R.dimen.chat_message_spacing),
                 groupSpacing = resources.getDimensionPixelSize(R.dimen.chat_group_spacing)
             ))
+            // Disable item animations for better performance
+            itemAnimator = null
             
-            // Smooth scroll animations
-            itemAnimator?.apply {
-                addDuration = 300
-                removeDuration = 300
-            }
+            // Setup scroll listener for scroll-to-bottom button
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    updateScrollButtonVisibility()
+                }
+            })
+        }
+        
+        // Scroll to bottom button
+        binding.scrollToBottomButton.setOnClickListener {
+            binding.recyclerView.smoothScrollToPosition(chatAdapter.itemCount - 1)
         }
     }
 
@@ -149,6 +162,7 @@ class TelegramChatFragment : Fragment() {
             socket?.on(Socket.EVENT_CONNECT) {
                 requireActivity().runOnUiThread {
                     // Connection established
+                    android.util.Log.d("TelegramChat", "🔌 Socket CONNECTED")
                 }
             }
             
@@ -226,6 +240,17 @@ class TelegramChatFragment : Fragment() {
                             ))
                         }
                         viewModel.saveChatMessages(messages)
+                    }
+                }
+            }
+            
+            // Listen for online user count updates
+            socket?.on("online_count") { args ->
+                if (args.isNotEmpty()) {
+                    val count = args[0] as Int
+                    lifecycleScope.launch {
+                        binding.onlineCount.text = "$count online"
+                        android.util.Log.d("TelegramChat", "👥 Online count updated: $count")
                     }
                 }
             }
@@ -308,9 +333,36 @@ class TelegramChatFragment : Fragment() {
             isSending = false
         }, 500)
     }
+    
+    private fun updateScrollButtonVisibility() {
+        val layoutManager = binding.recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val lastVisiblePosition = layoutManager.findLastCompletelyVisibleItemPosition()
+        val totalItemCount = chatAdapter.itemCount
+        
+        // Show button if user scrolled up (not at the bottom)
+        val shouldShow = totalItemCount > 0 && lastVisiblePosition < totalItemCount - 1
+        
+        if (shouldShow && binding.scrollToBottomButton.visibility != View.VISIBLE) {
+            binding.scrollToBottomButton.visibility = View.VISIBLE
+            binding.scrollToBottomButton.alpha = 0f
+            binding.scrollToBottomButton.animate()
+                .alpha(1f)
+                .setDuration(200)
+                .start()
+        } else if (!shouldShow && binding.scrollToBottomButton.visibility == View.VISIBLE) {
+            binding.scrollToBottomButton.animate()
+                .alpha(0f)
+                .setDuration(200)
+                .withEndAction {
+                    binding.scrollToBottomButton.visibility = View.GONE
+                }
+                .start()
+        }
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        android.util.Log.d("TelegramChat", "🔌 Socket DISCONNECTING")
         socket?.disconnect()
         socket?.off()
         _binding = null

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3D-style grey badge with shadow for online count -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow layer -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="12dp"/>
+            <solid android:color="#757575"/>
+        </shape>
+    </item>
+    <!-- Main badge surface -->
+    <item android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="12dp"/>
+            <solid android:color="#9E9E9E"/>
+        </shape>
+    </item>
+</layer-list>

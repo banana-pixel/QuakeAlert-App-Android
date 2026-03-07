@@ -1,11 +1,7 @@
 package id.my.bananapixel.quakealert.ui
 
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -19,7 +15,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * Enhanced ChatAdapter with Telegram-inspired design, animations, and date headers
+ * Enhanced ChatAdapter with Telegram-inspired design and date headers
+ * Optimized for performance with cached formatters and no animations
  */
 class TelegramChatAdapter(
     private val myDeviceId: String
@@ -29,9 +26,13 @@ class TelegramChatAdapter(
         private const val VIEW_TYPE_OUTGOING = 1
         private const val VIEW_TYPE_INCOMING = 2
         private const val VIEW_TYPE_DATE_HEADER = 3
-        
-        private const val ANIMATION_DURATION = 300L
-        private const val ANIMATION_DELAY = 50L
+
+        // Cache SimpleDateFormat instances (expensive to create)
+        private val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        private val dateTimeFormat = SimpleDateFormat("MMM d, HH:mm", Locale.getDefault())
+        private val dateTimeYearFormat = SimpleDateFormat("MMM d yyyy, HH:mm", Locale.getDefault())
+        private val dateLabelFormat = SimpleDateFormat("MMMM d", Locale.getDefault())
+        private val dateLabelYearFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
 
         private object DiffCallback : DiffUtil.ItemCallback<ChatListItem>() {
             override fun areItemsTheSame(oldItem: ChatListItem, newItem: ChatListItem): Boolean {
@@ -49,10 +50,6 @@ class TelegramChatAdapter(
                 oldItem == newItem
         }
     }
-
-    // Track animated messages by their content (senderId + message text), NOT by position
-    // This prevents re-animating the same message when timestamps change or positions shift
-    private val animatedMessages = mutableSetOf<String>()
 
     /**
      * Converts a list of ChatMessages into ChatListItems with date headers
@@ -124,11 +121,9 @@ class TelegramChatAdapter(
                 when (holder) {
                     is OutgoingMessageViewHolder -> {
                         holder.bind(item.message, formattedTime)
-                        animateMessage(holder.itemView, item.message, position)
                     }
                     is IncomingMessageViewHolder -> {
                         holder.bind(item.message, formattedTime)
-                        animateMessage(holder.itemView, item.message, position)
                     }
                 }
             }
@@ -138,53 +133,11 @@ class TelegramChatAdapter(
         }
     }
 
-    private fun animateMessage(view: View, message: ChatMessage, position: Int) {
-        // Create a unique key based on message content, not timestamp or ID
-        // This prevents re-animating when server updates timestamp
-        val messageKey = "${message.senderId}:${message.message}"
-        
-        // Only animate new messages once
-        if (animatedMessages.contains(messageKey)) {
-            // Message already animated, ensure view is visible
-            view.alpha = 1f
-            view.translationX = 0f
-            return
-        }
-        
-        animatedMessages.add(messageKey)
-        
-        // Slide and fade animation with proper layout handling
-        view.alpha = 0f
-        view.translationX = if (getItemViewType(position) == VIEW_TYPE_OUTGOING) 100f else -100f
-        
-        val alphaAnimator = ObjectAnimator.ofFloat(view, "alpha", 0f, 1f)
-        val translationXAnimator = ObjectAnimator.ofFloat(view, "translationX", view.translationX, 0f)
-        
-        val animatorSet = AnimatorSet()
-        animatorSet.playTogether(alphaAnimator, translationXAnimator)
-        animatorSet.duration = 250L
-        animatorSet.interpolator = DecelerateInterpolator()
-        // Fix spacing issue: force layout update after animation completes
-        animatorSet.addListener(object : android.animation.Animator.AnimatorListener {
-            override fun onAnimationEnd(animation: android.animation.Animator) {
-                view.requestLayout()
-            }
-            override fun onAnimationStart(animation: android.animation.Animator) {}
-            override fun onAnimationCancel(animation: android.animation.Animator) {}
-            override fun onAnimationRepeat(animation: android.animation.Animator) {}
-        })
-        animatorSet.start()
-    }
-
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         super.onViewRecycled(holder)
-        // Reset animations when view is recycled
+        // Ensure views are in default state when recycled
         holder.itemView.alpha = 1f
         holder.itemView.translationX = 0f
-    }
-
-    fun clearAnimations() {
-        animatedMessages.clear()
     }
 
     private fun getDateLabel(timestamp: Long): String {
@@ -203,29 +156,30 @@ class TelegramChatAdapter(
             
             // This year - show "March 7"
             now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR) ->
-                SimpleDateFormat("MMMM d", Locale.getDefault()).format(date)
+                dateLabelFormat.format(date)
             
             // Different year - show "March 7, 2025"
-            else -> SimpleDateFormat("MMMM d, yyyy", Locale.getDefault()).format(date)
+            else -> dateLabelYearFormat.format(date)
         }
     }
 
     private fun formatChatTime(timestamp: Long): String {
-        val date = Date(timestamp) // Already in milliseconds
+        val date = Date(timestamp)
         val now = Calendar.getInstance()
         val messageTime = Calendar.getInstance().apply { time = date }
 
-        return if (now.get(Calendar.DAY_OF_YEAR) == messageTime.get(Calendar.DAY_OF_YEAR) &&
-            now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR)
-        ) {
+        return when {
             // Today - show only time
-            SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
-        } else if (now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR)) {
+            now.get(Calendar.DAY_OF_YEAR) == messageTime.get(Calendar.DAY_OF_YEAR) &&
+            now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR) -> 
+                timeFormat.format(date)
+            
             // This year - show date and time without year
-            SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()).format(date)
-        } else {
+            now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR) -> 
+                dateTimeFormat.format(date)
+            
             // Different year - show full date
-            SimpleDateFormat("MMM d yyyy, HH:mm", Locale.getDefault()).format(date)
+            else -> dateTimeYearFormat.format(date)
         }
     }
 

@@ -632,6 +632,7 @@
     <string name="mmi_desc_unknown">No data.</string>
     <string name="chat_empty_text">No messages yet.\nSend a message to start the conversation.</string>
     <string name="chat_message_hint">Type a message…</string>
+    <string name="scroll_to_bottom">Scroll to bottom</string>
 
     <!-- Onboarding / Initialization -->
     <string name="onboarding_skip">Skip</string>

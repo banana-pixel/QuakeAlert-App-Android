@@ -47,7 +47,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
-            android:autoLink="web|email"
             android:lineSpacingExtra="2dp"
             android:maxWidth="280dp"
             android:textColor="?attr/colorOnSurface"

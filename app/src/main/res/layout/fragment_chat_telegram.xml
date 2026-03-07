@@ -16,6 +16,25 @@
         android:alpha="0.03"
         android:background="@color/md_theme_primary" />
 
+    <!-- Online Users Count -->
+    <TextView
+        android:id="@+id/online_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:background="@drawable/bg_badge_3d_grey_small"
+        android:paddingStart="10dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="4dp"
+        android:text="0 online"
+        android:textColor="@android:color/white"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:elevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <!-- Messages RecyclerView -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view"
@@ -30,6 +49,23 @@
         app:layout_constraintBottom_toTopOf="@id/bottom_floating_ui"
         app:layout_constraintTop_toTopOf="parent"
         tools:listitem="@layout/item_chat_incoming" />
+
+    <!-- Scroll to Bottom Button (Telegram-style) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/scroll_to_bottom_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:contentDescription="@string/scroll_to_bottom"
+        android:src="@drawable/ic_arrow_downward"
+        android:visibility="gone"
+        app:backgroundTint="?attr/colorSurface"
+        app:elevation="4dp"
+        app:fabSize="mini"
+        app:layout_constraintBottom_toTopOf="@id/bottom_floating_ui"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="?attr/colorOnSurface" />
 
     <!-- Empty State -->
     <LinearLayout
