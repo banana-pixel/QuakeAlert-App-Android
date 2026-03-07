@@ -80,6 +80,8 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.activity.viewModels
 import org.koin.android.ext.android.inject
 import org.koin.core.component.KoinComponent
+import android.content.Context
+import android.view.inputmethod.InputMethodManager
 
 class MainActivity : BaseActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener, KoinComponent {
     private val viewModel: SubscriptionsViewModel by viewModels { SubscriptionsViewModelFactory(repository) }
@@ -133,13 +135,31 @@ class MainActivity : BaseActivity(), AddFragment.SubscribeListener, Notification
 
         bottomNav.setOnItemSelectedListener { item ->
             val position = MainPagerAdapter.navIdToPosition(item.itemId)
+            // Hide keyboard when navigating away from chat page (position 3)
+            if (viewPager.currentItem == 3 && position != 3) {
+                // Post with delay to ensure it works during transition
+                viewPager.post {
+                    hideKeyboard()
+                }
+            }
             viewPager.setCurrentItem(position, true)
             true
         }
 
+        var previousPage = viewPager.currentItem
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 super.onPageSelected(position)
+                
+                // Hide keyboard when leaving chat page (position 3)
+                if (previousPage == 3 && position != 3) {
+                    // Post with delay to ensure it works during transition
+                    viewPager.post {
+                        hideKeyboard()
+                    }
+                }
+                previousPage = position
+                
                 val navId = MainPagerAdapter.positionToNavId(position)
                 if (bottomNav.selectedItemId != navId) {
                     bottomNav.selectedItemId = navId
@@ -789,6 +809,15 @@ class MainActivity : BaseActivity(), AddFragment.SubscribeListener, Notification
                 itemView.setBackgroundResource(R.drawable.inset_nav_tile)
             }
         }
+    }
+    
+    private fun hideKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        // Clear focus first to properly dismiss keyboard
+        currentFocus?.clearFocus()
+        // Try to hide from current focus or window
+        val view = currentFocus ?: window.decorView
+        imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     companion object {
