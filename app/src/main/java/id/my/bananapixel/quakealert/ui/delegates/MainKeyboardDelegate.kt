@@ -8,7 +8,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import id.my.bananapixel.quakealert.ui.ChatFragment
+import id.my.bananapixel.quakealert.ui.TelegramChatFragment
 import id.my.bananapixel.quakealert.R
 
 /**
@@ -36,12 +36,11 @@ class MainKeyboardDelegate(
             val fragmentView = currentFragment?.view
             val floatingUi = fragmentView?.findViewById<View>(R.id.bottom_floating_ui)
             val recyclerView = fragmentView?.findViewById<RecyclerView>(R.id.recycler_view)
-            val isChatPage = currentFragment is ChatFragment
+            val isChatPage = currentFragment is TelegramChatFragment
 
             if (imeVisible && imeHeight > 0) {
-                // Keyboard visible: hide bottom nav immediately
+                // Keyboard visible: hide bottom nav instantly (no animation to avoid delay)
                 bottomNav.visibility = View.GONE
-                bottomNav.translationY = bottomNav.height.toFloat()
 
                 floatingUi?.let { ui ->
                     val params = ui.layoutParams as ViewGroup.MarginLayoutParams
@@ -69,9 +68,8 @@ class MainKeyboardDelegate(
                     }
                 }
             } else {
-                // Keyboard hidden: show bottom nav immediately
+                // Keyboard hidden: show bottom nav instantly
                 bottomNav.visibility = View.VISIBLE
-                bottomNav.translationY = 0f
 
                 bottomNav.post {
                     if (isChatPage && recyclerView != null) {

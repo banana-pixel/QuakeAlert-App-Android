@@ -143,4 +143,10 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
+    <!-- Chat: Circular image view for avatars -->
+    <style name="CircleImageView">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
 </resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat Dimension Resources -->
+    <dimen name="chat_message_spacing">4dp</dimen>
+    <dimen name="chat_group_spacing">12dp</dimen>
+    <dimen name="chat_bubble_radius">18dp</dimen>
+    <dimen name="chat_bubble_radius_small">4dp</dimen>
+    <dimen name="chat_bubble_tail_size">8dp</dimen>
+    <dimen name="chat_avatar_size">36dp</dimen>
+    <dimen name="chat_text_size">15sp</dimen>
+    <dimen name="chat_time_text_size">11sp</dimen>
+    <dimen name="chat_input_radius">24dp</dimen>
+</resources>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Outgoing message bubble (Telegram-inspired) -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Main bubble background -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/chat_bubble_out_color"/>
+            <corners 
+                android:topLeftRadius="18dp"
+                android:topRightRadius="4dp"
+                android:bottomLeftRadius="18dp"
+                android:bottomRightRadius="18dp"/>
+        </shape>
+    </item>
+    
+    <!-- Tail (small triangle at top-right) -->
+    <item 
+        android:width="8dp"
+        android:height="8dp"
+        android:gravity="top|end"
+        android:top="0dp"
+        android:right="0dp">
+        <rotate
+            android:fromDegrees="45"
+            android:pivotX="50%"
+            android:pivotY="50%">
+            <shape android:shape="rectangle">
+                <solid android:color="@color/chat_bubble_out_color"/>
+            </shape>
+        </rotate>
+    </item>
+</layer-list>

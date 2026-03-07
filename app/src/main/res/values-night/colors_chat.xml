@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat Bubble Colors (Dark Mode) -->
+    <color name="chat_bubble_out_color">@color/chat_bubble_out_color_dark</color>
+    <color name="chat_bubble_in_color">@color/chat_bubble_in_color_dark</color>
+    
+    <!-- Chat Text Colors (Dark Mode) -->
+    <color name="chat_text_in">@color/chat_text_in_dark</color>
+    <color name="chat_time_in">@color/chat_time_in_dark</color>
+    
+    <!-- Chat Background (Dark Mode) -->
+    <color name="chat_background">@color/chat_background_dark</color>
+</resources>

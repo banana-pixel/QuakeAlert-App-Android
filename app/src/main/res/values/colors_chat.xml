@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat Bubble Colors (Telegram-inspired) -->
+    <color name="chat_bubble_out_color">#8BC34A</color>
+    <color name="chat_bubble_out_color_dark">#689F38</color>
+    <color name="chat_bubble_in_color">#FFFFFF</color>
+    <color name="chat_bubble_in_color_dark">#2C2C2E</color>
+    
+    <!-- Chat Text Colors -->
+    <color name="chat_text_out">#FFFFFF</color>
+    <color name="chat_text_in">#000000</color>
+    <color name="chat_text_in_dark">#FFFFFF</color>
+    
+    <!-- Chat Time Colors -->
+    <color name="chat_time_out">#DCEDC8</color>
+    <color name="chat_time_in">#999999</color>
+    <color name="chat_time_in_dark">#AAAAAA</color>
+    
+    <!-- Chat Background -->
+    <color name="chat_background">#ECE5DD</color>
+    <color name="chat_background_dark">#0D1117</color>
+</resources>
