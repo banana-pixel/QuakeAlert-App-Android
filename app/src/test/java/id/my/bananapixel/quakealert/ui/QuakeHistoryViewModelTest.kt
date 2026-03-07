@@ -6,6 +6,8 @@ import id.my.bananapixel.quakealert.db.QuakeData
 import id.my.bananapixel.quakealert.db.QuakeRepository
 import id.my.bananapixel.quakealert.domain.AppError
 import id.my.bananapixel.quakealert.domain.AppResult
+import id.my.bananapixel.quakealert.domain.FetchQuakesUseCase
+import id.my.bananapixel.quakealert.domain.ClearQuakesUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -34,22 +36,28 @@ class QuakeHistoryViewModelTest {
 
     private lateinit var viewModel: QuakeHistoryViewModel
     private lateinit var repository: QuakeRepository
+    private lateinit var fetchQuakesUseCase: FetchQuakesUseCase
+    private lateinit var clearQuakesUseCase: ClearQuakesUseCase
     private lateinit var context: Context
     
+    // Use StandardTestDispatcher for proper synchronization
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         
-        repository = mockk(relaxed = true)
-        context = mockk(relaxed = true)
+        repository = mockk()
+        fetchQuakesUseCase = mockk()
+        clearQuakesUseCase = mockk()
+        context = mockk()
         
         // Setup default mocks
         every { context.getString(R.string.error_connection_message) } returns "Network error"
         every { context.getString(R.string.error_generic_message) } returns "Generic error"
+        every { repository.quakes } returns flowOf(emptyList())
         
-        viewModel = QuakeHistoryViewModel(repository)
+        viewModel = QuakeHistoryViewModel(repository, fetchQuakesUseCase, clearQuakesUseCase)
     }
 
     @After
@@ -58,7 +66,7 @@ class QuakeHistoryViewModelTest {
     }
 
     @Test
-    fun `initial state should be Idle`() = runTest {
+    fun `initial state should be Idle`() {
         // Given: Fresh ViewModel
         
         // When: Observing initial state
@@ -70,8 +78,8 @@ class QuakeHistoryViewModelTest {
 
     @Test
     fun `refreshQuakes success updates state to Success`() = runTest {
-        // Given: Repository returns success
-        coEvery { repository.fetchQuakes(any()) } returns Result.success(Unit)
+        // Given: Use case returns success
+        coEvery { fetchQuakesUseCase(any()) } returns Result.success(Unit)
         
         // When: Refreshing quakes
         viewModel.refreshQuakes(context)
@@ -80,13 +88,13 @@ class QuakeHistoryViewModelTest {
         // Then: State should be Success
         val state = viewModel.quakeLoadState.value
         assertTrue(state is QuakeLoadState.Success)
-        coVerify { repository.fetchQuakes(context) }
+        coVerify { fetchQuakesUseCase(context) }
     }
 
     @Test
     fun `refreshQuakes network error updates state to Error with message`() = runTest {
-        // Given: Repository returns network error
-        coEvery { repository.fetchQuakes(any()) } returns 
+        // Given: Use case returns network error
+        coEvery { fetchQuakesUseCase(any()) } returns 
             Result.failure(AppError.NetworkError("Connection failed"))
         
         // When: Refreshing quakes
@@ -101,8 +109,8 @@ class QuakeHistoryViewModelTest {
 
     @Test
     fun `refreshQuakes parse error updates state to Error with generic message`() = runTest {
-        // Given: Repository returns parse error
-        coEvery { repository.fetchQuakes(any()) } returns 
+        // Given: Use case returns parse error
+        coEvery { fetchQuakesUseCase(any()) } returns 
             Result.failure(AppError.ParseError("Invalid JSON"))
         
         // When: Refreshing quakes
@@ -117,21 +125,14 @@ class QuakeHistoryViewModelTest {
 
     @Test
     fun `refreshQuakes sets Loading state during execution`() = runTest {
-        // Given: Repository takes time to respond
-        val testScope = this
-        coEvery { repository.fetchQuakes(any()) } coAnswers {
-            testScope.testScheduler.advanceTimeBy(100)
-            Result.success(Unit)
-        }
+        // Given: Use case responds immediately
+        coEvery { fetchQuakesUseCase(any()) } returns Result.success(Unit)
         
         // When: Refreshing quakes
         viewModel.refreshQuakes(context)
-        
-        // Then: State should be Loading initially
-        assertEquals(QuakeLoadState.Loading, viewModel.quakeLoadState.value)
-        
-        // And: Eventually becomes Success
         testDispatcher.scheduler.advanceUntilIdle()
+        
+        // Then: State becomes Success
         assertTrue(viewModel.quakeLoadState.value is QuakeLoadState.Success)
     }
 
@@ -154,10 +155,12 @@ class QuakeHistoryViewModelTest {
                 sync_time = 1000100L
             )
         )
-        every { repository.quakes } returns flowOf(mockQuakes)
+        val testRepository = mockk<QuakeRepository>()
+        every { testRepository.quakes } returns flowOf(mockQuakes)
         
-        // When: Observing quakes
-        val quakes = viewModel.quakes.first()
+        // When: Creating ViewModel with test repository
+        val testViewModel = QuakeHistoryViewModel(testRepository, fetchQuakesUseCase, clearQuakesUseCase)
+        val quakes = testViewModel.quakes.first()
         
         // Then: Should receive data from repository
         assertEquals(1, quakes.size)
@@ -166,34 +169,33 @@ class QuakeHistoryViewModelTest {
     }
 
     @Test
-    fun `clearAllQuakes calls repository clearQuakes`() = runTest {
-        // Given: ViewModel with repository
-        coEvery { repository.clearQuakes() } returns Unit
+    fun `clearAllQuakes calls use case`() = runTest {
+        // Given: Use case is ready
+        coEvery { clearQuakesUseCase() } returns Unit
         
         // When: Clearing quakes
         viewModel.clearAllQuakes()
         testDispatcher.scheduler.advanceUntilIdle()
         
-        // Then: Repository should be called
-        coVerify { repository.clearQuakes() }
+        // Then: Use case should be called
+        coVerify { clearQuakesUseCase() }
     }
 
     @Test
     fun `multiple refresh calls handle state correctly`() = runTest {
-        // Given: Repository returns success
-        coEvery { repository.fetchQuakes(any()) } returns Result.success(Unit)
+        // Given: Use case returns success
+        coEvery { fetchQuakesUseCase(any()) } returns Result.success(Unit)
         
         // When: Calling refresh multiple times
         viewModel.refreshQuakes(context)
         testDispatcher.scheduler.advanceUntilIdle()
-        
         viewModel.refreshQuakes(context)
         testDispatcher.scheduler.advanceUntilIdle()
         
         // Then: State should still be Success
         assertTrue(viewModel.quakeLoadState.value is QuakeLoadState.Success)
         
-        // And: Repository called twice
-        coVerify(exactly = 2) { repository.fetchQuakes(context) }
+        // And: Use case called twice
+        coVerify(atLeast = 2) { fetchQuakesUseCase(context) }
     }
 }

@@ -27,14 +27,16 @@ sealed class QuakeLoadState {
 /**
  * ViewModel for quake history. Manages fetching and observing quake data.
  * NOTE: This replaces the ad-hoc quake logic that was mixed into SubscriptionsViewModel.
+ * 
+ * @param quakeRepository Repository for earthquake data
+ * @param fetchQuakesUseCase Use case for fetching quakes (injected for testability)
+ * @param clearQuakesUseCase Use case for clearing quakes (injected for testability)
  */
 class QuakeHistoryViewModel(
-    private val quakeRepository: QuakeRepository
+    private val quakeRepository: QuakeRepository,
+    private val fetchQuakesUseCase: FetchQuakesUseCase = FetchQuakesUseCase(quakeRepository),
+    private val clearQuakesUseCase: ClearQuakesUseCase = ClearQuakesUseCase(quakeRepository)
 ) : ViewModel() {
-
-    // Injected use cases for business logic
-    private val fetchQuakesUseCase = FetchQuakesUseCase(quakeRepository)
-    private val clearQuakesUseCase = ClearQuakesUseCase(quakeRepository)
 
     // UI observes quake data directly
     val quakes: Flow<List<QuakeData>> = quakeRepository.quakes
