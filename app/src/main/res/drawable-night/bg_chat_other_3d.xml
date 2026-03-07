@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Shadow layer (darker green) -->
+    <!-- Shadow layer (darker gray for dark mode) -->
     <item>
         <shape android:shape="rectangle">
             <corners android:radius="16dp"/>
-            <solid android:color="#1B5E20"/> <!-- Dark green shadow -->
+            <solid android:color="#555555"/>
         </shape>
     </item>
 
-    <!-- Main surface (bright green) -->
+    <!-- Main surface (dark gray for dark mode - matches surfaceContainerHigh) -->
     <item android:bottom="4dp">
         <shape android:shape="rectangle">
             <corners android:radius="16dp"/>
-            <solid android:color="#4CAF50"/> <!-- Bright green -->
+            <solid android:color="#282F33"/>
         </shape>
     </item>
 </layer-list>

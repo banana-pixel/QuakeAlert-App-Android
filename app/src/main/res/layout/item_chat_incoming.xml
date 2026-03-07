@@ -11,32 +11,19 @@
     android:paddingTop="2dp"
     android:paddingBottom="2dp">
 
-    <!-- Avatar -->
-    <ImageView
-        android:id="@+id/avatar_image"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:layout_marginEnd="8dp"
-        android:contentDescription="@string/user_avatar"
-        android:src="@drawable/ic_person"
-        android:visibility="visible"
-        app:layout_constraintBottom_toBottomOf="@id/message_bubble_container"
-        app:layout_constraintStart_toStartOf="parent"
-        app:tint="@color/md_theme_primary" />
-
     <!-- Message Bubble Container -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/message_bubble_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_chat_bubble_in"
-        android:elevation="1dp"
+        android:background="@drawable/bg_chat_other_3d"
+        android:elevation="0dp"
         android:paddingStart="12dp"
         android:paddingTop="6dp"
         android:paddingEnd="12dp"
         android:paddingBottom="6dp"
         android:minWidth="60dp"
-        app:layout_constraintStart_toEndOf="@id/avatar_image"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <!-- Sender Name (for group chats) -->
@@ -63,7 +50,7 @@
             android:autoLink="web|email"
             android:lineSpacingExtra="2dp"
             android:maxWidth="280dp"
-            android:textColor="@color/chat_text_in"
+            android:textColor="?attr/colorOnSurface"
             android:textColorLink="@color/md_theme_primary"
             android:textSize="15sp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -79,7 +66,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingStart="4dp"
-            android:textColor="@color/chat_time_in"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:textSize="11sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

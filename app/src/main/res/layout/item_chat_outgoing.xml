@@ -16,8 +16,8 @@
         android:id="@+id/message_bubble_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_chat_bubble_out"
-        android:elevation="1dp"
+        android:background="@drawable/bg_chat_me_3d"
+        android:elevation="0dp"
         android:paddingStart="12dp"
         android:paddingTop="6dp"
         android:paddingEnd="12dp"
@@ -35,7 +35,7 @@
             android:autoLink="web|email"
             android:lineSpacingExtra="2dp"
             android:maxWidth="280dp"
-            android:textColor="@color/chat_text_out"
+            android:textColor="@android:color/white"
             android:textColorLink="#E3F2FD"
             android:textSize="15sp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -60,7 +60,8 @@
                 android:id="@+id/time_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/chat_time_out"
+                android:alpha="0.7"
+                android:textColor="@android:color/white"
                 android:textSize="11sp"
                 tools:text="12:34" />
 
@@ -73,7 +74,7 @@
                 android:contentDescription="@string/message_status"
                 android:src="@drawable/ic_check"
                 android:visibility="visible"
-                app:tint="@color/chat_time_out" />
+                app:tint="@android:color/white" />
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -118,6 +118,14 @@ class TelegramChatFragment : Fragment() {
                 sendMessage(message)
                 binding.messageInput.text?.clear()
                 
+                // Auto-scroll to bottom after sending
+                binding.recyclerView.postDelayed({
+                    val itemCount = chatAdapter.itemCount
+                    if (itemCount > 0) {
+                        binding.recyclerView.smoothScrollToPosition(itemCount - 1)
+                    }
+                }, 100)
+                
                 // Vibrate feedback
                 it.performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
             }

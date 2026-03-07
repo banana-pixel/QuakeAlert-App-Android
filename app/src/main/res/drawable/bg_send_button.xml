@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Send Button Background - Circular with Primary Color -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="?attr/colorPrimaryContainer">
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="?attr/colorPrimary" />
+            <size
+                android:width="48dp"
+                android:height="48dp" />
+        </shape>
+    </item>
+</ripple>

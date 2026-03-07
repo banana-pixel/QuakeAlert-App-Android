@@ -2,16 +2,14 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Shadow layer (darker green) -->
     <item>
-        <shape android:shape="rectangle">
-            <corners android:radius="16dp"/>
+        <shape android:shape="oval">
             <solid android:color="#1B5E20"/> <!-- Dark green shadow -->
         </shape>
     </item>
-
+    
     <!-- Main surface (bright green) -->
     <item android:bottom="4dp">
-        <shape android:shape="rectangle">
-            <corners android:radius="16dp"/>
+        <shape android:shape="oval">
             <solid android:color="#4CAF50"/> <!-- Bright green -->
         </shape>
     </item>

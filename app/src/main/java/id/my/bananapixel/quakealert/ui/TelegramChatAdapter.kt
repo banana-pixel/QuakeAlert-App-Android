@@ -256,8 +256,6 @@ class TelegramChatAdapter(
             binding.timeText.text = formattedTime
             // Show sender name in group chats if needed
             binding.senderName.isVisible = false
-            // Show avatar
-            binding.avatarImage.isVisible = true
         }
     }
 }
