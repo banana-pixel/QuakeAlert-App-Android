@@ -73,9 +73,10 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
-            shrinkResources false
+            minifyEnabled true
+            shrinkResources true
             debuggable false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             } else {
@@ -223,6 +224,9 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.9.24'
     testImplementation 'org.json:json:20231013' // Real org.json on JVM (Android jar only stubs)
+    
+    // Coroutine testing
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
     
     // Mocking for unit tests
     testImplementation 'io.mockk:mockk:1.13.8'

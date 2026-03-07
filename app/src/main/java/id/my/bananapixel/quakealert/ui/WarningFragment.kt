@@ -9,8 +9,6 @@ import android.content.IntentFilter
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import android.view.View
 import android.view.animation.Animation
@@ -34,6 +32,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import id.my.bananapixel.quakealert.app.Application as App
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
@@ -63,20 +64,11 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     private lateinit var viewLogsButton: FloatingActionButton
 
     private val client = OkHttpClient()
-    private val statusHandler = Handler(Looper.getMainLooper())
-    private val statusRefreshRunnable = object : Runnable {
-        override fun run() {
-            if (scanningLayout.visibility == View.VISIBLE) fetchServerStatus()
-            statusHandler.postDelayed(this, 3000)
-        }
-    }
+    private var statusPollingJob: Job? = null
+    private var resetJob: Job? = null
+    private var timeUpdateJob: Job? = null
 
     private var backgroundAnimator: ValueAnimator? = null
-    private val resetHandler = Handler(Looper.getMainLooper())
-    private val resetRunnable = Runnable { AlertState.setActive(false) }
-
-    private val timeUpdateHandler = Handler(Looper.getMainLooper())
-    private var timeUpdateRunnable: Runnable? = null
     private var alertTimestamp: Long = 0L
 
     private val quakeReceiver = object : BroadcastReceiver() {
@@ -192,7 +184,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             scanningLayout.visibility = View.GONE
             alertLayout.visibility = View.VISIBLE
             radarIcon.clearAnimation()
-            statusHandler.removeCallbacks(statusRefreshRunnable)
+            stopStatusPolling()
         } else {
             scanningLayout.visibility = View.VISIBLE
             alertLayout.visibility = View.GONE
@@ -200,7 +192,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             radarIcon.startAnimation(pulseAnimation)
             safeActionsCard.visibility = View.GONE
             updateWarningStatus(ServerHealthStatus.CONNECTING, 0, 0)
-            statusHandler.removeCallbacks(statusRefreshRunnable)
+            stopStatusPolling()
             warmupThenStartPolling()
         }
     }
@@ -217,7 +209,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             override fun onFailure(call: Call, e: IOException) {
                 activity?.runOnUiThread {
                     if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                        statusHandler.post(statusRefreshRunnable)
+                        startStatusPolling()
                     }
                 }
             }
@@ -225,11 +217,28 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                 response.close()
                 activity?.runOnUiThread {
                     if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                        statusHandler.post(statusRefreshRunnable)
+                        startStatusPolling()
                     }
                 }
             }
         })
+    }
+
+    private fun startStatusPolling() {
+        stopStatusPolling()
+        statusPollingJob = viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
+                if (scanningLayout.visibility == View.VISIBLE) {
+                    fetchServerStatus()
+                }
+                delay(3000)
+            }
+        }
+    }
+
+    private fun stopStatusPolling() {
+        statusPollingJob?.cancel()
+        statusPollingJob = null
     }
 
     private fun fetchServerStatus() {
@@ -383,7 +392,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
 
         dismissButton.setOnClickListener {
             AlertState.setActive(false)
-            resetHandler.removeCallbacks(resetRunnable)
+            resetJob?.cancel()
             // Stop the insistent alert sound (same as when user dismisses the notification)
             Repository.getInstance(requireContext()).mediaPlayer.apply {
                 if (isPlaying) stop()
@@ -439,13 +448,17 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     }
 
     private fun scheduleReset() {
-        resetHandler.removeCallbacks(resetRunnable)
-        resetHandler.postDelayed(resetRunnable, 10 * 60 * 1000)
+        resetJob?.cancel()
+        resetJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(10 * 60 * 1000)
+            AlertState.setActive(false)
+        }
     }
 
     private fun startTimeUpdater() {
-        timeUpdateRunnable = object : Runnable {
-            override fun run() {
+        stopTimeUpdater()
+        timeUpdateJob = viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
                 if (alertTimestamp > 0) {
                     val timeAgo = android.text.format.DateUtils.getRelativeTimeSpanString(
                         alertTimestamp * 1000L,
@@ -455,14 +468,14 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
                     val exactTime = formatTimestampToLocal(alertTimestamp)
                     alertTime.text = "$exactTime\n($timeAgo)"
                 }
-                timeUpdateHandler.postDelayed(this, 60 * 1000L)
+                delay(60 * 1000L)
             }
         }
-        timeUpdateHandler.post(timeUpdateRunnable!!)
     }
 
     private fun stopTimeUpdater() {
-        timeUpdateRunnable?.let { timeUpdateHandler.removeCallbacks(it) }
+        timeUpdateJob?.cancel()
+        timeUpdateJob = null
     }
 
     override fun onResume() {
@@ -470,7 +483,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         val filter = IntentFilter(NotificationService.ACTION_QUAKE_ALERT)
         requireContext().registerReceiver(quakeReceiver, filter, Context.RECEIVER_EXPORTED)
         if (::scanningLayout.isInitialized && scanningLayout.visibility == View.VISIBLE) {
-            statusHandler.removeCallbacks(statusRefreshRunnable)
+            stopStatusPolling()
             warmupThenStartPolling()
         }
     }
@@ -478,12 +491,14 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
     override fun onPause() {
         super.onPause()
         requireContext().unregisterReceiver(quakeReceiver)
-        statusHandler.removeCallbacks(statusRefreshRunnable)
+        stopStatusPolling()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         stopBackgroundWarningAnimation()
         stopTimeUpdater()
+        stopStatusPolling()
+        resetJob?.cancel()
     }
 }

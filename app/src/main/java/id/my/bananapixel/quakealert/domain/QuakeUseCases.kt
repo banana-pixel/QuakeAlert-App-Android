@@ -5,12 +5,42 @@ import id.my.bananapixel.quakealert.db.QuakeRepository
 import id.my.bananapixel.quakealert.util.Log
 
 /**
- * UseCase for fetching quake reports from the backend.
- * Encapsulates the business logic of refreshing quake data.
+ * Use Case for fetching earthquake reports from the backend API.
+ * 
+ * Encapsulates the business logic of refreshing earthquake data. This use case:
+ * - Calls the repository to fetch fresh earthquake data from the API
+ * - Updates the local database cache
+ * - Handles errors and converts them to domain-specific AppResult
+ * 
+ * ## Usage Example:
+ * ```kotlin
+ * class QuakeHistoryViewModel(repository: QuakeRepository) : ViewModel() {
+ *     private val fetchQuakesUseCase = FetchQuakesUseCase(repository)
+ *     
+ *     fun refreshQuakes(context: Context) = viewModelScope.launch {
+ *         val result = fetchQuakesUseCase(context)
+ *         if (result.isSuccess) {
+ *             // Handle success
+ *         } else {
+ *             // Handle error
+ *         }
+ *     }
+ * }
+ * ```
+ * 
+ * @property quakeRepository Repository for earthquake data operations
+ * @see QuakeRepository
+ * @see AppResult
  */
 class FetchQuakesUseCase(
     private val quakeRepository: QuakeRepository
 ) {
+    /**
+     * Executes the use case to fetch earthquake reports.
+     * 
+     * @param context Android context required for API calls
+     * @return [AppResult]<Unit> indicating success or failure with error details
+     */
     suspend operator fun invoke(context: Context): AppResult<Unit> {
         Log.d(TAG, "Fetching quakes...")
         val result = quakeRepository.fetchQuakes(context)
@@ -30,11 +60,38 @@ class FetchQuakesUseCase(
 }
 
 /**
- * UseCase for clearing all cached quakes.
+ * Use Case for clearing all cached earthquake records.
+ * 
+ * This use case removes all earthquake data from the local database cache.
+ * Useful for:
+ * - Manual database cleanup by user
+ * - Resetting app state during development/testing
+ * - Clearing outdated data before fresh sync
+ * 
+ * ## Usage Example:
+ * ```kotlin
+ * class QuakeHistoryViewModel(repository: QuakeRepository) : ViewModel() {
+ *     private val clearQuakesUseCase = ClearQuakesUseCase(repository)
+ *     
+ *     fun clearQuakes() = viewModelScope.launch {
+ *         clearQuakesUseCase()
+ *         // Database is now empty
+ *     }
+ * }
+ * ```
+ * 
+ * @property quakeRepository Repository for earthquake data operations
+ * @see QuakeRepository
  */
 class ClearQuakesUseCase(
     private val quakeRepository: QuakeRepository
 ) {
+    /**
+     * Executes the use case to clear all cached earthquakes.
+     * 
+     * This is a synchronous operation that deletes all records from the local database.
+     * The UI will automatically update via the Flow from repository.quakes.
+     */
     suspend operator fun invoke() {
         Log.d(TAG, "Clearing quakes...")
         quakeRepository.clearQuakes()
@@ -45,3 +102,4 @@ class ClearQuakesUseCase(
         private const val TAG = "ClearQuakesUseCase"
     }
 }
+

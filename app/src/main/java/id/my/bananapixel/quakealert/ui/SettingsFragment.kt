@@ -376,12 +376,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         return XYTileSource(
             if (isDark) "Carto Dark Matter" else "Carto Positron",
             0, 20, 256, ".png",
-            arrayOf(
-                "https://a.basemaps.cartocdn.com/rastertiles/$path/",
-                "https://b.basemaps.cartocdn.com/rastertiles/$path/",
-                "https://c.basemaps.cartocdn.com/rastertiles/$path/",
-                "https://d.basemaps.cartocdn.com/rastertiles/$path/"
-            )
+            MAP_TILE_SUBDOMAINS.map { subdomain ->
+                "https://$subdomain.$MAP_TILE_BASE_URL/$path/"
+            }.toTypedArray()
         )
     }
 
@@ -398,5 +395,9 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         private const val STEP_KM = 100
         private const val MAX_PROGRESS = 50
         private const val MAX_RADIUS_KM = MAX_PROGRESS * STEP_KM
+
+        // Map tile server configuration
+        private const val MAP_TILE_BASE_URL = "basemaps.cartocdn.com/rastertiles"
+        private val MAP_TILE_SUBDOMAINS = arrayOf("a", "b", "c", "d")
     }
 }
