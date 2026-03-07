@@ -61,14 +61,14 @@ This app follows **Clean Architecture** principles with clear separation of conc
 
 ```
 ┌─────────────────────────────────────────────┐
-│              UI Layer (Presentation)         │
+│              UI Layer (Presentation)        │
 │  ┌─────────────┐  ┌──────────────────────┐  │
-│  │  Fragment    │  │    ViewModel         │  │
-│  │  Activity    │  │    (ViewBinding)     │  │
+│  │  Fragment   │  │    ViewModel         │  │
+│  │  Activity   │  │    (ViewBinding)     │  │
 │  └─────────────┘  └──────────────────────┘  │
 └────────────────┬────────────────────────────┘
                  │
-        ┌────────▼────────┐
+        ┌────────▼─────────┐
         │  Domain Layer    │
         │                  │
         │  • UseCases      │

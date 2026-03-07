@@ -638,6 +638,10 @@
     <string name="mmi_desc_unknown">No data.</string>
     <string name="chat_empty_text">No messages yet.\nSend a message to start the conversation.</string>
     <string name="chat_message_hint">Type a message…</string>
+    <string name="message_rejected">Message rejected by server</string>
+    <string name="type_message_hint">Type a message…</string>
+    <string name="send_message">Send message</string>
+    <string name="online_count">%d online</string>
     <string name="scroll_to_bottom">Scroll to bottom</string>
 
     <!-- Onboarding / Initialization -->
