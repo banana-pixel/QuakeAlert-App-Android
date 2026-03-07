@@ -140,13 +140,17 @@ class QuakeHistoryViewModelTest {
         // Given: Repository has quake data
         val mockQuakes = listOf(
             QuakeData(
-                id = 1,
-                intensitas_maks = "V",
-                lokasi = "Test Location",
+                id = "quake-001",
+                magnitude = 5.5,
+                place = "Test Location",
+                time = 1000000L,
+                description = "Test earthquake",
                 latitude = -6.2,
                 longitude = 106.8,
-                waktu_kejadian = 1000000L,
+                pga = "0.5",
                 durasi = 30,
+                station_id = "STATION1",
+                intensity = "V",
                 sync_time = 1000100L
             )
         )
@@ -157,17 +161,17 @@ class QuakeHistoryViewModelTest {
         
         // Then: Should receive data from repository
         assertEquals(1, quakes.size)
-        assertEquals("V", quakes[0].intensitas_maks)
-        assertEquals("Test Location", quakes[0].lokasi)
+        assertEquals("V", quakes[0].intensity)
+        assertEquals("Test Location", quakes[0].place)
     }
 
     @Test
-    fun `clearQuakes calls repository clearQuakes`() = runTest {
+    fun `clearAllQuakes calls repository clearQuakes`() = runTest {
         // Given: ViewModel with repository
         coEvery { repository.clearQuakes() } returns Unit
         
         // When: Clearing quakes
-        viewModel.clearQuakes()
+        viewModel.clearAllQuakes()
         testDispatcher.scheduler.advanceUntilIdle()
         
         // Then: Repository should be called
