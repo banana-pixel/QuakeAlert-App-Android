@@ -559,6 +559,19 @@
     <string name="warning_hold_on">• PEGANG: Tetap di sana sampai guncangan berhenti.</string>
     <string name="warning_share">Bagikan</string>
     <string name="warning_dismiss">Tutup</string>
+    
+    <!-- Additional warning strings for dynamic content -->
+    <string name="warning_distance_unknown">Tidak diketahui</string>
+    <string name="warning_location_format">Lokasi: %1$s km\n%2$s</string>
+    <string name="warning_share_alert_format">🚨 PERINGATAN GEMPA 🚨\nIntensitas: %1$s\n%2$s\nWaktu: %3$s</string>
+    <string name="warning_share_chooser_title">Bagikan Peringatan</string>
+    
+    <!-- Chat strings -->
+    <string name="scroll_to_bottom">Gulir ke bawah</string>
+    <string name="message_rejected">Pesan ditolak oleh server</string>
+    <string name="type_message_hint">Ketik pesan…</string>
+    <string name="send_message">Kirim pesan</string>
+    <string name="online_count">%d online</string>
 
     <!-- Settings - Earthquake Alert -->
     <string name="settings_earthquake_alert_header">Peringatan Gempa</string>

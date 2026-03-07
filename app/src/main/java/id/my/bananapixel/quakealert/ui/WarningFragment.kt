@@ -83,7 +83,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == NotificationService.ACTION_QUAKE_ALERT) {
                 val message = intent.getStringExtra("message") ?: ""
-                val distance = intent.getStringExtra("distance") ?: "Unknown"
+                val distance = intent.getStringExtra("distance") ?: getString(R.string.warning_distance_unknown)
                 val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis() / 1000)
 
                 AlertState.setAlertFromRaw(message, distance, timestamp)
@@ -174,7 +174,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         intensityText.contentDescription = getString(R.string.warning_intensity_content_description) + ", " + extractedIntensity
 
         alertDetails.text = if (!distance.isNullOrBlank()) {
-            "Location: $distance km away\n$cleanMessage"
+            getString(R.string.warning_location_format, distance, cleanMessage)
         } else {
             cleanMessage
         }
@@ -367,13 +367,18 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
         }
 
         shareButton.setOnClickListener {
-            val shareText = "🚨 EARTHQUAKE ALERT 🚨\nIntensity: ${intensityText.text}\n${alertDetails.text}\nTime: ${alertTime.text}"
+            val shareText = getString(
+                R.string.warning_share_alert_format,
+                intensityText.text,
+                alertDetails.text,
+                alertTime.text
+            )
             val sendIntent = Intent().apply {
                 action = Intent.ACTION_SEND
                 putExtra(Intent.EXTRA_TEXT, shareText)
                 type = "text/plain"
             }
-            startActivity(Intent.createChooser(sendIntent, "Share Alert"))
+            startActivity(Intent.createChooser(sendIntent, getString(R.string.warning_share_chooser_title)))
         }
 
         dismissButton.setOnClickListener {

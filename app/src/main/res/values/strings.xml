@@ -415,6 +415,12 @@
     <string name="warning_sensors_online_count">%1$d sensor(s) online</string>
     <string name="warning_status_pill_healthy">Server Healthy • %1$d sensor(s) online</string>
     <string name="warning_status_pill_connecting">Connecting…</string>
+    
+    <!-- Additional warning strings for dynamic content -->
+    <string name="warning_distance_unknown">Unknown</string>
+    <string name="warning_location_format">Location: %1$s km away\n%2$s</string>
+    <string name="warning_share_alert_format">🚨 EARTHQUAKE ALERT 🚨\nIntensity: %1$s\n%2$s\nTime: %3$s</string>
+    <string name="warning_share_chooser_title">Share Alert</string>
 
     <string name="settings_earthquake_location_summary_title">Current location</string>
     <string name="settings_earthquake_location_not_set">Not set</string>
