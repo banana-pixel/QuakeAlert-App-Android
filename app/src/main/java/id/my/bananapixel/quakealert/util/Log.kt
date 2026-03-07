@@ -8,7 +8,7 @@ import id.my.bananapixel.quakealert.db.Database
 import id.my.bananapixel.quakealert.db.LogDao
 import id.my.bananapixel.quakealert.db.LogEntry
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -23,7 +23,7 @@ class Log(private val logsDao: LogDao) {
 
     private fun log(level: Int, tag: String, message: String, exception: Throwable?) {
         if (!record.get()) return
-        GlobalScope.launch(Dispatchers.IO) {
+        MainScope().launch(Dispatchers.IO) {
             logsDao.insert(LogEntry(System.currentTimeMillis(), tag, level, message, exception?.stackTraceToString()))
             val current = count.incrementAndGet()
             if (current >= PRUNE_EVERY) {

@@ -10,7 +10,7 @@ import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.util.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 
 /**
@@ -84,7 +84,7 @@ class BroadcastService(private val ctx: Context) {
                 else -> 0
             }
             val delay = getStringExtra(intent,"delay") ?: ""
-            GlobalScope.launch(Dispatchers.IO) {
+            MainScope().launch(Dispatchers.IO) {
                 val repository = Repository.getInstance(ctx)
                 val user = repository.getUser(baseUrl) // May be null
                 try {

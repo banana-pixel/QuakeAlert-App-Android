@@ -14,7 +14,7 @@ import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.service.SubscriberServiceManager
 import id.my.bananapixel.quakealert.util.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -53,7 +53,7 @@ class BroadcastReceiver : android.content.BroadcastReceiver() {
             Log.w(TAG, "Refusing registration: Empty application")
             return
         }
-        GlobalScope.launch(Dispatchers.IO) {
+        MainScope().launch(Dispatchers.IO) {
             // We're doing all of this inside a critical section, because of possible races.
             // See https://github.com/binwiederhier/ntfy/issues/230 for details.
 
@@ -197,7 +197,7 @@ class BroadcastReceiver : android.content.BroadcastReceiver() {
         val repository = app.repository
         val distributor = Distributor(app)
         Log.d(TAG, "UNREGISTER received (connectorToken=$connectorToken)")
-        GlobalScope.launch(Dispatchers.IO) {
+        MainScope().launch(Dispatchers.IO) {
             // We're doing all of this inside a critical section, because of possible races.
             // See https://github.com/binwiederhier/ntfy/issues/230 for details.
 

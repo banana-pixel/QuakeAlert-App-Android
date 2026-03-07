@@ -1,0 +1,45 @@
+
+> Configure project :app
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preFdroidDebugBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsFdroidDebug UP-TO-DATE
+> Task :app:generateFdroidDebugResources UP-TO-DATE
+> Task :app:processFdroidDebugGoogleServices SKIPPED
+> Task :app:mergeFdroidDebugResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesFdroidDebug UP-TO-DATE
+> Task :app:generateFdroidDebugBuildConfig UP-TO-DATE
+> Task :app:packageFdroidDebugResources UP-TO-DATE
+> Task :app:processFdroidDebugNavigationResources UP-TO-DATE
+> Task :app:parseFdroidDebugLocalResources UP-TO-DATE
+> Task :app:generateFdroidDebugRFile UP-TO-DATE
+> Task :app:kspFdroidDebugKotlin UP-TO-DATE
+> Task :app:compileFdroidDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileFdroidDebug UP-TO-DATE
+> Task :app:compileFdroidDebugJavaWithJavac UP-TO-DATE
+> Task :app:checkFdroidDebugAarMetadata UP-TO-DATE
+> Task :app:compileFdroidDebugNavigationResources UP-TO-DATE
+> Task :app:mapFdroidDebugSourceSetPaths UP-TO-DATE
+> Task :app:createFdroidDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksFdroidDebug UP-TO-DATE
+> Task :app:processFdroidDebugMainManifest UP-TO-DATE
+> Task :app:processFdroidDebugManifest UP-TO-DATE
+> Task :app:processFdroidDebugManifestForPackage UP-TO-DATE
+> Task :app:processFdroidDebugResources UP-TO-DATE
+> Task :app:bundleFdroidDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleFdroidDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preFdroidDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileFdroidDebugUnitTest UP-TO-DATE
+> Task :app:processFdroidDebugJavaRes UP-TO-DATE
+> Task :app:kspFdroidDebugUnitTestKotlin
+> Task :app:compileFdroidDebugUnitTestKotlin
+> Task :app:compileFdroidDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processFdroidDebugUnitTestJavaRes UP-TO-DATE
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended

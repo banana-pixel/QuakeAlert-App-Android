@@ -553,7 +553,7 @@ class DetailActivity : BaseActivity(), NotificationFragment.NotificationSettings
     override fun onPause() {
         super.onPause()
         Log.d(TAG, "onPause hook: Removing 'notificationId' from all notifications for $subscriptionId")
-        GlobalScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch(Dispatchers.IO) {
             // Note: This is here and not in onDestroy/onStop, because we want to clear notifications as early
             // as possible, so that we don't see the "new" bubble in the main list anymore.
             repository.markAllAsRead(subscriptionId)
@@ -909,7 +909,7 @@ class DetailActivity : BaseActivity(), NotificationFragment.NotificationSettings
             .setMessage(R.string.detail_delete_dialog_message)
             .setPositiveButton(R.string.detail_delete_dialog_permanently_delete) { _, _ ->
                 Log.d(TAG, "Deleting subscription with subscription ID $subscriptionId (topic: $subscriptionTopic)")
-                GlobalScope.launch(Dispatchers.IO) {
+                lifecycleScope.launch(Dispatchers.IO) {
                     val subscription = repository.getSubscription(subscriptionId) ?: return@launch
                     repository.removeSubscription(subscription)
                     if (subscriptionBaseUrl == appBaseUrl) {

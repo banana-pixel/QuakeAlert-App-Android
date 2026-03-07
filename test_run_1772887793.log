@@ -1,0 +1,93 @@
+nohup: ignoring input
+
+> Configure project :app
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preFdroidDebugBuild UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsFdroidDebug UP-TO-DATE
+> Task :app:generateFdroidDebugResources UP-TO-DATE
+> Task :app:processFdroidDebugGoogleServices SKIPPED
+> Task :app:mergeFdroidDebugResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesFdroidDebug UP-TO-DATE
+> Task :app:generateFdroidDebugBuildConfig UP-TO-DATE
+> Task :app:packageFdroidDebugResources UP-TO-DATE
+> Task :app:processFdroidDebugNavigationResources UP-TO-DATE
+> Task :app:parseFdroidDebugLocalResources UP-TO-DATE
+> Task :app:generateFdroidDebugRFile UP-TO-DATE
+> Task :app:kspFdroidDebugKotlin UP-TO-DATE
+> Task :app:compileFdroidDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileFdroidDebug UP-TO-DATE
+> Task :app:compileFdroidDebugJavaWithJavac UP-TO-DATE
+> Task :app:checkFdroidDebugAarMetadata UP-TO-DATE
+> Task :app:compileFdroidDebugNavigationResources UP-TO-DATE
+> Task :app:mapFdroidDebugSourceSetPaths UP-TO-DATE
+> Task :app:createFdroidDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksFdroidDebug UP-TO-DATE
+> Task :app:processFdroidDebugMainManifest UP-TO-DATE
+> Task :app:processFdroidDebugManifest UP-TO-DATE
+> Task :app:processFdroidDebugManifestForPackage UP-TO-DATE
+> Task :app:processFdroidDebugResources UP-TO-DATE
+> Task :app:bundleFdroidDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleFdroidDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preFdroidDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileFdroidDebugUnitTest UP-TO-DATE
+> Task :app:processFdroidDebugJavaRes UP-TO-DATE
+> Task :app:kspFdroidDebugUnitTestKotlin
+> Task :app:compileFdroidDebugUnitTestKotlin
+> Task :app:compileFdroidDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processFdroidDebugUnitTestJavaRes UP-TO-DATE
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+> Task :app:testFdroidDebugUnitTest
+
+QuakeHistoryViewModelTest > refreshQuakes success updates state to Success FAILED
+    java.lang.AssertionError at QuakeHistoryViewModelTest.kt:72
+
+QuakeHistoryViewModelTest > quakes flow emits data from repository FAILED
+    java.util.NoSuchElementException at QuakeHistoryViewModelTest.kt:128
+
+QuakeHistoryViewModelTest > refreshQuakes sets Loading state during execution FAILED
+    java.lang.AssertionError at QuakeHistoryViewModelTest.kt:116
+
+QuakeHistoryViewModelTest > refreshQuakes network error updates state to Error with message FAILED
+    java.lang.AssertionError at QuakeHistoryViewModelTest.kt:86
+
+QuakeHistoryViewModelTest > refreshQuakes parse error updates state to Error with generic message FAILED
+    java.lang.AssertionError at QuakeHistoryViewModelTest.kt:101
+
+QuakeHistoryViewModelTest > clearAllQuakes calls repository clearQuakes FAILED
+    java.lang.AssertionError at QuakeHistoryViewModelTest.kt:158
+
+QuakeHistoryViewModelTest > multiple refresh calls handle state correctly FAILED
+    java.lang.AssertionError at QuakeHistoryViewModelTest.kt:170
+
+67 tests completed, 7 failed
+
+> Task :app:testFdroidDebugUnitTest FAILED
+
+[Incubating] Problems report is available at: file:///home/vitowiratara/QuakeAlert-App-Android/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:testFdroidDebugUnitTest'.
+> There were failing tests. See the report at: file:///home/vitowiratara/QuakeAlert-App-Android/app/build/reports/tests/testFdroidDebugUnitTest/index.html
+
+* Try:
+> Run with --scan to generate a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.2.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 28s
+30 actionable tasks: 3 executed, 27 up-to-date

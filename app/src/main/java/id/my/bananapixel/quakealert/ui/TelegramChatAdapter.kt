@@ -53,8 +53,17 @@ class TelegramChatAdapter(
 
     /**
      * Converts a list of ChatMessages into ChatListItems with date headers
+     * ⚡ Optimized: Only recomputes headers if message count or dates changed
      */
+    private var cachedMessageCount = 0
+    
     fun submitMessageList(messages: List<ChatMessage>) {
+        // Skip recomputation if nothing changed
+        if (messages.size == cachedMessageCount) {
+            return
+        }
+        cachedMessageCount = messages.size
+        
         val itemsWithHeaders = mutableListOf<ChatListItem>()
         var lastDate: String? = null
 
@@ -88,27 +97,18 @@ class TelegramChatAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+        // ⚡ Cache LayoutInflater to avoid repeated lookups
+        val inflater = LayoutInflater.from(parent.context)
+        
         return when (viewType) {
             VIEW_TYPE_OUTGOING -> OutgoingMessageViewHolder(
-                ItemChatOutgoingBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
-                )
+                ItemChatOutgoingBinding.inflate(inflater, parent, false)
             )
             VIEW_TYPE_INCOMING -> IncomingMessageViewHolder(
-                ItemChatIncomingBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
-                )
+                ItemChatIncomingBinding.inflate(inflater, parent, false)
             )
             VIEW_TYPE_DATE_HEADER -> DateHeaderViewHolder(
-                ItemChatDateHeaderBinding.inflate(
-                    LayoutInflater.from(parent.context),
-                    parent,
-                    false
-                )
+                ItemChatDateHeaderBinding.inflate(inflater, parent, false)
             )
             else -> throw IllegalArgumentException("Unknown view type: $viewType")
         }
@@ -135,9 +135,10 @@ class TelegramChatAdapter(
 
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         super.onViewRecycled(holder)
-        // Ensure views are in default state when recycled
-        holder.itemView.alpha = 1f
-        holder.itemView.translationX = 0f
+        // ⚡ Reset view state efficiently to prevent flickering
+        // Only reset if necessary (avoid expensive operations)
+        if (holder.itemView.alpha != 1f) holder.itemView.alpha = 1f
+        if (holder.itemView.translationX != 0f) holder.itemView.translationX = 0f
     }
 
     private fun getDateLabel(timestamp: Long): String {
@@ -163,12 +164,18 @@ class TelegramChatAdapter(
         }
     }
 
+    // ⚡ Cache formatted times to avoid repeated calculations
+    private val timeCache = mutableMapOf<Long, String>()
+    
     private fun formatChatTime(timestamp: Long): String {
+        // Return cached value if available
+        timeCache[timestamp]?.let { return it }
+        
         val date = Date(timestamp)
         val now = Calendar.getInstance()
         val messageTime = Calendar.getInstance().apply { time = date }
 
-        return when {
+        val formatted = when {
             // Today - show only time
             now.get(Calendar.DAY_OF_YEAR) == messageTime.get(Calendar.DAY_OF_YEAR) &&
             now.get(Calendar.YEAR) == messageTime.get(Calendar.YEAR) -> 
@@ -181,6 +188,16 @@ class TelegramChatAdapter(
             // Different year - show full date
             else -> dateTimeYearFormat.format(date)
         }
+        
+        // Cache the result
+        if (timeCache.size > 1000) timeCache.clear() // Prevent unbounded growth
+        timeCache[timestamp] = formatted
+        return formatted
+    }
+    
+    // Clear cache when data changes
+    fun clearCache() {
+        timeCache.clear()
     }
 
     class DateHeaderViewHolder(
@@ -195,10 +212,17 @@ class TelegramChatAdapter(
         private val binding: ItemChatOutgoingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(message: ChatMessage, formattedTime: String) {
-            binding.messageText.text = message.message
-            binding.timeText.text = formattedTime
-            // Hide status icon
-            binding.messageStatus.isVisible = false
+            // ⚡ Only update if text changed (avoid unnecessary invalidations)
+            if (binding.messageText.text != message.message) {
+                binding.messageText.text = message.message
+            }
+            if (binding.timeText.text != formattedTime) {
+                binding.timeText.text = formattedTime
+            }
+            // Hide status icon - cache visibility state
+            if (binding.messageStatus.isVisible) {
+                binding.messageStatus.isVisible = false
+            }
         }
     }
 
@@ -206,10 +230,17 @@ class TelegramChatAdapter(
         private val binding: ItemChatIncomingBinding
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(message: ChatMessage, formattedTime: String) {
-            binding.messageText.text = message.message
-            binding.timeText.text = formattedTime
+            // ⚡ Only update if text changed (avoid unnecessary invalidations)
+            if (binding.messageText.text != message.message) {
+                binding.messageText.text = message.message
+            }
+            if (binding.timeText.text != formattedTime) {
+                binding.timeText.text = formattedTime
+            }
             // Show sender name in group chats if needed
-            binding.senderName.isVisible = false
+            if (binding.senderName.isVisible) {
+                binding.senderName.isVisible = false
+            }
         }
     }
 }

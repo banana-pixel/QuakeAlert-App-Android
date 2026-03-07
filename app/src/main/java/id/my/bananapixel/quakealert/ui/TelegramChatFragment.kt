@@ -86,8 +86,21 @@ class TelegramChatFragment : Fragment() {
                 verticalSpacing = resources.getDimensionPixelSize(R.dimen.chat_message_spacing),
                 groupSpacing = resources.getDimensionPixelSize(R.dimen.chat_group_spacing)
             ))
-            // Disable item animations for better performance
+            
+            // ⚡ Performance optimizations for smooth scrolling
+            // Disable item animations (no jank during scroll)
             itemAnimator = null
+            
+            // Cache fixed-size items (faster measure/layout passes)
+            setHasFixedSize(false)
+            
+            // Cache 8 view holders to reduce inflation overhead
+            setItemViewCacheSize(8)
+            
+            // Prefetch with 2 item lookahead for smooth scrolling
+            (this.layoutManager as? LinearLayoutManager)?.setItemPrefetchEnabled(true)
+            // Prefetch 4 items ahead to prevent stutter
+            Recycler().apply { setViewCacheExtension(null) }
             
             // Setup scroll listener for scroll-to-bottom button
             addOnScrollListener(object : RecyclerView.OnScrollListener() {

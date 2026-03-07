@@ -486,7 +486,7 @@ class DetailAdapter(private val activity: Activity, private val lifecycleScope: 
                     progress = ATTACHMENT_PROGRESS_DELETED
                 )
                 val newNotification = notification.copy(attachment = newAttachment)
-                GlobalScope.launch(Dispatchers.IO) {
+                lifecycleScope.launch(Dispatchers.IO) {
                     repository.updateNotification(newNotification)
                 }
             } catch (e: Exception) {

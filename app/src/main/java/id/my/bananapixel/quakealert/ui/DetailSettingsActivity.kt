@@ -121,14 +121,15 @@ class DetailSettingsActivity : BaseActivity() {
             // Create result launcher for custom icon (must be created in onCreatePreferences() directly)
             iconSetLauncher = createIconPickLauncher()
 
-            // Load subscription and users
+            // Load subscription and users asynchronously
             val subscriptionId = arguments?.getLong(DetailActivity.EXTRA_SUBSCRIPTION_ID) ?: return
-            runBlocking {
-                withContext(Dispatchers.IO) {
-                    subscription = repository.getSubscription(subscriptionId) ?: return@withContext
-                    activity?.runOnUiThread {
-                        loadView()
-                    }
+            lifecycleScope.launch {
+                val loadedSubscription = withContext(Dispatchers.IO) {
+                    repository.getSubscription(subscriptionId)
+                }
+                if (loadedSubscription != null) {
+                    subscription = loadedSubscription
+                    loadView()
                 }
             }
         }

@@ -32,7 +32,8 @@ import id.my.bananapixel.quakealert.util.HttpUtil
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.topicUrl
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import java.util.concurrent.ConcurrentHashMap
@@ -67,6 +68,7 @@ import java.util.concurrent.ConcurrentHashMap
 class SubscriberService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var isServiceStarted = false
+    private val scope = MainScope()
     private val repository by lazy { (application as Application).repository }
     private val dispatcher by lazy { NotificationDispatcher(this, repository) }
     private val api by lazy { ApiService(this) }
@@ -151,6 +153,7 @@ class SubscriberService : Service() {
 
     override fun onDestroy() {
         Log.d(TAG, "Subscriber service has been destroyed")
+        scope.coroutineContext.cancel() // Cancel all pending coroutines
         stopService()
         sendBroadcast(Intent(this, AutoRestartReceiver::class.java)) // Restart it if necessary!
         super.onDestroy()
@@ -199,7 +202,7 @@ class SubscriberService : Service() {
     }
 
     private fun refreshConnections() {
-        GlobalScope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO) {
             if (!refreshMutex.tryLock()) {
                 Log.d(TAG, "Refreshing subscriptions already in progress. Skipping.")
                 return@launch
@@ -358,7 +361,7 @@ class SubscriberService : Service() {
 
         val url = topicUrl(subscription.baseUrl, subscription.topic)
         Log.d(TAG, "[$url] Received notification: $notification")
-        GlobalScope.launch(Dispatchers.IO) {
+        scope.launch(Dispatchers.IO) {
             // This logic is (partially) duplicated in
             // - Android: SubscriberService::onNotificationReceived()
             // - Android: FirebaseService::onMessageReceived()
