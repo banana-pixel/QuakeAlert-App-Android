@@ -80,6 +80,7 @@
 -keep class id.my.bananapixel.quakealert.di.** { *; }
 -keep class id.my.bananapixel.quakealert.domain.** { *; }
 -keep class id.my.bananapixel.quakealert.db.** { *; }
+-keep class id.my.bananapixel.quakealert.api.** { *; }
 
 # Keep ViewModels (used by Koin)
 -keep class * extends androidx.lifecycle.ViewModel { *; }

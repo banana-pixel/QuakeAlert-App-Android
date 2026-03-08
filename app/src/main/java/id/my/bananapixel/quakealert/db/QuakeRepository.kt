@@ -91,11 +91,22 @@ class QuakeRepositoryImpl(
         quakeDao.clearAll()
     }
 
-    private suspend fun executeFetchReports(context: Context): List<QuakeReport> {
+    private suspend fun executeFetchReports(context: Context): List<QuakeReport> = withContext(Dispatchers.IO) {
         val baseUrl = id.my.bananapixel.quakealert.BuildConfig.APP_BASE_URL.trimEnd('/')
-        val api = QuakeAlertApi.create(context, baseUrl)
-        val body = api.getLaporan()
-        return QuakeReportParser.parseReports(body)
+        val client = id.my.bananapixel.quakealert.util.HttpUtil.defaultClient(context, "$baseUrl/")
+        
+        val request = okhttp3.Request.Builder()
+            .url("$baseUrl/laporan")
+            .header("User-Agent", id.my.bananapixel.quakealert.util.HttpUtil.USER_AGENT)
+            .build()
+            
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                throw IOException("Unexpected status code ${response.code}")
+            }
+            val body = response.body?.string() ?: ""
+            QuakeReportParser.parseReports(body)
+        }
     }
 
     private fun Double.orZeroIfNaN(): Double = if (this.isNaN()) 0.0 else this
