@@ -19,6 +19,15 @@ import id.my.bananapixel.quakealert.ui.SubscriptionsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
+import id.my.bananapixel.quakealert.BuildConfig
+import id.my.bananapixel.quakealert.util.HttpUtil
+import id.my.bananapixel.quakealert.api.QuakeAlertApi
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import kotlinx.serialization.json.Json
+import kotlinx.coroutines.runBlocking
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import retrofit2.Retrofit
 
 /**
  * Data layer module: Database, SharedPreferences, and Repository implementations.
@@ -40,12 +49,40 @@ val dataModule = module {
     
     // Quake repository
     single<QuakeRepository> {
-        QuakeRepositoryImpl(get<Database>().quakeHistoryDao())
+        QuakeRepositoryImpl(get<Database>().quakeHistoryDao(), get())
     }
     
     // Chat repository
     single<ChatRepository> {
         ChatRepositoryImpl(get<Database>().chatMessageDao())
+    }
+    
+    // Networking
+    single<OkHttpClient> {
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/') + "/"
+        val baseClient = runBlocking { HttpUtil.defaultClient(androidContext(), baseUrl) }
+        baseClient.newBuilder()
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .addHeader("User-Agent", HttpUtil.USER_AGENT)
+                        .build()
+                )
+            }
+            .build()
+    }
+
+    single<QuakeAlertApi> {
+        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/') + "/"
+        val contentType = "application/json".toMediaType()
+        val json = Json { ignoreUnknownKeys = true; isLenient = true; explicitNulls = false }
+        
+        Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(get())
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(QuakeAlertApi::class.java)
     }
 }
 
@@ -75,7 +112,7 @@ val uiModule = module {
     viewModel { ChatViewModel(get<ChatRepository>()) }
     viewModel { DetailViewModel(get<Repository>()) }
     viewModel { SubscriptionsViewModel(get<Repository>()) }
-    viewModel { QuakeViewModel(androidContext(), get<QuakeRepository>(), get<Database>()) }
+    viewModel { QuakeViewModel(androidContext(), get<QuakeRepository>(), get<Database>(), get()) }
 }
 
 /**

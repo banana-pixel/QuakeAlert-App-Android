@@ -17,7 +17,8 @@ import kotlinx.coroutines.flow.Flow
 class QuakeViewModel(
     private val appContext: Context,
     private val quakeRepository: QuakeRepository,
-    private val database: Database
+    private val database: Database,
+    private val api: id.my.bananapixel.quakealert.api.QuakeAlertApi
 ) : ViewModel() {
     
     @OptIn(ExperimentalPagingApi::class)
@@ -27,7 +28,7 @@ class QuakeViewModel(
             enablePlaceholders = false,
             initialLoadSize = 20
         ),
-        remoteMediator = QuakeRemoteMediator(database, appContext),
+        remoteMediator = QuakeRemoteMediator(database, api),
         pagingSourceFactory = { database.quakeHistoryDao().getPaged() }
     ).flow.cachedIn(viewModelScope)
 }
@@ -35,9 +36,10 @@ class QuakeViewModel(
 class QuakeViewModelFactory(
     private val context: Context,
     private val quakeRepository: QuakeRepository,
-    private val database: Database
+    private val database: Database,
+    private val api: id.my.bananapixel.quakealert.api.QuakeAlertApi
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T =
-        QuakeViewModel(context.applicationContext, quakeRepository, database) as T
+        QuakeViewModel(context.applicationContext, quakeRepository, database, api) as T
 }

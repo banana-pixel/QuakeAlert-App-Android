@@ -162,6 +162,7 @@ dependencies {
     def retrofit_version = '2.9.0'
     implementation "com.squareup.retrofit2:retrofit:$retrofit_version"
     implementation "com.squareup.retrofit2:converter-scalars:$retrofit_version"
+    implementation "com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0"
 
     // Firebase, sigh ... (only Google Play)
     playImplementation 'com.google.firebase:firebase-messaging:25.0.1'

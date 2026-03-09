@@ -19,7 +19,7 @@ import androidx.room.withTransaction
 @OptIn(ExperimentalPagingApi::class)
 class QuakeRemoteMediator(
     private val database: Database,
-    private val context: android.content.Context
+    private val api: QuakeAlertApi
 ) : RemoteMediator<Int, QuakeData>() {
 
     override suspend fun load(
@@ -112,9 +112,6 @@ class QuakeRemoteMediator(
     }
 
     private suspend fun fetchReportsFromApi(page: Int): List<QuakeReport> {
-        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
-        val api = QuakeAlertApi.create(context, baseUrl)
-        val body = api.getLaporan(page = page)
-        return QuakeReportParser.parseReports(body.ifEmpty { "[]" })
+        return api.getLaporan(page = page)
     }
 }
