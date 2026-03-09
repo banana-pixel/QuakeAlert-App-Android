@@ -16,6 +16,9 @@ import id.my.bananapixel.quakealert.ui.QuakeViewModel
 import id.my.bananapixel.quakealert.ui.QuakeHistoryViewModel
 import id.my.bananapixel.quakealert.ui.ChatViewModel
 import id.my.bananapixel.quakealert.ui.SubscriptionsViewModel
+import id.my.bananapixel.quakealert.ui.SensorsViewModel
+import id.my.bananapixel.quakealert.ui.SettingsViewModel
+import id.my.bananapixel.quakealert.ui.WarningViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -109,6 +112,9 @@ val uiModule = module {
     viewModel { DetailViewModel(get<Repository>()) }
     viewModel { SubscriptionsViewModel(get<Repository>()) }
     viewModel { QuakeViewModel(androidContext(), get<QuakeRepository>(), get<Database>(), get()) }
+    viewModel { SensorsViewModel(get()) }
+    viewModel { WarningViewModel(get()) }
+    viewModel { SettingsViewModel(get()) }
 }
 
 /**

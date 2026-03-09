@@ -14,17 +14,16 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import id.my.bananapixel.quakealert.domain.ServerHealthStatus
-import id.my.bananapixel.quakealert.msg.Sensor
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
-import okhttp3.*
-import java.io.IOException
+import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SensorsFragment : Fragment(R.layout.fragment_sensors) {
-    private val client = OkHttpClient()
+    private val viewModel: SensorsViewModel by viewModel()
     private val adapter = SensorsAdapter()
-    private val handler = Handler(Looper.getMainLooper())
     private lateinit var swipeRefreshLayout: SwipeRefreshLayout
 
     // UI Elements
@@ -35,15 +34,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private lateinit var errorContainer: View
     private lateinit var emptyContainer: View
 
-    /** Only show CONNECTING (blue) on first load or pull-to-refresh; keep current state during background polls. */
-    private var hasReceivedFirstResult = false
 
-    private val refreshRunnable = object : Runnable {
-        override fun run() {
-            fetchData()
-            handler.postDelayed(this, 3000)
-        }
-    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -62,123 +53,32 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         errorContainer = view.findViewById(R.id.sensors_error_container)
         emptyContainer = view.findViewById(R.id.sensors_empty_container)
 
-        // Start in CONNECTING state so we never show default "Server Healthy" + blue
-        // before the first fetch completes (avoids wrong state when offline on first open).
-        updateHealthStatus(ServerHealthStatus.CONNECTING, 0)
-
         swipeRefreshLayout.setOnRefreshListener {
-            fetchData()
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        warmupThenStartPolling()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        handler.removeCallbacks(refreshRunnable)
-    }
-
-    /**
-     * Run one silent request to establish the connection (DNS, TCP, TLS), then start the 3s polling.
-     * The first fetch that updates the UI will then reuse the warm connection, so the shown ping is low.
-     */
-    private fun warmupThenStartPolling() {
-        val ctx = context ?: return
-        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
-        val request = Request.Builder().url("$baseUrl/stations").build()
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                activity?.runOnUiThread {
-                    if (isAdded) handler.post(refreshRunnable)
-                }
-            }
-            override fun onResponse(call: Call, response: Response) {
-                response.close()
-                activity?.runOnUiThread {
-                    if (isAdded) handler.post(refreshRunnable)
-                }
-            }
-        })
-    }
-
-    private fun fetchData() {
-        val startTime = System.currentTimeMillis()
-
-        activity?.runOnUiThread {
-            if (isAdded) {
-                errorContainer.visibility = View.GONE
-                // Show CONNECTING only on first load or user pull-to-refresh; avoid blinking to blue every 3s poll.
-                if (!hasReceivedFirstResult || swipeRefreshLayout.isRefreshing) {
-                    updateHealthStatus(ServerHealthStatus.CONNECTING, 0)
-                }
-            }
+            viewModel.refresh()
         }
 
-        val ctx = context ?: return
-        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
-        val request = Request.Builder()
-            .url("$baseUrl/stations")
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                // Network Fail -> CRITICAL (Red 3D Bar)
-                handleError(startTime)
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                val latency = System.currentTimeMillis() - startTime
-                response.use {
-                    if (!response.isSuccessful) {
-                        handleError(startTime)
-                        return
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    updateHealthStatus(state.status, state.latency)
+                    adapter.submitList(state.stations) {
+                        adapter.notifyDataSetChanged()
                     }
-
-                    val bodyString = response.body?.string()
-
-                    if (bodyString != null && bodyString.trim().startsWith("[")) {
-                        try {
-                            val stations: List<Sensor> = Json.decodeFromString(ListSerializer(Sensor.serializer()), bodyString)
-
-                            activity?.runOnUiThread {
-                                if (!isAdded) return@runOnUiThread
-
-                                hasReceivedFirstResult = true
-                                val status = if (latency > 300) ServerHealthStatus.WARNING else ServerHealthStatus.HEALTHY
-                                updateHealthStatus(status, latency.toInt())
-                                adapter.submitList(stations) {
-                                    adapter.notifyDataSetChanged()
-                                }
-                                errorContainer.visibility = View.GONE
-                                emptyContainer.visibility = if (stations.isEmpty()) View.VISIBLE else View.GONE
-                                swipeRefreshLayout.isRefreshing = false
-                            }
-                        } catch (e: Exception) {
-                            handleError(startTime)
-                        }
+                    if (state.isError) {
+                        errorContainer.visibility = View.VISIBLE
+                        emptyContainer.visibility = View.GONE
                     } else {
-                        handleError(startTime)
+                        errorContainer.visibility = View.GONE
+                        emptyContainer.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
+                    }
+                    if (swipeRefreshLayout.isRefreshing && state.hasReceivedFirstResult) {
+                        swipeRefreshLayout.isRefreshing = false
                     }
                 }
             }
-        })
-    }
-
-    private fun handleError(startTime: Long) {
-        val latency = System.currentTimeMillis() - startTime
-        activity?.runOnUiThread {
-            if (isAdded) {
-                hasReceivedFirstResult = true
-                updateHealthStatus(ServerHealthStatus.CRITICAL, latency.toInt())
-                errorContainer.visibility = View.VISIBLE
-                emptyContainer.visibility = View.GONE
-                swipeRefreshLayout.isRefreshing = false
-            }
         }
     }
+
 
     /**
      * THE NEW 3D UI LOGIC

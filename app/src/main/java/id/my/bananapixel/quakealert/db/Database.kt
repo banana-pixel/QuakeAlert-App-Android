@@ -345,7 +345,7 @@ abstract class Database : RoomDatabase() {
         @Volatile
         private var instance: Database? = null
 
-        /** Used by Hilt for dependency injection. */
+        /** Used by Koin for dependency injection. */
         fun build(context: Context): Database {
             return Room
                     .databaseBuilder(context.applicationContext, Database::class.java, "AppDatabase")

@@ -21,16 +21,13 @@ import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.msg.Sensor
-import kotlinx.serialization.builtins.ListSerializer
-import kotlinx.serialization.json.Json
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
+import id.my.bananapixel.quakealert.ui.SettingsViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.content.Context
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import id.my.bananapixel.quakealert.util.systemDarkThemeOn
@@ -45,7 +42,7 @@ import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.android.inject
 
 class SettingsFragment : Fragment(R.layout.fragment_settings) {
-    private val httpClient = OkHttpClient()
+    private val viewModel: SettingsViewModel by viewModel()
     private val repository: Repository by inject()
     private lateinit var mapView: MapView
     private lateinit var tvLocationName: TextView
@@ -182,32 +179,15 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         btnZoomIn.setOnClickListener { mapView.controller.zoomIn() }
         btnZoomOut.setOnClickListener { mapView.controller.zoomOut() }
 
-        fetchStationsAndAddMarkers()
-    }
-
-    private fun fetchStationsAndAddMarkers() {
-        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
-        val request = Request.Builder().url("$baseUrl/stations").build()
-        httpClient.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {}
-            override fun onResponse(call: Call, response: Response) {
-                response.use {
-                    if (!response.isSuccessful) return@use
-                    val body = response.body?.string() ?: return@use
-                    if (!body.trim().startsWith("[")) return@use
-                    try {
-                        val stations: List<Sensor> = Json.decodeFromString(
-                            ListSerializer(Sensor.serializer()),
-                            body
-                        )
-                        activity?.runOnUiThread {
-                            if (isAdded) addSensorMarkers(stations)
-                        }
-                    } catch (_: Exception) {}
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    addSensorMarkers(state.stations)
                 }
             }
-        })
+        }
     }
+
 
     private fun addSensorMarkers(stations: List<Sensor>) {
         val sensorMarkers = mapView.overlays.filterIsInstance<org.osmdroid.views.overlay.Marker>()

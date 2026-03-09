@@ -40,13 +40,15 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import id.my.bananapixel.quakealert.db.Repository
-import okhttp3.*
-import java.io.IOException
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import id.my.bananapixel.quakealert.ui.WarningViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class WarningFragment : Fragment(R.layout.fragment_warning), KoinComponent {
+class WarningFragment : Fragment(R.layout.fragment_warning) {
 
+    private val viewModel: WarningViewModel by viewModel()
     private val repository: Repository by inject()
 
     private lateinit var scanningLayout: LinearLayout
@@ -67,8 +69,6 @@ class WarningFragment : Fragment(R.layout.fragment_warning), KoinComponent {
     private lateinit var dismissButton: Button
     private lateinit var viewLogsButton: FloatingActionButton
 
-    private val client = OkHttpClient()
-    private var statusPollingJob: Job? = null
     private var resetJob: Job? = null
     private var timeUpdateJob: Job? = null
 
@@ -137,6 +137,16 @@ class WarningFragment : Fragment(R.layout.fragment_warning), KoinComponent {
             }
         }
 
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state ->
+                    if (scanningLayout.visibility == View.VISIBLE) {
+                        updateWarningStatus(state.status, state.latency, state.onlineCount)
+                    }
+                }
+            }
+        }
+
         setupListeners()
 
         val savedNotification = AlertState.latestAlert.value
@@ -188,7 +198,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning), KoinComponent {
             scanningLayout.visibility = View.GONE
             alertLayout.visibility = View.VISIBLE
             radarIcon.clearAnimation()
-            stopStatusPolling()
+            viewModel.stopPolling()
         } else {
             scanningLayout.visibility = View.VISIBLE
             alertLayout.visibility = View.GONE
@@ -196,110 +206,8 @@ class WarningFragment : Fragment(R.layout.fragment_warning), KoinComponent {
             radarIcon.startAnimation(pulseAnimation)
             safeActionsCard.visibility = View.GONE
             updateWarningStatus(ServerHealthStatus.CONNECTING, 0, 0)
-            stopStatusPolling()
-            warmupThenStartPolling()
+            viewModel.startPolling()
         }
-    }
-
-    /**
-     * Run one silent request to establish the connection (DNS, TCP, TLS), then start the 3s status polling.
-     * Matches SensorsFragment: first visible request reuses the warm connection so the shown status/latency is representative.
-     */
-    private fun warmupThenStartPolling() {
-        val ctx = context ?: return
-        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
-        val request = Request.Builder().url("$baseUrl/stations").build()
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                activity?.runOnUiThread {
-                    if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                        startStatusPolling()
-                    }
-                }
-            }
-            override fun onResponse(call: Call, response: Response) {
-                response.close()
-                activity?.runOnUiThread {
-                    if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                        startStatusPolling()
-                    }
-                }
-            }
-        })
-    }
-
-    private fun startStatusPolling() {
-        stopStatusPolling()
-        statusPollingJob = viewLifecycleOwner.lifecycleScope.launch {
-            while (isActive) {
-                if (scanningLayout.visibility == View.VISIBLE) {
-                    fetchServerStatus()
-                }
-                delay(3000)
-            }
-        }
-    }
-
-    private fun stopStatusPolling() {
-        statusPollingJob?.cancel()
-        statusPollingJob = null
-    }
-
-    private fun fetchServerStatus() {
-        val ctx = context ?: return
-        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/')
-        val startTime = System.currentTimeMillis()
-        val request = Request.Builder().url("$baseUrl/stations").build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                activity?.runOnUiThread {
-                    if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                        val latency = (System.currentTimeMillis() - startTime).toInt()
-                        updateWarningStatus(ServerHealthStatus.CRITICAL, latency, 0)
-                    }
-                }
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                val latency = (System.currentTimeMillis() - startTime).toInt()
-                response.use {
-                    if (!response.isSuccessful) {
-                        activity?.runOnUiThread {
-                            if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                                updateWarningStatus(ServerHealthStatus.CRITICAL, latency, 0)
-                            }
-                        }
-                        return
-                    }
-                    val bodyString = response.body?.string()
-                    if (bodyString != null && bodyString.trim().startsWith("[")) {
-                        try {
-                            val stations: List<Sensor> = Json.decodeFromString(ListSerializer(Sensor.serializer()), bodyString)
-                            val onlineCount = stations.count { SensorStatus.fromApi(it.status) == SensorStatus.ONLINE }
-                            val status = if (latency > 300) ServerHealthStatus.WARNING else ServerHealthStatus.HEALTHY
-                            activity?.runOnUiThread {
-                                if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                                    updateWarningStatus(status, latency, onlineCount)
-                                }
-                            }
-                        } catch (e: Exception) {
-                            activity?.runOnUiThread {
-                                if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                                    updateWarningStatus(ServerHealthStatus.CRITICAL, latency, 0)
-                                }
-                            }
-                        }
-                    } else {
-                        activity?.runOnUiThread {
-                            if (isAdded && scanningLayout.visibility == View.VISIBLE) {
-                                updateWarningStatus(ServerHealthStatus.CRITICAL, latency, 0)
-                            }
-                        }
-                    }
-                }
-            }
-        })
     }
 
     /**
@@ -486,22 +394,21 @@ class WarningFragment : Fragment(R.layout.fragment_warning), KoinComponent {
         val filter = IntentFilter(NotificationService.ACTION_QUAKE_ALERT)
         requireContext().registerReceiver(quakeReceiver, filter, Context.RECEIVER_EXPORTED)
         if (::scanningLayout.isInitialized && scanningLayout.visibility == View.VISIBLE) {
-            stopStatusPolling()
-            warmupThenStartPolling()
+            viewModel.startPolling()
         }
     }
 
     override fun onPause() {
         super.onPause()
         requireContext().unregisterReceiver(quakeReceiver)
-        stopStatusPolling()
+        viewModel.stopPolling()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         stopBackgroundWarningAnimation()
         stopTimeUpdater()
-        stopStatusPolling()
+        viewModel.stopPolling()
         resetJob?.cancel()
     }
 }
