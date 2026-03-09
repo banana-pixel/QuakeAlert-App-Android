@@ -11,7 +11,11 @@ import id.my.bananapixel.quakealert.api.QuakeAlertApi
 import id.my.bananapixel.quakealert.ui.QuakeReport
 import id.my.bananapixel.quakealert.util.ValidationUtil
 import id.my.bananapixel.quakealert.util.toValidOrNull
+import kotlinx.serialization.SerializationException
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import androidx.room.withTransaction
@@ -42,8 +46,8 @@ class QuakeRemoteMediator(
                 val reports = fetchReportsFromApi(page)
 
                 // 3. Map to Entity (with validation)
-                val quakeEntities = reports.mapNotNull { report ->
-                    try {
+                val quakeEntities = buildList {
+                    for (report in reports) {
                         // Validate coordinates
                         val (lat, lon) = ValidationUtil.validateCoordinates(
                             report.latitude.toValidOrNull(), 
@@ -57,9 +61,18 @@ class QuakeRemoteMediator(
                         val location = ValidationUtil.validateLocation(report.lokasi) ?: "Unknown"
                         
                         // Validate earthquake time
-                        val earthquakeTime = QuakeReportParser.parseQuakeTime(report.waktu_kejadian)
+                        val dateString = report.waktu_kejadian
+                        val earthquakeTime = if (dateString.isNullOrEmpty()) System.currentTimeMillis() else {
+                            try {
+                                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply {
+                                    timeZone = TimeZone.getTimeZone("UTC")
+                                }.parse(dateString)?.time ?: System.currentTimeMillis()
+                            } catch (e: Exception) {
+                                System.currentTimeMillis()
+                            }
+                        }
                         if (!ValidationUtil.validateEarthquakeTime(earthquakeTime).let { it != null }) {
-                            return@mapNotNull null // Skip invalid times
+                            continue // Skip invalid times
                         }
                         
                         // Validate duration
@@ -67,22 +80,22 @@ class QuakeRemoteMediator(
                             runCatching { report.durasi.toInt() }.getOrNull()
                         ) ?: 0
                         
-                        QuakeData(
-                            id = report.id.toString(),
-                            magnitude = 0.0,
-                            place = location,
-                            time = earthquakeTime,
-                            sync_time = System.currentTimeMillis(),
-                            description = report.deskripsi,
-                            latitude = lat,
-                            longitude = lon,
-                            pga = report.pga_maks.ifEmpty { "0" },
-                            durasi = duration,
-                            station_id = report.station_id.ifEmpty { "N/A" },
-                            intensity = intensity
+                        add(
+                            QuakeData(
+                                id = report.id.toString(),
+                                magnitude = 0.0,
+                                place = location,
+                                time = earthquakeTime,
+                                sync_time = System.currentTimeMillis(),
+                                description = report.deskripsi,
+                                latitude = lat,
+                                longitude = lon,
+                                pga = report.pga_maks.ifEmpty { "0" },
+                                durasi = duration,
+                                station_id = report.station_id.ifEmpty { "N/A" },
+                                intensity = intensity
+                            )
                         )
-                    } catch (e: Exception) {
-                        null
                     }
                 }
 
@@ -101,12 +114,14 @@ class QuakeRemoteMediator(
                 // Return Success if we have cached data, so the app doesn't crash offline
                 val hasData = database.quakeHistoryDao().count() > 0
                 if (hasData) {
-                    MediatorResult.Success(endOfPaginationReached = true)
+                    return@withContext MediatorResult.Success(endOfPaginationReached = true)
                 } else {
-                    MediatorResult.Error(e)
+                    return@withContext MediatorResult.Error(e)
                 }
+            } catch (e: SerializationException) {
+                return@withContext MediatorResult.Error(e)
             } catch (e: Exception) {
-                MediatorResult.Error(e)
+                return@withContext MediatorResult.Error(e)
             }
         }
     }

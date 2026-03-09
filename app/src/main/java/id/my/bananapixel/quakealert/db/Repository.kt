@@ -19,10 +19,14 @@ import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.validUrl
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import id.my.bananapixel.quakealert.msg.Sensor
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class Repository(private val sharedPrefs: SharedPreferences, database: Database) {
+class Repository(private val sharedPrefs: SharedPreferences, database: Database) : KoinComponent {
+    private val api: id.my.bananapixel.quakealert.api.QuakeAlertApi by inject()
     private val subscriptionDao = database.subscriptionDao()
     private val notificationDao = database.notificationDao()
     private val userDao = database.userDao()
@@ -70,6 +74,14 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
             .listFlow()
             .asLiveData()
             .map { list -> list.map { Pair(it.id, it.instant) }.toSet() }
+    }
+
+    suspend fun getStations(): Result<List<Sensor>> {
+        return try {
+            Result.success(api.getStations())
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     suspend fun getSubscriptions(): List<Subscription> {
