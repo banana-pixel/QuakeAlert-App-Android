@@ -21,12 +21,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class UserFragment : DialogFragment() {
+class UserFragment : DialogFragment(), KoinComponent {
     private var user: User? = null
     private lateinit var baseUrlsInUse: ArrayList<String>
     private lateinit var listener: UserDialogListener
-    private lateinit var repository: Repository
+    private val repository: Repository by inject()
 
     private lateinit var toolbar: MaterialToolbar
     private lateinit var saveMenuItem: MenuItem
@@ -46,7 +48,6 @@ class UserFragment : DialogFragment() {
     override fun onAttach(context: Context) {
         super.onAttach(context)
         listener = activity as UserDialogListener
-        repository = Repository.getInstance(context)
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -205,7 +206,7 @@ class UserFragment : DialogFragment() {
     }
 
     private suspend fun hasAuthorizationHeader(baseUrl: String): Boolean {
-        if (!this::repository.isInitialized || !validUrl(baseUrl)) {
+        if (!validUrl(baseUrl)) {
             return false
         }
         return withContext(Dispatchers.IO) {

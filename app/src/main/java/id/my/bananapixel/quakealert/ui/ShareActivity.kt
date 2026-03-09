@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textfield.TextInputLayout
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
-import id.my.bananapixel.quakealert.app.Application
 import id.my.bananapixel.quakealert.msg.ApiService
 import id.my.bananapixel.quakealert.util.*
 import kotlinx.coroutines.Dispatchers
@@ -24,9 +23,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.core.view.size
 import androidx.core.view.get
+import id.my.bananapixel.quakealert.app.Application
 
 class ShareActivity : BaseActivity() {
-    private val repository by lazy { (application as Application).repository }
+    private val repository by lazy { (applicationContext as Application).repository }
     private val api by lazy { ApiService(this) }
 
     // File to share

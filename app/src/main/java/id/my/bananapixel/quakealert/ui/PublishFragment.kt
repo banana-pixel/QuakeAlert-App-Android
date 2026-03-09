@@ -45,9 +45,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import id.my.bananapixel.quakealert.util.ProgressRequestBody
 import okhttp3.MediaType.Companion.toMediaType
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class PublishFragment : DialogFragment() {
-    private lateinit var repository: Repository
+class PublishFragment : DialogFragment(), KoinComponent {
+    private val repository: Repository by inject()
     private lateinit var api: ApiService
 
     // Toolbar
@@ -160,7 +162,6 @@ class PublishFragment : DialogFragment() {
         }
 
         // Dependencies
-        repository = Repository.getInstance(requireActivity())
         api = ApiService(requireContext())
 
         // Get arguments

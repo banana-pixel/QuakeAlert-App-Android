@@ -690,28 +690,5 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val DEFAULT_MAP_CENTER_LON = 107.6191
 
         private const val TAG = "NtfyRepository"
-        private var instance: Repository? = null
-
-        /**
-         * Set by Hilt module so [getInstance] returns the injected singleton.
-         * Enables backward compatibility during DI migration.
-         */
-        @Volatile
-        var hiltInstance: Repository? = null
-
-        fun getInstance(context: Context): Repository {
-            hiltInstance?.let { return it }
-            val database = Database.getInstance(context.applicationContext)
-            val sharedPrefs = context.getSharedPreferences(SHARED_PREFS_ID, Context.MODE_PRIVATE)
-            return getInstance(sharedPrefs, database)
-        }
-
-        private fun getInstance(sharedPrefs: SharedPreferences, database: Database): Repository {
-            return synchronized(Repository::class) {
-                val newInstance = instance ?: Repository(sharedPrefs, database)
-                instance = newInstance
-                newInstance
-            }
-        }
     }
 }

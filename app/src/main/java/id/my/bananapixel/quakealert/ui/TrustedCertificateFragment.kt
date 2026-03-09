@@ -29,6 +29,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
 /**
  * Full-screen dialog fragment for viewing and trusting/deleting server certificates.
  *
@@ -40,8 +43,8 @@ import java.util.Locale
  * - VIEW: Shows certificate details with "Delete" action (from CertificateSettingsFragment).
  *         baseUrl is passed as argument.
  */
-class TrustedCertificateFragment : DialogFragment() {
-    private lateinit var repository: Repository
+class TrustedCertificateFragment : DialogFragment(), KoinComponent {
+    private val repository: Repository by inject()
     private var listener: TrustedCertificateListener? = null
 
     private var mode: Mode = Mode.ADD
@@ -92,8 +95,6 @@ class TrustedCertificateFragment : DialogFragment() {
         if (activity == null) {
             throw IllegalStateException("Activity cannot be null")
         }
-
-        repository = Repository.getInstance(requireContext())
 
         // Determine mode from arguments
         mode = Mode.valueOf(arguments?.getString(ARG_MODE) ?: Mode.ADD.name)

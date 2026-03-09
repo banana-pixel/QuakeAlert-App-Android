@@ -29,6 +29,8 @@ import java.security.KeyStore
 import java.security.cert.X509Certificate
 import java.text.SimpleDateFormat
 import java.util.Locale
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Full-screen dialog fragment for adding and viewing client certificates (mTLS).
@@ -37,8 +39,8 @@ import java.util.Locale
  * - ADD: Two-page flow - first enter password and base URL, then view details and save
  * - VIEW: Shows certificate details with Delete action
  */
-class ClientCertificateFragment : DialogFragment() {
-    private lateinit var repository: Repository
+class ClientCertificateFragment : DialogFragment(), KoinComponent {
+    private val repository: Repository by inject()
     private var listener: ClientCertificateListener? = null
 
     private var mode: Mode = Mode.ADD
@@ -90,8 +92,6 @@ class ClientCertificateFragment : DialogFragment() {
         if (activity == null) {
             throw IllegalStateException("Activity cannot be null")
         }
-
-        repository = Repository.getInstance(requireContext())
 
         // Determine mode from arguments
         mode = Mode.valueOf(arguments?.getString(ARG_MODE) ?: Mode.ADD.name)

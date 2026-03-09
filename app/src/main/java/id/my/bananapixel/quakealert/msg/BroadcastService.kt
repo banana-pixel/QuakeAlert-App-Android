@@ -12,6 +12,7 @@ import id.my.bananapixel.quakealert.util.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import org.koin.java.KoinJavaComponent.getKoin
 
 /**
  * The broadcast service is responsible for sending and receiving broadcast intents
@@ -85,7 +86,7 @@ class BroadcastService(private val ctx: Context) {
             }
             val delay = getStringExtra(intent,"delay") ?: ""
             MainScope().launch(Dispatchers.IO) {
-                val repository = Repository.getInstance(ctx)
+                val repository = getKoin().get<Repository>()
                 val user = repository.getUser(baseUrl) // May be null
                 try {
                     Log.d(TAG, "Publishing message $intent")

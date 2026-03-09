@@ -24,6 +24,9 @@ import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.X509TrustManager
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
 /**
  * TLS config:
  * - For each baseUrl, either use the pinned certificate (if one exists) OR system trust
@@ -31,9 +34,9 @@ import javax.net.ssl.X509TrustManager
  * - Hostname verification is bypassed for pinned certificates (the fingerprint match is the trust anchor)
  * - Optional mTLS via per-baseUrl PKCS#12 client cert
  */
-class CertUtil private constructor(context: Context) {
+class CertUtil private constructor(context: Context) : KoinComponent {
     private val appContext: Context = context.applicationContext
-    private val repository: Repository by lazy { Repository.getInstance(appContext) }
+    private val repository: Repository by inject()
 
     /**
      * Configure OkHttp client with TLS config, using the pinned certificate if available as well as

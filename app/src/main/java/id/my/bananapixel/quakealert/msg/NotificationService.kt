@@ -25,11 +25,13 @@ import id.my.bananapixel.quakealert.util.*
 import java.util.*
 import androidx.core.net.toUri
 import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class NotificationService(val context: Context) {
+class NotificationService(val context: Context) : KoinComponent {
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    private val repository = Repository.getInstance(context)
+    private val repository: Repository by inject()
     private val markwon = MarkwonFactory.createForNotification(context)
     private val appBaseUrl = BuildConfig.APP_BASE_URL
 
@@ -568,14 +570,11 @@ class NotificationService(val context: Context) {
         }
     }
 
-    /**
-     * Receives a broadcast when a notification is swiped away. This is currently
-     * only called for notifications with an insistent sound.
-     */
-    class DeleteBroadcastReceiver : BroadcastReceiver() {
+    class DeleteBroadcastReceiver : BroadcastReceiver(), KoinComponent {
+        private val repository: Repository by inject()
         override fun onReceive(context: Context, intent: Intent) {
             Log.d(TAG, "Media player: Stopping insistent ring")
-            val mediaPlayer = Repository.getInstance(context).mediaPlayer
+            val mediaPlayer = repository.mediaPlayer
             mediaPlayer.stop()
         }
     }
@@ -782,7 +781,7 @@ class NotificationService(val context: Context) {
             if (subscriptionId != 0L && sequenceId.isNotEmpty()) {
                 val app = applicationContext as id.my.bananapixel.quakealert.app.Application
                 app.ioScope.launch {
-                    val repository = Repository.getInstance(app)
+                    val repository = org.koin.java.KoinJavaComponent.getKoin().get<Repository>()
                     repository.markAsReadBySequenceId(subscriptionId, sequenceId)
                 }
             }

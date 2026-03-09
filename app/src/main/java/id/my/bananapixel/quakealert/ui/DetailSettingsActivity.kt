@@ -31,12 +31,14 @@ import java.io.File
 import java.io.IOException
 import java.util.*
 import androidx.core.net.toUri
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Subscription settings
  */
-class DetailSettingsActivity : BaseActivity() {
-    private lateinit var repository: Repository
+class DetailSettingsActivity : BaseActivity(), KoinComponent {
+    private val repository: Repository by inject()
     private lateinit var serviceManager: SubscriberServiceManager
     private lateinit var settingsFragment: SettingsFragment
     private lateinit var notificationService: NotificationService
@@ -49,7 +51,6 @@ class DetailSettingsActivity : BaseActivity() {
 
         Log.d(TAG, "Create $this")
 
-        repository = Repository.getInstance(this)
         serviceManager = SubscriberServiceManager(this)
         notificationService = NotificationService(this)
         subscriptionId = intent.getLongExtra(DetailActivity.EXTRA_SUBSCRIPTION_ID, 0)
@@ -95,9 +96,9 @@ class DetailSettingsActivity : BaseActivity() {
         return true
     }
 
-    class SettingsFragment : BasePreferenceFragment() {
+    class SettingsFragment : BasePreferenceFragment(), KoinComponent {
         private lateinit var resolver: ContentResolver
-        private lateinit var repository: Repository
+        private val repository: Repository by inject()
         private lateinit var serviceManager: SubscriberServiceManager
         private lateinit var notificationService: NotificationService
         private lateinit var subscription: Subscription
@@ -112,7 +113,6 @@ class DetailSettingsActivity : BaseActivity() {
             setPreferencesFromResource(R.xml.detail_preferences, rootKey)
 
             // Dependencies (Fragments need a default constructor)
-            repository = Repository.getInstance(requireActivity())
             serviceManager = SubscriberServiceManager(requireActivity())
             notificationService = NotificationService(requireActivity())
             resolver = requireContext().applicationContext.contentResolver

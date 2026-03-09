@@ -30,9 +30,11 @@ import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLHandshakeException
 import javax.net.ssl.SSLPeerUnverifiedException
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertificateListener {
-    private lateinit var repository: Repository
+class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertificateListener, KoinComponent {
+    private val repository: Repository by inject()
     private lateinit var api: ApiService
     private lateinit var subscribeListener: SubscribeListener
     private lateinit var appBaseUrl: String
@@ -79,7 +81,6 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         }
 
         // Dependencies (Fragments need a default constructor)
-        repository = Repository.getInstance(requireActivity())
         api = ApiService(requireContext())
         appBaseUrl = BuildConfig.APP_BASE_URL
         defaultBaseUrl = repository.getDefaultBaseUrl()

@@ -14,11 +14,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class NotificationFragment : DialogFragment() {
+class NotificationFragment : DialogFragment(), KoinComponent {
     var settingsListener: NotificationSettingsListener? = null
 
-    private lateinit var repository: Repository
+    private val repository: Repository by inject()
     private lateinit var muteFor30minButton: RadioButton
     private lateinit var muteFor1hButton: RadioButton
     private lateinit var muteFor2hButton: RadioButton
@@ -41,9 +43,6 @@ class NotificationFragment : DialogFragment() {
         if (activity == null) {
             throw IllegalStateException("Activity cannot be null")
         }
-
-        // Dependencies
-        repository = Repository.getInstance(requireContext())
 
         // Build root view
         val view = requireActivity().layoutInflater.inflate(R.layout.fragment_notification_dialog, null)

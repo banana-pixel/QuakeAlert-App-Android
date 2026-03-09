@@ -197,7 +197,7 @@ class Log(private val logsDao: LogDao) {
         fun init(context: Context) {
             return synchronized(Log::class) {
                 if (instance == null) {
-                    val database = Database.getInstance(context.applicationContext)
+                    val database = org.koin.java.KoinJavaComponent.getKoin().get<Database>()
                     instance = Log(database.logDao())
                 }
             }

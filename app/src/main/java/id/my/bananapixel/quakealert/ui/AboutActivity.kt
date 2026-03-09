@@ -7,8 +7,10 @@ import androidx.appcompat.app.AppCompatActivity
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.ui.Colors
 import id.my.bananapixel.quakealert.util.isDarkThemeOn
+import org.koin.android.ext.android.inject
 
 class AboutActivity : BaseActivity() {
+    private val repository: id.my.bananapixel.quakealert.db.Repository by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -16,7 +18,6 @@ class AboutActivity : BaseActivity() {
         setContentView(R.layout.activity_about)
 
         val toolbarLayout = findViewById<View>(R.id.app_bar_drawer)
-        val repository = id.my.bananapixel.quakealert.db.Repository.getInstance(this)
         val dynamicColors = repository.getDynamicColorsEnabled()
         val darkMode = isDarkThemeOn(this)
         val statusBarColor = Colors.statusBarNormal(this, dynamicColors, darkMode)

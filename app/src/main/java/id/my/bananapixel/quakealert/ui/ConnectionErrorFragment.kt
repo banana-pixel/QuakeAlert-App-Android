@@ -23,9 +23,11 @@ import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.service.SubscriberServiceManager
 import id.my.bananapixel.quakealert.util.copyToClipboard
 import id.my.bananapixel.quakealert.util.shortUrl
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class ConnectionErrorFragment : DialogFragment() {
-    private lateinit var repository: Repository
+class ConnectionErrorFragment : DialogFragment(), KoinComponent {
+    private val repository: Repository by inject()
     private var connectionDetails: Map<String, ConnectionDetails> = emptyMap()
     private var selectedBaseUrl: String? = null
     private var filterBaseUrl: String? = null
@@ -54,9 +56,6 @@ class ConnectionErrorFragment : DialogFragment() {
 
         // Get optional baseUrl filter from arguments
         filterBaseUrl = arguments?.getString(ARG_BASE_URL)
-
-        // Dependencies
-        repository = Repository.getInstance(requireContext())
         
         // Get connection details with errors, optionally filtered by baseUrl
         val allDetails = repository.getConnectionDetails()

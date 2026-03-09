@@ -37,14 +37,10 @@ val dataModule = module {
         androidContext().getSharedPreferences(Repository.SHARED_PREFS_ID, Context.MODE_PRIVATE)
     }
     single {
-        val db = Database.build(androidContext())
-        Database.hiltInstance = db
-        db
+        Database.build(androidContext())
     }
     single {
-        val repo = Repository(get(), get())
-        Repository.hiltInstance = repo
-        repo
+        Repository(get(), get())
     }
     
     // Quake repository

@@ -21,11 +21,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class CustomHeaderFragment : DialogFragment() {
+class CustomHeaderFragment : DialogFragment(), KoinComponent {
     private var header: CustomHeader? = null
     private lateinit var listener: CustomHeaderDialogListener
-    private lateinit var repository: Repository
+    private val repository: Repository by inject()
 
     private lateinit var toolbar: MaterialToolbar
     private lateinit var saveMenuItem: MenuItem
@@ -46,7 +48,6 @@ class CustomHeaderFragment : DialogFragment() {
     override fun onAttach(context: Context) {
         super.onAttach(context)
         listener = activity as CustomHeaderDialogListener
-        repository = Repository.getInstance(context)
     }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
@@ -246,7 +247,7 @@ class CustomHeaderFragment : DialogFragment() {
     }
 
     private suspend fun isDuplicateHeader(baseUrl: String, headerName: String): Boolean {
-        if (!this::repository.isInitialized || !validUrl(baseUrl)) {
+        if (!validUrl(baseUrl)) {
             return false
         }
         val existingHeaders = withContext(Dispatchers.IO) {
@@ -262,7 +263,7 @@ class CustomHeaderFragment : DialogFragment() {
     }
 
     private suspend fun hasUserForServer(baseUrl: String): Boolean {
-        if (!this::repository.isInitialized || !validUrl(baseUrl)) {
+        if (!validUrl(baseUrl)) {
             return false
         }
         return withContext(Dispatchers.IO) {

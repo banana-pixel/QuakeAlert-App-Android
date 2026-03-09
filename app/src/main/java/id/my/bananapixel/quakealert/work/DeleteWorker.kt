@@ -16,10 +16,15 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import androidx.core.net.toUri
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
 /**
  * Deletes notifications marked for deletion and attachments for deleted notifications.
  */
-class DeleteWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
+class DeleteWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params), KoinComponent {
+    private val repository: Repository by inject()
+
     // IMPORTANT:
     //   Every time the worker is changed, the periodic work has to be REPLACEd.
     //   This is facilitated in the MainActivity using the VERSION below.
@@ -54,7 +59,6 @@ class DeleteWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
     private fun deleteExpiredAttachments() {
         Log.d(TAG, "Deleting attachments for deleted notifications")
         val resolver = applicationContext.contentResolver
-        val repository = Repository.getInstance(applicationContext)
         val notifications = repository.getDeletedNotificationsWithAttachments()
         notifications.forEach { notification ->
             try {
@@ -79,7 +83,6 @@ class DeleteWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
 
     private fun deleteExpiredIcons() {
         Log.d(TAG, "Deleting icons for deleted notifications")
-        val repository = Repository.getInstance(applicationContext)
         val activeIconUris = repository.getActiveIconUris()
         val activeIconFilenames = activeIconUris
             .mapNotNull { maybeFileStat(applicationContext, it)?.filename }
@@ -105,7 +108,6 @@ class DeleteWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
 
     private suspend fun deleteExpiredNotifications() {
         Log.d(TAG, "Deleting expired notifications")
-        val repository = Repository.getInstance(applicationContext)
         val subscriptions = repository.getSubscriptions()
         subscriptions.forEach { subscription ->
             val logId = topicShortUrl(subscription.baseUrl, subscription.topic)

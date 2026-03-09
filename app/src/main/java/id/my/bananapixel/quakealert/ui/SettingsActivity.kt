@@ -53,6 +53,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -67,12 +69,12 @@ import java.util.concurrent.TimeUnit
  */
 class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceStartFragmentCallback,
     UserFragment.UserDialogListener, CustomHeaderFragment.CustomHeaderDialogListener,
-    DefaultServerFragment.DefaultServerDialogListener {
+    DefaultServerFragment.DefaultServerDialogListener, KoinComponent {
     private lateinit var settingsFragment: SettingsFragment
     private lateinit var userSettingsFragment: UserSettingsFragment
     private lateinit var customHeaderSettingsFragment: CustomHeaderSettingsFragment
 
-    private lateinit var repository: Repository
+    private val repository: Repository by inject()
     private lateinit var serviceManager: SubscriberServiceManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,7 +84,6 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
 
         Log.d(TAG, "Create $this")
 
-        repository = Repository.getInstance(this)
         serviceManager = SubscriberServiceManager(this)
 
         val toolbarLayout = findViewById<View>(R.id.app_bar_drawer)
@@ -182,8 +183,8 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
         }
     }
 
-    class SettingsFragment : BasePreferenceFragment() {
-        private lateinit var repository: Repository
+    class SettingsFragment : BasePreferenceFragment(), KoinComponent {
+        private val repository: Repository by inject()
         private lateinit var serviceManager: SubscriberServiceManager
         private var autoDownloadSelection = AUTO_DOWNLOAD_SELECTION_NOT_SET
         private var locationSummaryPreference: Preference? = null
@@ -192,7 +193,6 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
             setPreferencesFromResource(R.xml.main_preferences, rootKey)
 
             // Dependencies (Fragments need a default constructor)
-            repository = Repository.getInstance(requireActivity())
             serviceManager = SubscriberServiceManager(requireActivity())
             autoDownloadSelection = repository.getAutoDownloadMaxSize() // Only used for <= Android P, due to permissions request
 
@@ -1075,12 +1075,11 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
         data class NopasteResponse(val url: String)
     }
 
-    class UserSettingsFragment : BasePreferenceFragment() {
-        private lateinit var repository: Repository
+    class UserSettingsFragment : BasePreferenceFragment(), KoinComponent {
+        private val repository: Repository by inject()
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.user_preferences, rootKey)
-            repository = Repository.getInstance(requireActivity())
             reload()
         }
 
@@ -1159,12 +1158,11 @@ class SettingsActivity : BaseActivity(), PreferenceFragmentCompat.OnPreferenceSt
         }
     }
 
-    class CustomHeaderSettingsFragment : PreferenceFragmentCompat() {
-        private lateinit var repository: Repository
+    class CustomHeaderSettingsFragment : PreferenceFragmentCompat(), KoinComponent {
+        private val repository: Repository by inject()
 
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(R.xml.custom_header_preferences, rootKey)
-            repository = Repository.getInstance(requireActivity())
             reload()
         }
 

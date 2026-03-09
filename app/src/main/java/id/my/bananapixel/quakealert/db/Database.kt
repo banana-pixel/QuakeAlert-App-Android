@@ -373,20 +373,6 @@ abstract class Database : RoomDatabase() {
                     .build()
         }
 
-        /**
-         * Set by Hilt module so [getInstance] returns the injected singleton.
-         * Enables backward compatibility during DI migration.
-         */
-        @Volatile
-        var hiltInstance: Database? = null
-
-        fun getInstance(context: Context): Database {
-            hiltInstance?.let { return it }
-            return instance ?: synchronized(this) {
-                instance ?: build(context.applicationContext).also { instance = it }
-            }
-        }
-
         private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // Drop "notifications" & "lastActive" columns (SQLite does not support dropping columns, ...)

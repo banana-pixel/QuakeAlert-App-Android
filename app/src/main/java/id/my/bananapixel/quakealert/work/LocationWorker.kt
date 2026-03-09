@@ -18,8 +18,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import java.util.Locale
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class LocationWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
+class LocationWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params), KoinComponent {
+    private val repository: Repository by inject()
     init {
         Log.init(ctx)
     }
@@ -37,7 +40,6 @@ class LocationWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
 
             val location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER) ?: fetchSingleUpdate(locationManager)
             if (location != null) {
-                val repository = Repository.getInstance(applicationContext)
                 repository.setUserLatitude(location.latitude)
                 repository.setUserLongitude(location.longitude)
                 resolveAndSavePlaceName(repository, location.latitude, location.longitude)

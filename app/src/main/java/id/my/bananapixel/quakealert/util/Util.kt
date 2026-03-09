@@ -31,6 +31,7 @@ import id.my.bananapixel.quakealert.db.Notification
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.msg.MESSAGE_ENCODING_BASE64
+import org.koin.java.KoinJavaComponent.getKoin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -406,7 +407,8 @@ fun Context.systemDarkThemeOn(): Boolean {
 }
 
 fun isDarkThemeOn(context: Context): Boolean {
-    val darkMode = Repository.getInstance(context).getDarkMode()
+    val repository : Repository = getKoin().get()
+    val darkMode = repository.getDarkMode()
     if (darkMode == AppCompatDelegate.MODE_NIGHT_YES) {
         return true
     }

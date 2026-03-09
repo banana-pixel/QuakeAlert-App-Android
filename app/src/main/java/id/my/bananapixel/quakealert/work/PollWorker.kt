@@ -11,8 +11,12 @@ import id.my.bananapixel.quakealert.msg.Poller
 import id.my.bananapixel.quakealert.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class PollWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
+class PollWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params), KoinComponent {
+    private val repository: Repository by inject()
+
     // IMPORTANT:
     //   Every time the worker is changed, the periodic work has to be REPLACEd.
     //   This is facilitated in the MainActivity using the VERSION below.
@@ -24,7 +28,6 @@ class PollWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
     override suspend fun doWork(): Result {
         return withContext(Dispatchers.IO) {
             Log.d(TAG, "Polling for new notifications")
-            val repository = Repository.getInstance(applicationContext)
             val dispatcher = NotificationDispatcher(applicationContext, repository)
             val api = ApiService(applicationContext)
             val poller = Poller(api, repository)

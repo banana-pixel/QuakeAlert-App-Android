@@ -20,15 +20,17 @@ import java.security.cert.X509Certificate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * Fragment for managing trusted certificates and client certificates.
  */
 class CertificateSettingsFragment : BasePreferenceFragment(),
     TrustedCertificateFragment.TrustedCertificateListener,
-    ClientCertificateFragment.ClientCertificateListener {
+    ClientCertificateFragment.ClientCertificateListener, KoinComponent {
 
-    private lateinit var repository: Repository
+    private val repository: Repository by inject()
 
     // File pickers
     private val trustedCertFilePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -41,7 +43,6 @@ class CertificateSettingsFragment : BasePreferenceFragment(),
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.certificate_preferences, rootKey)
-        repository = Repository.getInstance(requireActivity())
         reload()
     }
 

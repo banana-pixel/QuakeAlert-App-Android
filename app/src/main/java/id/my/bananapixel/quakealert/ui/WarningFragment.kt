@@ -42,8 +42,12 @@ import kotlinx.serialization.json.Json
 import id.my.bananapixel.quakealert.db.Repository
 import okhttp3.*
 import java.io.IOException
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class WarningFragment : Fragment(R.layout.fragment_warning) {
+class WarningFragment : Fragment(R.layout.fragment_warning), KoinComponent {
+
+    private val repository: Repository by inject()
 
     private lateinit var scanningLayout: LinearLayout
     private lateinit var alertLayout: ScrollView
@@ -394,7 +398,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             AlertState.setActive(false)
             resetJob?.cancel()
             // Stop the insistent alert sound (same as when user dismisses the notification)
-            Repository.getInstance(requireContext()).mediaPlayer.apply {
+            repository.mediaPlayer.apply {
                 if (isPlaying) stop()
                 reset()
             }
@@ -408,7 +412,6 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
             viewLogsButton.animate().scaleX(0.9f).scaleY(0.9f).setDuration(100).withEndAction {
                 viewLogsButton.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
                 viewLifecycleOwner.lifecycleScope.launch {
-                    val repository = (requireActivity().application as App).repository
                     val subscription = withContext(Dispatchers.IO) {
                         repository.getSubscription(baseUrl, topic)
                     }

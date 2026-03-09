@@ -35,14 +35,17 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.Random
 
-class OnboardingActivity : BaseActivity() {
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
+class OnboardingActivity : BaseActivity(), KoinComponent {
 
     private lateinit var viewPager: ViewPager2
     private lateinit var dotsContainer: LinearLayout
     private lateinit var btnNext: TextView
     private lateinit var btnBack: TextView
     private lateinit var btnSkip: TextView
-    private lateinit var repository: Repository
+    private val repository: Repository by inject()
     private val notifier by lazy { NotificationService(this) }
 
     private val pages: List<OnboardingPage> by lazy {
@@ -116,8 +119,6 @@ class OnboardingActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        repository = Repository.getInstance(this)
 
         // If onboarding is already completed, skip directly to MainActivity
         if (repository.isOnboardingCompleted()) {

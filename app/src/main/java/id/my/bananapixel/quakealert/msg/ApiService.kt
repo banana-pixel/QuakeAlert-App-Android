@@ -22,8 +22,11 @@ import okio.BufferedSource
 import java.io.IOException
 import java.net.URLEncoder
 
-class ApiService(private val context: Context) {
-    private val repository = Repository.getInstance(context)
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
+class ApiService(private val context: Context) : KoinComponent {
+    private val repository: Repository by inject()
     private val parser = NotificationParser()
 
     suspend fun publish(
