@@ -111,6 +111,10 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+
     kotlin {
         compilerOptions {
             jvmTarget = JvmTarget.JVM_17
