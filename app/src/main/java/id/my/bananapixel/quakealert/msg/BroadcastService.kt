@@ -70,7 +70,7 @@ class BroadcastService(private val ctx: Context) {
         }
 
         private fun send(ctx: Context, intent: Intent) {
-            val api = ApiService(ctx)
+            val api = org.koin.java.KoinJavaComponent.getKoin().get<ApiService>()
             val baseUrl = getStringExtra(intent, "base_url") ?: BuildConfig.APP_BASE_URL
             val topic = getStringExtra(intent, "topic") ?: return
             val message = getStringExtra(intent, "message") ?: return

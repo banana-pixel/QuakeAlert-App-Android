@@ -35,7 +35,7 @@ import org.koin.core.component.inject
 
 class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertificateListener, KoinComponent {
     private val repository: Repository by inject()
-    private lateinit var api: ApiService
+    private val api: ApiService by inject()
     private lateinit var subscribeListener: SubscribeListener
     private lateinit var appBaseUrl: String
     private var defaultBaseUrl: String? = null
@@ -81,7 +81,6 @@ class AddFragment : DialogFragment(), TrustedCertificateFragment.TrustedCertific
         }
 
         // Dependencies (Fragments need a default constructor)
-        api = ApiService(requireContext())
         appBaseUrl = BuildConfig.APP_BASE_URL
         defaultBaseUrl = repository.getDefaultBaseUrl()
 

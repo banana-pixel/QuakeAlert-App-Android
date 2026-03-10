@@ -50,7 +50,7 @@ import org.koin.core.component.inject
 
 class PublishFragment : DialogFragment(), KoinComponent {
     private val repository: Repository by inject()
-    private lateinit var api: ApiService
+    private val api: ApiService by inject()
 
     // Toolbar
     private lateinit var toolbar: MaterialToolbar
@@ -162,7 +162,6 @@ class PublishFragment : DialogFragment(), KoinComponent {
         }
 
         // Dependencies
-        api = ApiService(requireContext())
 
         // Get arguments
         baseUrl = arguments?.getString(ARG_BASE_URL) ?: ""

@@ -32,6 +32,8 @@ import id.my.bananapixel.quakealert.util.HttpUtil
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.topicUrl
 import kotlinx.coroutines.Dispatchers
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -65,13 +67,13 @@ import java.util.concurrent.ConcurrentHashMap
  * - https://github.com/robertohuertasm/endless-service/blob/master/app/src/main/java/com/robertohuertas/endless/EndlessService.kt
  * - https://gist.github.com/varunon9/f2beec0a743c96708eb0ef971a9ff9cd
  */
-class SubscriberService : Service() {
+class SubscriberService : Service(), KoinComponent {
     private var wakeLock: PowerManager.WakeLock? = null
     private var isServiceStarted = false
     private val scope = MainScope()
-    private val repository by lazy { (application as Application).repository }
-    private val dispatcher by lazy { NotificationDispatcher(this, repository) }
-    private val api by lazy { ApiService(this) }
+    private val repository: Repository by inject()
+    private val dispatcher: NotificationDispatcher by inject()
+    private val api: ApiService by inject()
     private val connections = ConcurrentHashMap<ConnectionId, Connection>()
     private var notificationManager: NotificationManager? = null
     private var notificationText: String? = null

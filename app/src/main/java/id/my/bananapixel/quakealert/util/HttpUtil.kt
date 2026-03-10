@@ -26,6 +26,18 @@ object HttpUtil {
     }
 
     /**
+     * Synchronous basic client for DI graph to avoid runBlocking.
+     */
+    fun defaultClientSync(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .callTimeout(1, TimeUnit.MINUTES)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
+
+    /**
      * Client with a longer call timeout (5 minutes).
      * Allows for large file uploads or downloads.
      */

@@ -32,6 +32,7 @@ class NotificationService(val context: Context) : KoinComponent {
     private val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private val repository: Repository by inject()
+    private val processor: QuakeNotificationProcessor by inject()
     private val markwon = MarkwonFactory.createForNotification(context)
     private val appBaseUrl = BuildConfig.APP_BASE_URL
 
@@ -101,40 +102,11 @@ class NotificationService(val context: Context) : KoinComponent {
         notification: Notification,
         update: Boolean = false
     ) {
-        val baseTitle = formatTitle(appBaseUrl, subscription, notification)
+        val processResult = processor.process(subscription, notification, appBaseUrl)
+        val title = processResult.title
+        val displayPriority = processResult.displayPriority
+        val distanceLabel = processResult.distanceLabel
         val geoCoordinates = extractGeoCoordinates(notification.tags)
-        val sharedPrefs =
-            context.getSharedPreferences(Repository.SHARED_PREFS_ID, Context.MODE_PRIVATE)
-        val alertRadiusKm =
-            sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
-                .toDouble()
-        val (distance, distanceLabel) = if (repository.isUserLocationSet()) {
-            val userLat = repository.getUserLatitude()
-            val userLon = repository.getUserLongitude()
-            val dist = geoCoordinates?.let { (lat, lon) -> distanceKm(userLat, userLon, lat, lon) }
-            Pair(dist, dist?.let { formatDistanceKm(it) })
-        } else {
-            Pair(null, null)
-        }
-        val displayPriority = quakeDisplayPriority(distance, alertRadiusKm, notification.priority)
-        val title = when {
-            distanceLabel == null -> baseTitle
-            distance != null && distance > alertRadiusKm -> context.getString(R.string.notification_silent_quake, distanceLabel)
-            else -> context.getString(R.string.notification_danger_quake, distanceLabel)
-        }
-
-        // Trigger global alert only for earthquake-tagged messages (red warning page)
-        if (displayPriority == PRIORITY_MAX && hasEarthquakeTag(notification.tags)) {
-            AlertState.setAlertData(notification, distanceLabel)
-            val intent = Intent(ACTION_QUAKE_ALERT).apply {
-                putExtra("message", notification.message)
-                putExtra("title", title)
-                putExtra("distance", distanceLabel)
-                putExtra("timestamp", notification.timestamp)
-                setPackage(context.packageName)
-            }
-            context.sendBroadcast(intent)
-        }
 
         val groupId =
             if (subscription.dedicatedChannels) subscriptionGroupId(subscription) else DEFAULT_GROUP
@@ -302,7 +274,7 @@ class NotificationService(val context: Context) : KoinComponent {
     ) {
         // Only open the red Warning Page for ntfy messages tagged with "earthquake"
         if (priority == PRIORITY_MAX && hasEarthquakeTag(notification.tags)) {
-            builder.setContentIntent(warningActivityIntent(subscription, notification, distance))
+            builder.setContentIntent(processor.getWarningIntent(subscription, notification, distance))
             return
         }
 
@@ -600,24 +572,7 @@ class NotificationService(val context: Context) : KoinComponent {
         }
     }
 
-    private fun warningActivityIntent(subscription: Subscription, notification: Notification, distance: String?): PendingIntent? {
-        val intent = Intent(context, MainActivity::class.java).apply {
-            action = IntentActions.OPEN_WARNING_PAGE
-            putExtra("message", notification.message)
-            putExtra("distance", distance)
-            putExtra(MainActivity.EXTRA_SUBSCRIPTION_ID, subscription.id)
 
-            // SINGLE_TOP ensures we don't restart the app if it's already open
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-
-        return PendingIntent.getActivity(
-            context,
-            Random().nextInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-    }
 
     private fun maybeCreateNotificationChannel(group: String, priority: Int) {
         // Note: To change a notification channel, you must delete the old one and create a new one!
@@ -799,7 +754,6 @@ class NotificationService(val context: Context) : KoinComponent {
     }
 
     companion object {
-        const val ACTION_QUAKE_ALERT = "id.my.bananapixel.quakealert.QUAKE_ALERT"
         const val ACTION_VIEW = "view"
         const val ACTION_HTTP = "http"
         const val ACTION_BROADCAST = "broadcast"
@@ -814,8 +768,6 @@ class NotificationService(val context: Context) : KoinComponent {
         const val BROADCAST_TYPE_USER_ACTION = "id.my.bananapixel.quakealert.USER_ACTION_RUN"
 
         private const val TAG = "NtfyNotifService"
-
-        private const val DEFAULT_ALERT_RADIUS_KM = 500
 
         private const val DEFAULT_GROUP = "ntfy"
         private const val SUBSCRIPTION_GROUP_PREFIX = "ntfy-subscription-"

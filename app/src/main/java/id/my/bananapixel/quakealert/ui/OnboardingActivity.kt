@@ -46,7 +46,7 @@ class OnboardingActivity : BaseActivity(), KoinComponent {
     private lateinit var btnBack: TextView
     private lateinit var btnSkip: TextView
     private val repository: Repository by inject()
-    private val notifier by lazy { NotificationService(this) }
+    private val notifier: NotificationService by inject()
 
     private val pages: List<OnboardingPage> by lazy {
         listOf(

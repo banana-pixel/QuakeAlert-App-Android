@@ -23,11 +23,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.core.view.size
 import androidx.core.view.get
+import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.app.Application
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
-class ShareActivity : BaseActivity() {
-    private val repository by lazy { (applicationContext as Application).repository }
-    private val api by lazy { ApiService(this) }
+class ShareActivity : BaseActivity(), KoinComponent {
+    private val repository: Repository by inject()
+    private val api: ApiService by inject()
 
     // File to share
     private var fileUri: Uri? = null

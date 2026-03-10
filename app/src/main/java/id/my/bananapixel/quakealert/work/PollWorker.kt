@@ -16,6 +16,8 @@ import org.koin.core.component.inject
 
 class PollWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params), KoinComponent {
     private val repository: Repository by inject()
+    private val dispatcher: NotificationDispatcher by inject()
+    private val poller: Poller by inject()
 
     // IMPORTANT:
     //   Every time the worker is changed, the periodic work has to be REPLACEd.
@@ -28,9 +30,6 @@ class PollWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, 
     override suspend fun doWork(): Result {
         return withContext(Dispatchers.IO) {
             Log.d(TAG, "Polling for new notifications")
-            val dispatcher = NotificationDispatcher(applicationContext, repository)
-            val api = ApiService(applicationContext)
-            val poller = Poller(api, repository)
 
             val baseUrl = inputData.getString(INPUT_DATA_BASE_URL)
             val topic = inputData.getString(INPUT_DATA_TOPIC)

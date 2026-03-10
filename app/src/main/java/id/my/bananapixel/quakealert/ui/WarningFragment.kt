@@ -43,6 +43,7 @@ import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.ui.WarningViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.repeatOnLifecycle
+import id.my.bananapixel.quakealert.util.QuakeNotificationProcessor
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -77,7 +78,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
 
     private val quakeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == NotificationService.ACTION_QUAKE_ALERT) {
+            if (intent?.action == QuakeNotificationProcessor.ACTION_QUAKE_ALERT) {
                 val message = intent.getStringExtra("message") ?: ""
                 val distance = intent.getStringExtra("distance") ?: getString(R.string.warning_distance_unknown)
                 val timestamp = intent.getLongExtra("timestamp", System.currentTimeMillis() / 1000)
@@ -391,7 +392,7 @@ class WarningFragment : Fragment(R.layout.fragment_warning) {
 
     override fun onResume() {
         super.onResume()
-        val filter = IntentFilter(NotificationService.ACTION_QUAKE_ALERT)
+        val filter = IntentFilter(QuakeNotificationProcessor.ACTION_QUAKE_ALERT)
         requireContext().registerReceiver(quakeReceiver, filter, Context.RECEIVER_EXPORTED)
         if (::scanningLayout.isInitialized && scanningLayout.visibility == View.VISIBLE) {
             viewModel.startPolling()

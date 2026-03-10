@@ -87,8 +87,8 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 class MainActivity : BaseActivity(), AddFragment.SubscribeListener, NotificationFragment.NotificationSettingsListener, KoinComponent {
     private val viewModel: SubscriptionsViewModel by viewModel()
     private val repository: Repository by inject()
-    private val api by lazy { ApiService(this) }
-    private val poller by lazy { Poller(api, repository) }
+    private val api: ApiService by inject()
+    private val poller: Poller by inject()
     private val messenger = FirebaseMessenger()
 
     // UI elements
@@ -100,7 +100,7 @@ class MainActivity : BaseActivity(), AddFragment.SubscribeListener, Notification
 
     // Other stuff
     private var workManager: WorkManager? = null
-    private var dispatcher: NotificationDispatcher? = null
+    private val dispatcher: NotificationDispatcher by inject()
     private var appBaseUrl: String? = null
 
     // Delegates (navigation, banners, keyboard, connection status, action mode)
@@ -183,7 +183,6 @@ class MainActivity : BaseActivity(), AddFragment.SubscribeListener, Notification
         keyboardDelegate.setupKeyboardListener(bottomNav, navHostFragment, window.decorView.rootView)
 
         workManager = WorkManager.getInstance(this)
-        dispatcher = NotificationDispatcher(this, repository)
         appBaseUrl = BuildConfig.APP_BASE_URL
         connectionStatusDelegate = MainConnectionStatusDelegate(this, repository)
         bannersDelegate = MainBannersDelegate(this, repository, appBaseUrl)

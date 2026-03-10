@@ -9,6 +9,7 @@ import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.up.Distributor
 import id.my.bananapixel.quakealert.util.EMERGENCY_TOPIC
 import id.my.bananapixel.quakealert.util.Log
+import id.my.bananapixel.quakealert.util.QuakeNotificationProcessor
 import id.my.bananapixel.quakealert.util.decodeBytesMessage
 import id.my.bananapixel.quakealert.util.safeLet
 
@@ -30,7 +31,7 @@ class NotificationDispatcher(val context: Context, val repository: Repository) {
 
         // Special handling for the emergency topic
         if (subscription.topic == EMERGENCY_TOPIC) {
-            val intent = Intent(ACTION_QUAKE_ALERT)
+            val intent = Intent(QuakeNotificationProcessor.ACTION_QUAKE_ALERT)
             intent.putExtra("notification", notification)
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent)
         }
@@ -125,6 +126,5 @@ class NotificationDispatcher(val context: Context, val repository: Repository) {
 
     companion object {
         private const val TAG = "NtfyNotifDispatch"
-        const val ACTION_QUAKE_ALERT = "id.my.bananapixel.quakealert.QUAKE_ALERT"
     }
 }

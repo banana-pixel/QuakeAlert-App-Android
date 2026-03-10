@@ -72,8 +72,8 @@ import org.koin.core.component.KoinComponent
 class DetailActivity : BaseActivity(), NotificationFragment.NotificationSettingsListener, PublishFragment.PublishListener, KoinComponent {
     private val viewModel: DetailViewModel by viewModel()
     private val repository: Repository by inject()
-    private val api by lazy { ApiService(this) }
-    private val poller by lazy { Poller(api, repository) }
+    private val api: ApiService by inject()
+    private val poller: Poller by inject()
     private val messenger = FirebaseMessenger()
     private var notifier: NotificationService? = null // Context-dependent
     private var appBaseUrl: String? = null // Context-dependent

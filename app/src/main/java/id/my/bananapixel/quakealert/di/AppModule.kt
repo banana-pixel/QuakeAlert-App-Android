@@ -19,6 +19,11 @@ import id.my.bananapixel.quakealert.ui.SubscriptionsViewModel
 import id.my.bananapixel.quakealert.ui.SensorsViewModel
 import id.my.bananapixel.quakealert.ui.SettingsViewModel
 import id.my.bananapixel.quakealert.ui.WarningViewModel
+import id.my.bananapixel.quakealert.msg.ApiService
+import id.my.bananapixel.quakealert.msg.NotificationDispatcher
+import id.my.bananapixel.quakealert.msg.NotificationService
+import id.my.bananapixel.quakealert.msg.Poller
+import id.my.bananapixel.quakealert.util.QuakeNotificationProcessor
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
@@ -27,7 +32,6 @@ import id.my.bananapixel.quakealert.util.HttpUtil
 import id.my.bananapixel.quakealert.api.QuakeAlertApi
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
-import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -58,8 +62,7 @@ val dataModule = module {
     
     // Networking
     single<OkHttpClient> {
-        val baseUrl = BuildConfig.APP_BASE_URL.trimEnd('/') + "/"
-        val baseClient = runBlocking { HttpUtil.defaultClient(androidContext(), baseUrl) }
+        val baseClient = HttpUtil.defaultClientSync()
         baseClient.newBuilder()
             .addInterceptor { chain ->
                 chain.proceed(
@@ -118,6 +121,17 @@ val uiModule = module {
 }
 
 /**
+ * Service/Background layer module: Services, Workers, and Notification dispatchers.
+ */
+val serviceModule = module {
+    single { ApiService(androidContext()) }
+    single { NotificationDispatcher(androidContext(), get()) }
+    single { Poller(get(), get()) }
+    single { NotificationService(androidContext()) }
+    single { QuakeNotificationProcessor(androidContext()) }
+}
+
+/**
  * Combined app module for Koin initialization.
  */
-val appModule = listOf(dataModule, domainModule, uiModule)
+val appModule = listOf(dataModule, domainModule, uiModule, serviceModule)
