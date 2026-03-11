@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import id.my.bananapixel.quakealert.api.QuakeAlertApi
 import id.my.bananapixel.quakealert.domain.ServerHealthStatus
 import id.my.bananapixel.quakealert.msg.Sensor
+import id.my.bananapixel.quakealert.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,7 +56,7 @@ class SensorsViewModel(
             val stations = api.getStations()
             val latency = (System.currentTimeMillis() - startTime).toInt()
             val status = if (latency > 300) ServerHealthStatus.WARNING else ServerHealthStatus.HEALTHY
-            
+
             _uiState.update {
                 it.copy(
                     stations = stations,
@@ -66,17 +67,37 @@ class SensorsViewModel(
                     hasReceivedFirstResult = true
                 )
             }
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
+            // Standard network failure (timeout, no connectivity, server unreachable).
             val latency = (System.currentTimeMillis() - startTime).toInt()
+            Log.w(TAG, "Network error fetching sensor stations: ${e.message}")
             _uiState.update {
                 it.copy(
                     status = ServerHealthStatus.CRITICAL,
                     latency = latency,
                     isError = true,
-                    isEmpty = false, // When error occurs, we show error container, not empty container
+                    isEmpty = false,
+                    hasReceivedFirstResult = true
+                )
+            }
+        } catch (e: Exception) {
+            // Non-network failure (serialization bug, NPE, etc.) — log the full stack trace
+            // so developers can distinguish a server outage from a code-level bug.
+            val latency = (System.currentTimeMillis() - startTime).toInt()
+            Log.e(TAG, "Unexpected internal error while fetching sensor stations — this is likely a bug in parsing/mapping code, NOT a server issue.", e)
+            _uiState.update {
+                it.copy(
+                    status = ServerHealthStatus.CRITICAL,
+                    latency = latency,
+                    isError = true,
+                    isEmpty = false,
                     hasReceivedFirstResult = true
                 )
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "SensorsViewModel"
     }
 }

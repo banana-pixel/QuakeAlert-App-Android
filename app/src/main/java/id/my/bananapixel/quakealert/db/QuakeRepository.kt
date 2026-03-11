@@ -2,20 +2,16 @@ package id.my.bananapixel.quakealert.db
 
 import android.content.Context
 import id.my.bananapixel.quakealert.api.QuakeAlertApi
+import id.my.bananapixel.quakealert.db.QuakeMapper.toEntity
 import id.my.bananapixel.quakealert.domain.AppError
 import id.my.bananapixel.quakealert.domain.AppResult
 import id.my.bananapixel.quakealert.ui.QuakeReport
 import id.my.bananapixel.quakealert.util.Log
-import id.my.bananapixel.quakealert.util.ValidationUtil
-import id.my.bananapixel.quakealert.util.toValidOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
 
 /**
  * Repository interface for Quake data operations.
@@ -27,13 +23,13 @@ interface QuakeRepository {
      * Stays populated even when offline (local DB as SSOT).
      */
     val quakes: Flow<List<QuakeData>>
-    
+
     /**
      * Fetches quake reports from API and updates local DB.
      * @return [AppResult] with success or failure containing AppError
      */
     suspend fun fetchQuakes(context: Context): AppResult<Unit>
-    
+
     /**
      * Clear all quakes from local DB.
      */
@@ -42,6 +38,10 @@ interface QuakeRepository {
 
 /**
  * Default implementation of QuakeRepository.
+ *
+ * Uses [QuakeMapper] as the single source of truth for DTO → Entity mapping.
+ * Malformed individual records are skipped with a logged warning rather than
+ * corrupting the database with fake default data.
  */
 class QuakeRepositoryImpl(
     private val quakeDao: QuakeHistoryDao,
@@ -52,53 +52,39 @@ class QuakeRepositoryImpl(
 
     override suspend fun fetchQuakes(context: Context): AppResult<Unit> = withContext(Dispatchers.IO) {
         try {
-            val reports = executeFetchReports(context)
-            val quakeEntities = buildList {
-                for (report in reports) {
-                    val latitude = report.latitude.toValidOrNull()
-                    val longitude = report.longitude.toValidOrNull()
-                    val (lat, lon) = ValidationUtil.validateCoordinates(latitude, longitude) ?: (0.0 to 0.0)
-                    val intensity = ValidationUtil.validateIntensity(report.intensitas_maks) ?: "I"
-                    val location = ValidationUtil.validateLocation(report.lokasi) ?: "Unknown"
-                    
-                    val dateString = report.waktu_kejadian
-                    val quakeTime = if (dateString.isNullOrEmpty()) System.currentTimeMillis() else {
-                        try {
-                            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply {
-                                timeZone = TimeZone.getTimeZone("UTC")
-                            }.parse(dateString)?.time ?: System.currentTimeMillis()
-                        } catch (e: Exception) {
-                            System.currentTimeMillis()
-                        }
-                    }
-                    
-                    val dur = ValidationUtil.validateDuration(runCatching { report.durasi.toInt() }.getOrNull()) ?: 0
+            val reports = api.getLaporan()
+            val (validEntities, skippedCount) = mapReportsToEntities(reports)
 
-                    add(
-                        QuakeData(
-                            id = report.id.toString(),
-                            magnitude = 0.0,
-                            place = location,
-                            time = quakeTime,
-                            sync_time = System.currentTimeMillis(),
-                            description = report.deskripsi,
-                            latitude = lat,
-                            longitude = lon,
-                            pga = report.pga_maks.ifEmpty { "0" },
-                            durasi = dur,
-                            station_id = report.station_id.ifEmpty { "N/A" },
-                            intensity = intensity
-                        )
-                    )
-                }
+            if (skippedCount > 0) {
+                Log.w(TAG, "Skipped $skippedCount/${reports.size} malformed report(s) — check logs above for details.")
             }
-            quakeDao.upsertAll(quakeEntities)
+
+            if (validEntities.isEmpty() && reports.isNotEmpty()) {
+                // Every single record was malformed — surface this as a parse error.
+                return@withContext Result.failure(
+                    AppError.ParseError(
+                        "All ${reports.size} fetched report(s) were malformed and could not be stored."
+                    )
+                )
+            }
+
+            quakeDao.upsertAll(validEntities)
+            Log.d(TAG, "Saved ${validEntities.size} valid quake record(s) to DB.")
             Result.success(Unit)
+
         } catch (e: IOException) {
+            Log.e(TAG, "Network error while fetching quakes", e)
             Result.failure(AppError.NetworkError(e.message ?: "Network error"))
+
         } catch (e: SerializationException) {
-            Result.failure(AppError.ParseError(e.message ?: "Parse error"))
+            // The API returned a JSON structure we can't deserialize at all (schema change, etc.)
+            Log.e(TAG, "Serialization error: API response schema may have changed", e)
+            Result.failure(AppError.ParseError(e.message ?: "Serialization error"))
+
         } catch (e: Exception) {
+            // Safety net — rethrow coroutine cancellation, handle everything else.
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            Log.e(TAG, "Unexpected error while fetching quakes", e)
             Result.failure(AppError.UnknownError(e.message ?: "Unknown error"))
         }
     }
@@ -107,13 +93,30 @@ class QuakeRepositoryImpl(
         quakeDao.clearAll()
     }
 
-    private suspend fun executeFetchReports(context: Context): List<QuakeReport> = withContext(Dispatchers.IO) {
-        api.getLaporan()
+    /**
+     * Maps a list of raw API reports to valid [QuakeData] entities using [QuakeMapper].
+     *
+     * Records that fail validation are **skipped** (with a per-record warning log) rather
+     * than stored with fake defaults. The caller decides what to do if [skippedCount] > 0.
+     *
+     * @return Pair(validEntities, skippedCount)
+     */
+    private fun mapReportsToEntities(reports: List<QuakeReport>): Pair<List<QuakeData>, Int> {
+        val valid = mutableListOf<QuakeData>()
+        var skipped = 0
+        for (report in reports) {
+            try {
+                valid.add(report.toEntity())
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "Skipping malformed report id=${report.id}: ${e.message}")
+                skipped++
+            }
+        }
+        return Pair(valid, skipped)
     }
-
-    private fun Double.orZeroIfNaN(): Double = if (this.isNaN()) 0.0 else this
 
     companion object {
         private const val TAG = "QuakeRepository"
     }
 }
+

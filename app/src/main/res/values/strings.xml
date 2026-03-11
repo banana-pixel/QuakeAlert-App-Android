@@ -54,6 +54,10 @@
     <string name="error_generic_message">Something went wrong.</string>
     <string name="error_retry">Retry</string>
     <string name="error_sensors_hint">Couldn\'t load. Pull down to retry.</string>
+    <!-- QuakeAlert domain-specific error messages (surfaced by strict data validation) -->
+    <string name="error_quake_network">No connection to EWS server. Check your internet and try again.</string>
+    <string name="error_quake_parse">Server returned unreadable data. The EWS API format may have changed.</string>
+    <string name="error_quake_validation">EWS data validation failed. One or more earthquake records had invalid fields and were skipped.</string>
 
     <!-- Common refresh toasts -->
     <string name="refresh_message_result">%1$d notification(s) received</string>

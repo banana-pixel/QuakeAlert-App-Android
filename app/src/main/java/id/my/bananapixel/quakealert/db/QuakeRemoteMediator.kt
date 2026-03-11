@@ -1,24 +1,18 @@
 package id.my.bananapixel.quakealert.db
 
-import android.content.Context
 import androidx.paging.ExperimentalPagingApi
-import id.my.bananapixel.quakealert.BuildConfig
-import id.my.bananapixel.quakealert.R
 import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
+import androidx.room.withTransaction
 import id.my.bananapixel.quakealert.api.QuakeAlertApi
-import id.my.bananapixel.quakealert.ui.QuakeReport
-import id.my.bananapixel.quakealert.util.ValidationUtil
-import id.my.bananapixel.quakealert.util.toValidOrNull
-import kotlinx.serialization.SerializationException
-import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
+import id.my.bananapixel.quakealert.db.QuakeMapper.toEntity
+import id.my.bananapixel.quakealert.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import androidx.room.withTransaction
+import kotlinx.serialization.SerializationException
+import java.io.IOException
 
 @OptIn(ExperimentalPagingApi::class)
 class QuakeRemoteMediator(
@@ -32,7 +26,7 @@ class QuakeRemoteMediator(
     ): MediatorResult {
         return withContext(Dispatchers.IO) {
             try {
-                // 1. Calculate Page Number
+                // 1. Calculate page number
                 val page = when (loadType) {
                     LoadType.REFRESH -> 1
                     LoadType.PREPEND -> return@withContext MediatorResult.Success(endOfPaginationReached = true)
@@ -42,91 +36,64 @@ class QuakeRemoteMediator(
                     }
                 }
 
-                // 2. Fetch data safely
-                val reports = fetchReportsFromApi(page)
+                // 2. Fetch from API
+                val reports = api.getLaporan(page = page)
 
-                // 3. Map to Entity (with validation)
-                val quakeEntities = buildList {
-                    for (report in reports) {
-                        // Validate coordinates
-                        val (lat, lon) = ValidationUtil.validateCoordinates(
-                            report.latitude.toValidOrNull(), 
-                            report.longitude.toValidOrNull()
-                        ) ?: (0.0 to 0.0)
-                        
-                        // Validate intensity
-                        val intensity = ValidationUtil.validateIntensity(report.intensitas_maks) ?: "I"
-                        
-                        // Validate location
-                        val location = ValidationUtil.validateLocation(report.lokasi) ?: "Unknown"
-                        
-                        // Validate earthquake time
-                        val dateString = report.waktu_kejadian
-                        val earthquakeTime = if (dateString.isNullOrEmpty()) System.currentTimeMillis() else {
-                            try {
-                                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).apply {
-                                    timeZone = TimeZone.getTimeZone("UTC")
-                                }.parse(dateString)?.time ?: System.currentTimeMillis()
-                            } catch (e: Exception) {
-                                System.currentTimeMillis()
-                            }
-                        }
-                        if (!ValidationUtil.validateEarthquakeTime(earthquakeTime).let { it != null }) {
-                            continue // Skip invalid times
-                        }
-                        
-                        // Validate duration
-                        val duration = ValidationUtil.validateDuration(
-                            runCatching { report.durasi.toInt() }.getOrNull()
-                        ) ?: 0
-                        
-                        add(
-                            QuakeData(
-                                id = report.id.toString(),
-                                magnitude = 0.0,
-                                place = location,
-                                time = earthquakeTime,
-                                sync_time = System.currentTimeMillis(),
-                                description = report.deskripsi,
-                                latitude = lat,
-                                longitude = lon,
-                                pga = report.pga_maks.ifEmpty { "0" },
-                                durasi = duration,
-                                station_id = report.station_id.ifEmpty { "N/A" },
-                                intensity = intensity
-                            )
-                        )
+                // 3. Map to entities using the central mapper — skip malformed records
+                val validEntities = mutableListOf<QuakeData>()
+                var skippedCount = 0
+                for (report in reports) {
+                    try {
+                        validEntities.add(report.toEntity())
+                    } catch (e: IllegalArgumentException) {
+                        Log.w(TAG, "RemoteMediator: skipping malformed report id=${report.id}: ${e.message}")
+                        skippedCount++
                     }
                 }
+                if (skippedCount > 0) {
+                    Log.w(TAG, "RemoteMediator: skipped $skippedCount/${reports.size} malformed record(s) on page $page.")
+                }
 
-                // 4. Save to Database
-                if (quakeEntities.isNotEmpty()) {
-                    database.withTransaction {
-                        if (loadType == LoadType.REFRESH) {
-                            database.quakeHistoryDao().clearAll() // Ensure you have a clearAll() or similar
-                        }
-                        database.quakeHistoryDao().upsertAll(quakeEntities)
+                // 4. Persist valid records in a transaction
+                database.withTransaction {
+                    if (loadType == LoadType.REFRESH) {
+                        database.quakeHistoryDao().clearAll()
+                    }
+                    if (validEntities.isNotEmpty()) {
+                        database.quakeHistoryDao().upsertAll(validEntities)
                     }
                 }
 
                 MediatorResult.Success(endOfPaginationReached = reports.isEmpty())
+
+            } catch (e: CancellationException) {
+                // Never swallow coroutine cancellation
+                throw e
+
             } catch (e: IOException) {
-                // Return Success if we have cached data, so the app doesn't crash offline
+                // Network failure — fall back to cached data if available so the UI
+                // can still display the last-known list (correct offline behaviour for paging).
                 val hasData = database.quakeHistoryDao().count() > 0
+                Log.w(TAG, "Network error on page load (hasCache=$hasData): ${e.message}")
                 if (hasData) {
-                    return@withContext MediatorResult.Success(endOfPaginationReached = true)
+                    MediatorResult.Success(endOfPaginationReached = true)
                 } else {
-                    return@withContext MediatorResult.Error(e)
+                    MediatorResult.Error(e)
                 }
+
             } catch (e: SerializationException) {
-                return@withContext MediatorResult.Error(e)
+                // The API returned an entirely unparseable JSON structure (schema change).
+                Log.e(TAG, "Serialization error: API schema may have changed", e)
+                MediatorResult.Error(e)
+
             } catch (e: Exception) {
-                return@withContext MediatorResult.Error(e)
+                Log.e(TAG, "Unexpected error in RemoteMediator", e)
+                MediatorResult.Error(e)
             }
         }
     }
 
-    private suspend fun fetchReportsFromApi(page: Int): List<QuakeReport> {
-        return api.getLaporan(page = page)
+    companion object {
+        private const val TAG = "QuakeRemoteMediator"
     }
 }

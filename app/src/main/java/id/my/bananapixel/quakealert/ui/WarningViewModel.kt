@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import id.my.bananapixel.quakealert.api.QuakeAlertApi
 import id.my.bananapixel.quakealert.domain.SensorStatus
 import id.my.bananapixel.quakealert.domain.ServerHealthStatus
+import id.my.bananapixel.quakealert.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,8 +60,23 @@ class WarningViewModel(
                     onlineCount = onlineCount
                 )
             }
-        } catch (e: Exception) {
+        } catch (e: java.io.IOException) {
+            // Standard network failure (timeout, no connectivity, server unreachable).
             val latency = (System.currentTimeMillis() - startTime).toInt()
+            Log.w(TAG, "Network error fetching server status: ${e.message}")
+            _uiState.update {
+                it.copy(
+                    status = ServerHealthStatus.CRITICAL,
+                    latency = latency,
+                    onlineCount = 0
+                )
+            }
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            // Non-network failure (serialization bug, NPE, etc.) — log the full stack trace
+            // so developers can distinguish a server outage from a code-level bug.
+            val latency = (System.currentTimeMillis() - startTime).toInt()
+            Log.e(TAG, "Unexpected error in WarningViewModel.fetchServerStatus — check if this is a parsing/mapping bug, not a server issue.", e)
             _uiState.update {
                 it.copy(
                     status = ServerHealthStatus.CRITICAL,
@@ -68,5 +85,9 @@ class WarningViewModel(
                 )
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "WarningViewModel"
     }
 }
