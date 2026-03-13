@@ -594,7 +594,13 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
             ConnectionState.CONNECTED -> latencyMs
             else -> current?.latencyMs
         }
-        val details = ConnectionDetails(state, error, nextRetryTime, resolvedLatency)
+        val firstErrorTime = when {
+            error == null -> 0L
+            state == ConnectionState.CONNECTED -> 0L
+            current?.firstErrorTime != null && current.firstErrorTime > 0L -> current.firstErrorTime
+            else -> System.currentTimeMillis()
+        }
+        val details = ConnectionDetails(state, error, nextRetryTime, resolvedLatency, firstErrorTime)
         if (current != details) {
             if (state == ConnectionState.NOT_APPLICABLE && error == null) {
                 connectionDetails.remove(baseUrl)
@@ -603,6 +609,16 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
             }
             connectionDetailsLiveData.postValue(connectionDetails.toMap())
             Log.d(TAG, "Connection details updated for $baseUrl: state=$state, error=${error?.message}, nextRetry=$nextRetryTime, latencyMs=$resolvedLatency")
+        }
+    }
+
+    fun getConnectionAlertSnoozeUntil(): Long {
+        return sharedPrefs.getLong(SHARED_PREFS_CONNECTION_ALERT_SNOOZE_UNTIL, CONNECTION_ALERT_SNOOZE_UNTIL_DEFAULT)
+    }
+
+    fun setConnectionAlertSnoozeUntil(timeMillis: Long) {
+        sharedPrefs.edit {
+            putLong(SHARED_PREFS_CONNECTION_ALERT_SNOOZE_UNTIL, timeMillis)
         }
     }
 
@@ -645,6 +661,9 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         const val SHARED_PREFS_WEBSOCKET_RECONNECT_REMIND_TIME = "WebSocketReconnectRemindTime"
         const val SHARED_PREFS_UNIFIED_PUSH_BASE_URL = "UnifiedPushBaseURL"
         const val SHARED_PREFS_DEFAULT_BASE_URL = "DefaultBaseURL"
+        const val SHARED_PREFS_CONNECTION_ALERT_SNOOZE_UNTIL = "ConnectionAlertSnoozeUntil"
+        const val CONNECTION_ALERT_SNOOZE_UNTIL_DEFAULT = 0L
+        const val CONNECTION_ALERT_NEVER_SHOW = Long.MAX_VALUE
         const val SHARED_PREFS_LAST_TOPICS = "LastTopics"
         const val SHARED_PREFS_USER_LATITUDE = "UserLatitude"
         const val SHARED_PREFS_USER_LONGITUDE = "UserLongitude"

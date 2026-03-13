@@ -102,20 +102,22 @@ data class ConnectionDetails(
     val error: Throwable? = null,
     val nextRetryTime: Long = 0L,
     /** Round-trip / connection time in ms when state is CONNECTED; null when not measured. */
-    val latencyMs: Int? = null
+    val latencyMs: Int? = null,
+    /** Timestamp (ms) when the first error occurred for this connection; 0 when not in error. */
+    val firstErrorTime: Long = 0L
 ) {
     fun getStackTraceString(): String {
         return error?.stackTraceToString() ?: ""
     }
-    
+
     fun hasError(): Boolean {
         return error != null
     }
-    
+
     fun isConnectionRefused(): Boolean {
         return error?.hasCause<ConnectException>() ?: false
     }
-    
+
     fun isWebSocketNotSupported(): Boolean {
         return error?.hasCause<WebSocketNotSupportedException>() ?: false
     }
@@ -567,10 +569,10 @@ abstract class Database : RoomDatabase() {
 @Dao
 interface SubscriptionDao {
     @Query("""
-        SELECT 
+        SELECT
           s.id, s.baseUrl, s.topic, s.instant, s.mutedUntil, s.minPriority, s.autoDelete, s.insistent, s.lastNotificationId, s.icon, s.upAppId, s.upConnectorToken, s.displayName, s.dedicatedChannels,
-          COUNT(n.id) totalCount, 
-          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount, 
+          COUNT(n.id) totalCount,
+          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount,
           IFNULL(MAX(n.timestamp),0) AS lastActive
         FROM Subscription AS s
         LEFT JOIN Notification AS n ON s.id=n.subscriptionId AND n.deleted != 1
@@ -580,10 +582,10 @@ interface SubscriptionDao {
     fun listFlow(): Flow<List<SubscriptionWithMetadata>>
 
     @Query("""
-        SELECT 
+        SELECT
           s.id, s.baseUrl, s.topic, s.instant, s.mutedUntil, s.minPriority, s.autoDelete, s.insistent, s.lastNotificationId, s.icon, s.upAppId, s.upConnectorToken, s.displayName, s.dedicatedChannels,
-          COUNT(n.id) totalCount, 
-          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount, 
+          COUNT(n.id) totalCount,
+          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount,
           IFNULL(MAX(n.timestamp),0) AS lastActive
         FROM Subscription AS s
         LEFT JOIN Notification AS n ON s.id=n.subscriptionId AND n.deleted != 1
@@ -593,10 +595,10 @@ interface SubscriptionDao {
     suspend fun list(): List<SubscriptionWithMetadata>
 
     @Query("""
-        SELECT 
+        SELECT
           s.id, s.baseUrl, s.topic, s.instant, s.mutedUntil, s.minPriority, s.autoDelete, s.insistent, s.lastNotificationId, s.icon, s.upAppId, s.upConnectorToken, s.displayName, s.dedicatedChannels,
-          COUNT(n.id) totalCount, 
-          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount, 
+          COUNT(n.id) totalCount,
+          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount,
           IFNULL(MAX(n.timestamp),0) AS lastActive
         FROM Subscription AS s
         LEFT JOIN Notification AS n ON s.id=n.subscriptionId AND n.deleted != 1
@@ -606,10 +608,10 @@ interface SubscriptionDao {
     fun get(baseUrl: String, topic: String): SubscriptionWithMetadata?
 
     @Query("""
-        SELECT 
+        SELECT
           s.id, s.baseUrl, s.topic, s.instant, s.mutedUntil, s.minPriority, s.autoDelete, s.insistent, s.lastNotificationId, s.icon, s.upAppId, s.upConnectorToken, s.displayName, s.dedicatedChannels,
-          COUNT(n.id) totalCount, 
-          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount, 
+          COUNT(n.id) totalCount,
+          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount,
           IFNULL(MAX(n.timestamp),0) AS lastActive
         FROM Subscription AS s
         LEFT JOIN Notification AS n ON s.id=n.subscriptionId AND n.deleted != 1
@@ -619,10 +621,10 @@ interface SubscriptionDao {
     fun get(subscriptionId: Long): SubscriptionWithMetadata?
 
     @Query("""
-        SELECT 
+        SELECT
           s.id, s.baseUrl, s.topic, s.instant, s.mutedUntil, s.minPriority, s.autoDelete, s.insistent, s.lastNotificationId, s.icon, s.upAppId, s.upConnectorToken, s.displayName, s.dedicatedChannels,
-          COUNT(n.id) totalCount, 
-          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount, 
+          COUNT(n.id) totalCount,
+          COUNT(CASE n.notificationId WHEN 0 THEN NULL ELSE n.id END) newCount,
           IFNULL(MAX(n.timestamp),0) AS lastActive
         FROM Subscription AS s
         LEFT JOIN Notification AS n ON s.id=n.subscriptionId AND n.deleted != 1

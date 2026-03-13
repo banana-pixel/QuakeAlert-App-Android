@@ -46,8 +46,13 @@
     <string name="channel_subscriber_notification_noinstant_text_five">Receiving earthquake alerts</string>
     <string name="channel_subscriber_notification_noinstant_text_six">Receiving earthquake alerts</string>
     <string name="channel_subscriber_notification_noinstant_text_more">Receiving earthquake alerts</string>
-    <string name="channel_subscriber_notification_reconnecting_one">reconnecting to 1 topic …</string>
-    <string name="channel_subscriber_notification_reconnecting_other">reconnecting to %1$d topics …</string>
+    <!-- Connection alert notification -->
+    <string name="connection_alert_title">Connection lost</string>
+    <string name="connection_alert_text_one">Unable to connect to %1$s for more than %2$d minutes</string>
+    <string name="connection_alert_text_multiple">Unable to connect to %1$d servers for more than %2$d minutes</string>
+    <string name="connection_alert_action_dismiss">Dismiss</string>
+    <string name="connection_alert_action_snooze">Snooze 1h</string>
+    <string name="connection_alert_action_never">Never show</string>
 
     <!-- Error / offline UX -->
     <string name="error_connection_message">Couldn\'t load. Check your connection.</string>
@@ -419,7 +424,7 @@
     <string name="warning_sensors_online_count">%1$d sensor(s) online</string>
     <string name="warning_status_pill_healthy">Server Healthy • %1$d sensor(s) online</string>
     <string name="warning_status_pill_connecting">Connecting…</string>
-    
+
     <!-- Additional warning strings for dynamic content -->
     <string name="warning_distance_unknown">Unknown</string>
     <string name="warning_location_format">Location: %1$s km away\n%2$s</string>

@@ -159,6 +159,18 @@
                 android:enabled="true"
                 android:exported="false"/>
 
+        <!-- Broadcast receiver for connection alert notification actions (dismiss, snooze, never show again) -->
+        <receiver
+                android:name=".service.SubscriberService$ConnectionAlertBroadcastReceiver"
+                android:enabled="true"
+                android:exported="false">
+            <intent-filter>
+                <action android:name="id.my.bananapixel.quakealert.CONNECTION_ALERT_DISMISS"/>
+                <action android:name="id.my.bananapixel.quakealert.CONNECTION_ALERT_SNOOZE"/>
+                <action android:name="id.my.bananapixel.quakealert.CONNECTION_ALERT_NEVER"/>
+            </intent-filter>
+        </receiver>
+
         <!-- Broadcast receiver to send messages via intents -->
         <receiver
                 android:name=".msg.BroadcastService$BroadcastReceiver"
