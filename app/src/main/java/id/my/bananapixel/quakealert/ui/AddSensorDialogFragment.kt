@@ -4,379 +4,283 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.location.Location
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.os.Build
 import android.os.Bundle
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.ListView
-import android.widget.TextView
 import android.widget.Toast
-import android.widget.ViewFlipper
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
-import com.google.android.gms.location.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.material.color.MaterialColors
 import id.my.bananapixel.quakealert.R
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import id.my.bananapixel.quakealert.databinding.DialogAddSensorBinding
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
-import java.util.Locale
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class AddSensorDialogFragment : DialogFragment() {
 
-    private lateinit var connectivityManager: ConnectivityManager
-    private var boundNetwork: Network? = null
+    // ── ViewBinding ───────────────────────────────────────────────────────────
+
+    private var _binding: DialogAddSensorBinding? = null
+    private val binding get() = _binding!!
+
+    // ── Koin ViewModel ────────────────────────────────────────────────────────
+
+    private val viewModel: SensorSetupViewModel by viewModel()
+
+    // ── Location ──────────────────────────────────────────────────────────────
+
     private lateinit var locationClient: FusedLocationProviderClient
-
-    // ViewFlipper and Step Views
-    private lateinit var viewFlipperSetup: ViewFlipper
-    
-    // Step 1 - WiFi Connection
-    private lateinit var tvStep1Status: TextView
-    private lateinit var btnStep1: TextView
-    private lateinit var ivNetworkIcon: ImageView
-    private lateinit var tvNetworkStatus: TextView
-
-    // Step 2 - GPS Location
-    private lateinit var tvStep2Coords: TextView
-    private lateinit var tvStep2Accuracy: TextView
-    private lateinit var btnStep2: TextView
-    private var currentLat: Double = 0.0
-    private var currentLon: Double = 0.0
-
-    // Step 3 - Wi-Fi Setup
-    private lateinit var lvWifiScan: ListView
-    private lateinit var tvSelectedSsid: TextView
-    private lateinit var etWifiPassword: EditText
-    private lateinit var btnPushConfig: TextView
-
-    private var selectedSsid: String? = null
-
-    private val ESP32_BASE_URL = "http://192.168.4.1"
-
-    override fun onCreateDialog(savedInstanceState: Bundle?) = super.onCreateDialog(savedInstanceState).apply {
-        setStyle(STYLE_NORMAL, R.style.Theme_Material3_DayNight_Dialog)
+    private val locationCallback = object : LocationCallback() {
+        override fun onLocationResult(result: LocationResult) {
+            val loc = result.lastLocation ?: return
+            viewModel.onLocationReceived(loc.latitude, loc.longitude, loc.accuracy)
+        }
     }
+    private var gpsStarted = false
+
+    // ── Network ───────────────────────────────────────────────────────────────
+
+    private lateinit var connectivityManager: ConnectivityManager
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    // ── Permissions ───────────────────────────────────────────────────────────
+
+    private val permissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        if (results.values.all { it }) {
+            registerNetworkCallback()
+        } else {
+            Toast.makeText(
+                requireContext(),
+                "Location & Wi-Fi permissions are required for sensor setup.",
+                Toast.LENGTH_LONG
+            ).show()
+            dismiss()
+        }
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? = inflater.inflate(R.layout.dialog_add_sensor, container, false)
+        savedInstanceState: Bundle?,
+    ): View {
+        _binding = DialogAddSensorBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        connectivityManager = requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        connectivityManager =
+            requireContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         locationClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
-        // Header
-        view.findViewById<ImageView>(R.id.btn_close_sensor_dialog).setOnClickListener {
-            dismiss()
-        }
-
-        // ViewFlipper
-        viewFlipperSetup = view.findViewById(R.id.view_flipper_sensor_setup)
-
-        // Step 1
-        tvStep1Status = view.findViewById(R.id.tv_step1_status)
-        ivNetworkIcon = view.findViewById(R.id.iv_network_icon)
-        tvNetworkStatus = view.findViewById(R.id.tv_network_status)
-        btnStep1 = view.findViewById(R.id.btn_step_1)
-
-        // Step 2
-        tvStep2Coords = view.findViewById(R.id.tv_step_2_coords)
-        tvStep2Accuracy = view.findViewById(R.id.tv_step_2_accuracy)
-        btnStep2 = view.findViewById(R.id.btn_step_2)
-
-        // Step 3
-        lvWifiScan = view.findViewById(R.id.lv_wifi_scan)
-        tvSelectedSsid = view.findViewById(R.id.tv_selected_ssid)
-        etWifiPassword = view.findViewById(R.id.et_wifi_password)
-        btnPushConfig = view.findViewById(R.id.btn_push_config)
-
-        btnStep1.setOnClickListener {
-            viewFlipperSetup.displayedChild = 1
-            fetchGps()
-        }
-
-        btnStep2.setOnClickListener {
-            pushGpsToEsp32()
-        }
-
-        btnPushConfig.setOnClickListener {
-            pushWifiConfig()
-        }
-
-        requestPermissions()
+        setupClickListeners()
+        observeUiState()
+        requestPermissionsIfNeeded()
     }
 
-    private fun requestPermissions() {
-        val permissions = mutableListOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.CHANGE_WIFI_STATE
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES)
+    override fun onStop() {
+        super.onStop()
+        stopGps()
+        networkCallback?.let {
+            try { connectivityManager.unregisterNetworkCallback(it) } catch (_: Exception) {}
+            networkCallback = null
         }
+    }
 
-        val missing = permissions.filter {
-            ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
-        }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        connectivityManager.bindProcessToNetwork(null)
+        _binding = null
+    }
 
-        if (missing.isNotEmpty()) {
-            val requestPermissionLauncher = registerForActivityResult(
-                ActivityResultContracts.RequestMultiplePermissions()
-            ) { results ->
-                if (results.all { it.value }) {
-                    waitForEsp32Connection()
-                } else {
-                    Toast.makeText(requireContext(), "Permissions required for setup", Toast.LENGTH_LONG).show()
-                    dismiss()
+    // ── Click listeners ───────────────────────────────────────────────────────
+
+    private fun setupClickListeners() {
+        // Back / up arrow: step 0 dismisses; later steps retreat one page
+        binding.btnNavBack.setOnClickListener {
+            val flipper = binding.viewFlipperSensorSetup
+            when (flipper.displayedChild) {
+                0 -> dismiss()
+                else -> {
+                    if (flipper.displayedChild == 1) stopGps()
+                    flipper.displayedChild--
                 }
             }
-            requestPermissionLauncher.launch(missing.toTypedArray())
-        } else {
-            waitForEsp32Connection()
+        }
+
+        // Step 1 → 2: advance and start GPS
+        binding.btnStep1Continue.setOnClickListener {
+            binding.viewFlipperSensorSetup.displayedChild = 1
+            startGps()
+        }
+
+        // Step 2: POST to ESP32
+        binding.btnStep2Send.setOnClickListener { viewModel.postGpsToEsp32() }
+
+        // Step 3: WiFi list selection
+        binding.lvWifiScan.setOnItemClickListener { _, _, position, _ ->
+            val ssid = viewModel.uiState.value.wifiNetworks.getOrNull(position)?.ssid ?: return@setOnItemClickListener
+            viewModel.selectSsid(ssid)
+        }
+
+        // Step 3: Finish / push WiFi config
+        binding.btnStep3Finish.setOnClickListener {
+            val password = binding.etWifiPassword.text?.toString().orEmpty()
+            viewModel.postWifiConfig(password)
         }
     }
 
-    private fun waitForEsp32Connection() {
-        tvNetworkStatus.text = "Waiting for ESP32 network..."
-        updateNetworkIcon(false)
+    // ── State observer ────────────────────────────────────────────────────────
 
+    private fun observeUiState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collect { state -> applyState(state) }
+            }
+        }
+    }
+
+    private fun applyState(state: SensorSetupUiState) {
+        val colorConnected = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorPrimary
+        )
+        val colorWaiting = MaterialColors.getColor(
+            binding.root, com.google.android.material.R.attr.colorOutline
+        )
+
+        // ── Step 1 ────────────────────────────────────────────────────────────
+        binding.ivWifiStatusIcon.setColorFilter(
+            if (state.isEsp32Connected) colorConnected else colorWaiting,
+            android.graphics.PorterDuff.Mode.SRC_IN
+        )
+        if (state.isEsp32Connected) {
+            binding.tvStep1Title.text = "Sensor Found!"
+            binding.tvStep1Status.text = state.networkStatusText
+        }
+        binding.btnStep1Continue.isEnabled = state.isEsp32Connected
+        binding.btnStep1Continue.alpha = if (state.isEsp32Connected) 1f else 0.5f
+
+        // ── Step 2 ────────────────────────────────────────────────────────────
+        binding.chipCoordinates.text = state.coordsText
+        binding.tvAccuracy.text = state.accuracyText
+        val step2Ready = state.isLocationReady && !state.isPosting
+        binding.btnStep2Send.isEnabled = step2Ready
+        binding.btnStep2Send.alpha = if (step2Ready) 1f else 0.5f
+
+        // ── Step 3 ────────────────────────────────────────────────────────────
+        val displayNames = state.wifiNetworks.map { it.displayName }
+        if ((binding.lvWifiScan.adapter as? ArrayAdapter<*>)?.count != displayNames.size) {
+            binding.lvWifiScan.adapter = ArrayAdapter(
+                requireContext(),
+                android.R.layout.simple_list_item_single_choice,
+                displayNames,
+            )
+        }
+        val selectedIdx = state.wifiNetworks.indexOfFirst { it.ssid == state.selectedSsid }
+        if (selectedIdx >= 0) binding.lvWifiScan.setItemChecked(selectedIdx, true)
+
+        binding.tvSelectedSsid.text =
+            if (state.selectedSsid != null) "Selected: ${state.selectedSsid}" else "Selected: None"
+
+        val step3Ready = state.selectedSsid != null && !state.isPosting
+        binding.btnStep3Finish.isEnabled = step3Ready
+        binding.btnStep3Finish.alpha = if (step3Ready) 1f else 0.5f
+
+        // ── One-shot event ────────────────────────────────────────────────────
+        state.event?.let { event ->
+            when (event) {
+                is SensorSetupEvent.AdvanceToStep3 -> {
+                    binding.viewFlipperSensorSetup.displayedChild = 2
+                    stopGps()
+                }
+                is SensorSetupEvent.SetupComplete -> {
+                    Toast.makeText(
+                        requireContext(), "Sensor setup complete!", Toast.LENGTH_SHORT
+                    ).show()
+                    dismiss()
+                }
+                is SensorSetupEvent.ShowError -> {
+                    Toast.makeText(requireContext(), event.message, Toast.LENGTH_LONG).show()
+                }
+            }
+            viewModel.consumeEvent()
+        }
+    }
+
+    // ── Permissions ───────────────────────────────────────────────────────────
+
+    private fun requestPermissionsIfNeeded() {
+        val required = buildList {
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_WIFI_STATE)
+            add(Manifest.permission.CHANGE_WIFI_STATE)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                add(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+        }
+        val missing = required.filter {
+            ContextCompat.checkSelfPermission(requireContext(), it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing.isEmpty()) registerNetworkCallback()
+        else permissionLauncher.launch(missing.toTypedArray())
+    }
+
+    // ── Network callback (detects ESP32 AP) ───────────────────────────────────
+
+    private fun registerNetworkCallback() {
         val request = NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
             .build()
 
-        connectivityManager.requestNetwork(request, object : ConnectivityManager.NetworkCallback() {
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
-                val isBound = connectivityManager.bindProcessToNetwork(network)
-                if (isBound) {
-                    boundNetwork = network
-                    view?.let { v ->
-                        v.post {
-                            tvNetworkStatus.text = "✓ Connected to ESP32!"
-                            updateNetworkIcon(true)
-                            btnStep1.isEnabled = true
-                            btnStep1.alpha = 1.0f
-                        }
-                    }
+                val bound = connectivityManager.bindProcessToNetwork(network)
+                if (bound) {
+                    view?.post { viewModel.onEsp32Connected() }
                     connectivityManager.unregisterNetworkCallback(this)
+                    networkCallback = null
                 }
             }
-        })
+        }.also { connectivityManager.requestNetwork(request, it) }
     }
 
-    private fun updateNetworkIcon(isConnected: Boolean) {
-        ivNetworkIcon.setImageResource(
-            if (isConnected) R.drawable.ic_wifi_on_24dp else R.drawable.ic_wifi_off_24dp
-        )
-        ivNetworkIcon.setColorFilter(
-            if (isConnected) 0xFF4CAF50.toInt() else 0xFFFF9800.toInt(),
-            android.graphics.PorterDuff.Mode.SRC_IN
-        )
-    }
+    // ── GPS ───────────────────────────────────────────────────────────────────
 
     @SuppressLint("MissingPermission")
-    private fun fetchGps() {
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000)
-            .setWaitForAccurateLocation(true)
-            .setMaxUpdates(1)
+    private fun startGps() {
+        if (gpsStarted) return
+        gpsStarted = true
+        val req = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2_000L)
+            .setMinUpdateIntervalMillis(1_000L)
             .build()
-
-        locationClient.requestLocationUpdates(locationRequest, object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                locationClient.removeLocationUpdates(this)
-                val location = result.lastLocation
-                if (location != null) {
-                    currentLat = location.latitude
-                    currentLon = location.longitude
-                    view?.let { v ->
-                        v.post {
-                            tvStep2Coords.text = String.format(Locale.getDefault(), "%.6f, %.6f", currentLat, currentLon)
-                            tvStep2Accuracy.text = "Accuracy: ±${location.accuracy.toInt()} meters"
-                            btnStep2.isEnabled = true
-                        }
-                    }
-                } else {
-                    view?.let { v ->
-                        v.post {
-                            tvStep2Coords.text = "Failed to get GPS"
-                            tvStep2Accuracy.text = "Make sure Location is enabled."
-                            btnStep2.isEnabled = false
-                        }
-                    }
-                }
-            }
-        }, Looper.getMainLooper())
+        locationClient.requestLocationUpdates(req, locationCallback, Looper.getMainLooper())
     }
 
-    private fun pushGpsToEsp32() {
-        btnStep2.isEnabled = false
-        btnStep2.text = "Sending..."
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val json = JSONObject().apply {
-                    put("lat", currentLat)
-                    put("lon", currentLon)
-                }
-
-                val responseCode = postJson("$ESP32_BASE_URL/api/gps", json.toString())
-
-                withContext(Dispatchers.Main) {
-                    if (responseCode == 200) {
-                        Toast.makeText(requireContext(), "GPS Sent!", Toast.LENGTH_SHORT).show()
-                        viewFlipperSetup.displayedChild = 2
-                        fetchWifiScanList()
-                    } else {
-                        Toast.makeText(requireContext(), "Failed (HTTP $responseCode)", Toast.LENGTH_SHORT).show()
-                        btnStep2.isEnabled = true
-                        btnStep2.text = "Send to Sensor ->"
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                    btnStep2.isEnabled = true
-                    btnStep2.text = "Send to Sensor ->"
-                }
-            }
-        }
-    }
-
-    private fun fetchWifiScanList() {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val url = URL("$ESP32_BASE_URL/api/wifi_scan")
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-
-                if (connection.responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(response)
-                    val networksArray = json.optJSONArray("networks") ?: JSONArray()
-
-                    val ssids = mutableListOf<String>()
-                    val validNetworks = mutableListOf<JSONObject>()
-
-                    for (i in 0 until networksArray.length()) {
-                        val obj = networksArray.getJSONObject(i)
-                        ssids.add(obj.getString("ssid") + " (" + obj.getInt("rssi") + "dBm)")
-                        validNetworks.add(obj)
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        if (ssids.isNotEmpty()) {
-                            val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, ssids)
-                            lvWifiScan.adapter = adapter
-
-                            lvWifiScan.setOnItemClickListener { _, _, position, _ ->
-                                val selectedObject = validNetworks[position]
-                                selectedSsid = selectedObject.getString("ssid")
-                                onSsidSelected()
-                            }
-                        } else {
-                            Toast.makeText(requireContext(), "No networks found", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Scan failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    private fun onSsidSelected() {
-        tvSelectedSsid.text = "Selected: $selectedSsid"
-        etWifiPassword.requestFocus()
-    }
-
-    private fun pushWifiConfig() {
-        val ssid = selectedSsid
-        val pass = etWifiPassword.text.toString()
-
-        if (ssid.isNullOrEmpty()) {
-            Toast.makeText(requireContext(), "Select a Wi-Fi network first", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        btnPushConfig.isEnabled = false
-        btnPushConfig.text = "Pushing..."
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val json = JSONObject().apply {
-                    put("ssid", ssid)
-                    put("password", pass)
-                    put("reboot", true)
-                }
-
-                val responseCode = postJson("$ESP32_BASE_URL/api/wifi_config", json.toString())
-
-                withContext(Dispatchers.Main) {
-                    if (responseCode == 200) {
-                        Toast.makeText(requireContext(), "Setup Complete! Device rebooting.", Toast.LENGTH_LONG).show()
-                        connectivityManager.bindProcessToNetwork(null)
-                        dismiss()
-                    } else {
-                        Toast.makeText(requireContext(), "Failed (HTTP $responseCode)", Toast.LENGTH_LONG).show()
-                        btnPushConfig.isEnabled = true
-                        btnPushConfig.text = "Finish Setup"
-                    }
-                }
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(requireContext(), "Config pushed (Device rebooted).", Toast.LENGTH_LONG).show()
-                    connectivityManager.bindProcessToNetwork(null)
-                    dismiss()
-                }
-            }
-        }
-    }
-
-    private fun postJson(urlString: String, jsonString: String): Int {
-        val url = URL(urlString)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.requestMethod = "POST"
-        connection.setRequestProperty("Content-Type", "application/json")
-        connection.doOutput = true
-        connection.connectTimeout = 5000
-        connection.readTimeout = 5000
-
-        OutputStreamWriter(connection.outputStream).use { writer ->
-            writer.write(jsonString)
-            writer.flush()
-        }
-
-        return connection.responseCode
-    }
-
-    override fun onDismiss(dialog: android.content.DialogInterface) {
-        super.onDismiss(dialog)
-        connectivityManager.bindProcessToNetwork(null)
+    private fun stopGps() {
+        if (!gpsStarted) return
+        gpsStarted = false
+        locationClient.removeLocationUpdates(locationCallback)
     }
 }
