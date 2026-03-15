@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow Layer (Bottom) - Darker green shadow -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#1B5E20"/> <!-- Dark green shadow -->
+        </shape>
+    </item>
+    <!-- Mid Layer - Medium shadow -->
+    <item android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#388E3C"/> <!-- Medium green -->
+        </shape>
+    </item>
+    <!-- Face Layer (Top) - Bright green -->
+    <item android:bottom="6dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#43A047"/> <!-- Light green -->
+        </shape>
+    </item>
+</layer-list>

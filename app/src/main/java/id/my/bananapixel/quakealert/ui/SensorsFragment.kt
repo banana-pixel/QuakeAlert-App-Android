@@ -41,6 +41,12 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
         swipeRefreshLayout = view.findViewById(R.id.sensors_swipe_refresh)
 
+        // Setup FloatingActionButton to launch Add Sensor Dialog
+        val fabAddSensor: View = view.findViewById(R.id.fab_add_sensor)
+        fabAddSensor.setOnClickListener {
+            AddSensorDialogFragment().show(childFragmentManager, "add_sensor_dialog")
+        }
+
         // FIX: Change R.id.sensors_recycler_view to R.id.recycler_view
         val recyclerView: RecyclerView = view.findViewById(R.id.recycler_view)
         recyclerView.adapter = adapter

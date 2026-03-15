@@ -14,6 +14,12 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/> <!-- Allows to ignore battery optimization without going to the settings -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/> <!-- Needed for manual location update in settings -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/> <!-- Needed for manual location update in settings -->
+    
+    <!-- Needed for Zero-Portal Wi-Fi Provisioning -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" />
 
     <!-- UnifiedPush "raise to foreground" requirement, see https://unifiedpush.org/developers/spec/android/#service-to-raise-to-the-foreground -->
     <queries>
@@ -60,6 +66,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="quakealert" android:host="warning" />
             </intent-filter>
+        </activity>
+
+        <!-- Sensor zero-portal activity -->
+        <activity
+                android:name=".ui.SensorSetupActivity"
+                android:parentActivityName=".ui.MainActivity"
+                android:windowSoftInputMode="adjustResize"
+                android:exported="false">
+            <meta-data
+                    android:name="android.support.PARENT_ACTIVITY"
+                    android:value=".ui.MainActivity"/>
         </activity>
 
         <!-- Detail activity -->

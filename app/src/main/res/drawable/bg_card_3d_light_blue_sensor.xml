@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow Layer (Bottom) - Dark shadow for 3D depth -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#82B1FF"/> <!-- Darker blue shadow -->
+        </shape>
+    </item>
+    <!-- Mid Shadow Layer -->
+    <item android:bottom="4dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#B3E5FC"/> <!-- Medium light blue -->
+        </shape>
+    </item>
+    <!-- Face Layer (Top) - Light blue card -->
+    <item android:bottom="8dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#E3F2FD"/> <!-- Very light blue card face -->
+        </shape>
+    </item>
+</layer-list>

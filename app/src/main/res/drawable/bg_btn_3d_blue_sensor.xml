@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Shadow Layer (Bottom) - Darker for 3D effect -->
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#1A237E"/> <!-- Deep blue shadow -->
+        </shape>
+    </item>
+    <!-- Mid Layer - Medium shadow -->
+    <item android:bottom="3dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#1565C0"/> <!-- Medium blue -->
+        </shape>
+    </item>
+    <!-- Face Layer (Top) - Bright color -->
+    <item android:bottom="6dp">
+        <shape android:shape="rectangle">
+            <corners android:radius="16dp"/>
+            <solid android:color="#2196F3"/> <!-- Light blue -->
+        </shape>
+    </item>
+</layer-list>
