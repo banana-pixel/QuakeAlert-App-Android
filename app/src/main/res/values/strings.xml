@@ -450,6 +450,18 @@
     <string name="sensors_status_unstable">Unstable Connection</string>
     <string name="sensors_status_offline">Server Offline</string>
     <string name="sensors_latency_format">%1$d ms</string>
+    <string name="sensors_add_button_label">Add Sensor</string>
+    
+    <!-- Sensor Setup Wizard Strings -->
+    <string name="sensor_setup_title">Add New Sensor</string>
+    <string name="sensor_setup_step_wifi">Step 1 of 3: WiFi Configuration</string>
+    <string name="sensor_setup_wifi_title">Connect to QuakeSetup</string>
+    <string name="sensor_setup_wifi_instructions">Connect your phone\'s WiFi to the "QuakeSetup" network to configure your ESP32 sensor.\n\nMake sure your sensor is powered on and broadcasting the QuakeSetup network.</string>
+    <string name="sensor_setup_wifi_ssid_label">SSID</string>
+    <string name="sensor_setup_wifi_ssid">QuakeSetup</string>
+    <string name="sensor_setup_wifi_connected">✓ Connected to QuakeSetup!\nReady to proceed.</string>
+    <string name="sensor_setup_next">Next</string>
+    
     <string name="settings_general_header">General</string>
     <string name="settings_appearance_header">Appearance</string>
     <string name="settings_general_default_base_url_title">Default server</string>

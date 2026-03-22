@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md_theme_background"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true">
+
+    <!-- Top padding spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/sensor_setup_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="8dp"
+        android:text="@string/sensor_setup_title"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:lineSpacingMultiplier="1.2" />
+
+    <!-- Subtitle / Step indicator -->
+    <TextView
+        android:id="@+id/sensor_setup_step"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="24dp"
+        android:text="@string/sensor_setup_step_wifi"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.04" />
+
+    <!-- Content Card with 3D effect -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/sensor_setup_card"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/bg_card_3d_white"
+        app:cardElevation="0dp"
+        app:cardCornerRadius="32dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp">
+
+            <!-- WiFi Setup Container -->
+            <LinearLayout
+                android:id="@+id/sensor_setup_wifi_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="visible">
+
+                <!-- WiFi Icon -->
+                <ImageView
+                    android:id="@+id/sensor_setup_icon"
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_wifi_setup_24dp"
+                    app:tint="@color/md_theme_primary"
+                    android:scaleType="centerInside" />
+
+                <!-- Instructions -->
+                <TextView
+                    android:id="@+id/sensor_setup_instruction_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="@string/sensor_setup_wifi_title"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textAlignment="center"
+                    android:lineSpacingMultiplier="1.2" />
+
+                <TextView
+                    android:id="@+id/sensor_setup_instruction_detail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/sensor_setup_wifi_instructions"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp"
+                    android:textAlignment="center"
+                    android:lineSpacingMultiplier="1.4" />
+
+                <!-- SSID Display -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/sensor_setup_ssid_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_pill_3d_blue"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/sensor_setup_ssid_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sensor_setup_wifi_ssid_label"
+                        android:textColor="@color/md_theme_onPrimary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/sensor_setup_ssid_value"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/sensor_setup_wifi_ssid"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/sensor_setup_ssid_label" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- Success Indicator (Hidden until connected) -->
+                <LinearLayout
+                    android:id="@+id/sensor_setup_success_container"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <ImageView
+                        android:id="@+id/sensor_setup_success_checkmark"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_check_circle_green_24dp"
+                        android:scaleType="centerInside" />
+
+                    <TextView
+                        android:id="@+id/sensor_setup_success_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/sensor_setup_wifi_connected"
+                        android:textColor="@color/md_theme_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textAlignment="center" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Location Setup Container (Hidden initially) -->
+            <LinearLayout
+                android:id="@+id/sensor_setup_location_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone">
+
+                <!-- Location Icon -->
+                <ImageView
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_check_circle_green_24dp"
+                    app:tint="@color/md_theme_primary"
+                    android:scaleType="centerInside" />
+
+                <TextView
+                    android:id="@+id/sensor_setup_location_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="Fetching Location..."
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textAlignment="center" />
+
+                <TextView
+                    android:id="@+id/sensor_setup_location_subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Please wait while we determine your coordinates for the sensor..."
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp"
+                    android:textAlignment="center" />
+
+                <!-- Location Details Pill -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_pill_3d_blue"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/sensor_setup_latlon_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="COORDINATES"
+                        android:textColor="@color/md_theme_onPrimary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/sensor_setup_latlon_value"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="-- / --"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/sensor_setup_latlon_label" />
+                        
+                    <TextView
+                        android:id="@+id/sensor_setup_city_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="CITY"
+                        android:textColor="@color/md_theme_onPrimary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/sensor_setup_latlon_value" />
+
+                    <TextView
+                        android:id="@+id/sensor_setup_city_value"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Determining..."
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/sensor_setup_city_label" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </LinearLayout>
+
+            <!-- Credentials Setup Container (Hidden initially) -->
+            <LinearLayout
+                android:id="@+id/sensor_setup_credentials_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:visibility="gone">
+
+                <!-- Router Icon -->
+                <ImageView
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_router"
+                    app:tint="@color/md_theme_primary"
+                    android:scaleType="centerInside" />
+
+                <TextView
+                    android:id="@+id/sensor_setup_credentials_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:text="Home WiFi Credentials"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textAlignment="center" />
+
+                <TextView
+                    android:id="@+id/sensor_setup_credentials_subtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Provide your home WiFi credentials so the sensor can connect to the internet."
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:textSize="14sp"
+                    android:textAlignment="center" />
+
+                <!-- Input Fields -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="vertical">
+
+                    <EditText
+                        android:id="@+id/sensor_setup_ssid_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:background="@drawable/bg_input_field_3d"
+                        android:hint="WiFi Network Name (SSID)"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textColorHint="?attr/colorOnSurfaceVariant"
+                        android:inputType="textNoSuggestions"
+                        android:maxLines="1" />
+
+                    <EditText
+                        android:id="@+id/sensor_setup_pass_input"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/bg_input_field_3d"
+                        android:hint="WiFi Password"
+                        android:paddingHorizontal="16dp"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textColorHint="?attr/colorOnSurfaceVariant"
+                        android:inputType="textPassword"
+                        android:maxLines="1" />
+
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <!-- Bottom padding spacer -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.5" />
+
+    <!-- Button Container -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginBottom="28dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <!-- Next Button (3D primary) - Initially disabled -->
+        <TextView
+            android:id="@+id/sensor_setup_btn_next"
+            android:layout_width="wrap_content"
+            android:layout_height="52dp"
+            android:minWidth="120dp"
+            android:background="@drawable/bg_onboarding_btn_primary_3d"
+            android:gravity="center"
+            android:paddingHorizontal="24dp"
+            android:text="@string/sensor_setup_next"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:fontFamily="sans-serif-medium"
+            android:textStyle="bold"
+            android:letterSpacing="0.04"
+            android:enabled="false"
+            android:alpha="0.5" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -142,6 +142,18 @@
                     android:textAppearance="?attr/textAppearanceBodyMedium"
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btn_add_sensor"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="24dp"
+                android:background="@drawable/bg_circle_button_3d_green"
+                android:contentDescription="@string/sensors_add_button_label"
+                android:src="@drawable/ic_add_black_24dp"
+                android:scaleType="centerInside"
+                app:tint="#FFFFFF" />
         </FrameLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 

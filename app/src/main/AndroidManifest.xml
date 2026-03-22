@@ -14,6 +14,7 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/> <!-- Allows to ignore battery optimization without going to the settings -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/> <!-- Needed for manual location update in settings -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/> <!-- Needed for manual location update in settings -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/> <!-- Needed to scan WiFi networks and check current WiFi connection -->
 
     <!-- UnifiedPush "raise to foreground" requirement, see https://unifiedpush.org/developers/spec/android/#service-to-raise-to-the-foreground -->
     <queries>
@@ -45,6 +46,17 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+        </activity>
+
+        <!-- Sensor Setup activity (wizard for adding new sensors) -->
+        <activity
+                android:name=".ui.SensorSetupActivity"
+                android:parentActivityName=".ui.MainActivity"
+                android:theme="@style/AppTheme"
+                android:exported="false">
+            <meta-data
+                    android:name="android.support.PARENT_ACTIVITY"
+                    android:value=".ui.MainActivity"/>
         </activity>
 
         <!-- Main activity (configChanges=uiMode for map theme switching without recreation) -->

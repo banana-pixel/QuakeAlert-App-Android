@@ -1,11 +1,13 @@
 package id.my.bananapixel.quakealert.ui
 
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
@@ -33,6 +35,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private lateinit var appLatency: TextView
     private lateinit var errorContainer: View
     private lateinit var emptyContainer: View
+    private lateinit var addSensorButton: ImageButton
 
 
 
@@ -52,6 +55,12 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         appLatency = view.findViewById(R.id.tv_app_latency)
         errorContainer = view.findViewById(R.id.sensors_error_container)
         emptyContainer = view.findViewById(R.id.sensors_empty_container)
+        addSensorButton = view.findViewById(R.id.btn_add_sensor)
+
+        // Set up Add Sensor button click listener
+        addSensorButton.setOnClickListener {
+            launchSensorSetup()
+        }
 
         swipeRefreshLayout.setOnRefreshListener {
             viewModel.refresh()
@@ -79,6 +88,13 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         }
     }
 
+    /**
+     * Launches SensorSetupActivity to add a new sensor.
+     */
+    private fun launchSensorSetup() {
+        val intent = Intent(requireContext(), SensorSetupActivity::class.java)
+        startActivity(intent)
+    }
 
     /**
      * THE NEW 3D UI LOGIC
