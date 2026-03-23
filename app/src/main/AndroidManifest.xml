@@ -53,6 +53,7 @@
                 android:name=".ui.SensorSetupActivity"
                 android:parentActivityName=".ui.MainActivity"
                 android:theme="@style/AppTheme"
+                android:windowSoftInputMode="adjustResize"
                 android:exported="false">
             <meta-data
                     android:name="android.support.PARENT_ACTIVITY"

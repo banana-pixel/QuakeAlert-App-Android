@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Step 1: Connect to QuakeSetup Wi-Fi -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md_theme_background">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="32dp"
+            android:paddingTop="56dp"
+            android:paddingBottom="16dp">
+
+            <!-- 3D icon circle — smaller sizing -->
+            <FrameLayout
+                android:layout_width="100dp"
+                android:layout_height="104dp"
+                android:layout_gravity="center">
+
+                <View
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:layout_gravity="bottom"
+                    android:background="@drawable/bg_onboarding_icon_3d" />
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="3dp"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/wifi"
+                    app:tint="?attr/colorPrimary"
+                    android:scaleType="fitCenter" />
+
+            </FrameLayout>
+
+            <View android:layout_width="1dp" android:layout_height="20dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_badge_3d_grey_small"
+                android:paddingHorizontal="14dp"
+                android:paddingVertical="5dp"
+                android:text="Step 1 of 3"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/sensor_setup_instruction_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Connect to QuakeSetup"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:fontFamily="sans-serif-medium"
+                android:lineSpacingMultiplier="1.15"
+                android:letterSpacing="-0.01" />
+
+            <View android:layout_width="1dp" android:layout_height="16dp" />
+
+            <TextView
+                android:id="@+id/sensor_setup_instruction_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="Connect your phone&#8217;s Wi-Fi to the &#8216;QuakeSetup&#8217; network.\n\nMake sure your sensor is powered on and broadcasting."
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="15sp"
+                android:fontFamily="sans-serif"
+                android:lineSpacingMultiplier="1.5" />
+
+            <View android:layout_width="1dp" android:layout_height="24dp" />
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/sensor_setup_progress_bar"
+                android:layout_width="120dp"
+                android:layout_height="wrap_content"
+                android:indeterminate="true"
+                android:contentDescription="@null"
+                app:trackThickness="6dp"
+                app:trackCornerRadius="3dp"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="?attr/colorSurfaceVariant" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/sensor_setup_ssid_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_pill_3d_blue"
+                android:padding="14dp"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <TextView
+                    android:id="@+id/sensor_setup_ssid_label"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="CONNECTED TO"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.06"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toTopOf="@+id/sensor_setup_ssid_value"
+                    app:layout_constraintVertical_chainStyle="packed" />
+
+                <TextView
+                    android:id="@+id/sensor_setup_ssid_value"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="QuakeSetup"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/sensor_setup_ssid_label"
+                    app:layout_constraintBottom_toBottomOf="parent" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Close / Exit button — top-left corner -->
+    <ImageView
+        android:id="@+id/sensor_setup_btn_close"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_margin="12dp"
+        android:layout_gravity="top|start"
+        android:src="@drawable/ic_close_white_24dp"
+        app:tint="?attr/colorOnSurface"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Close"
+        android:padding="8dp" />
+
+</FrameLayout>
