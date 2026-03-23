@@ -139,6 +139,24 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
+            <com.google.android.material.button.MaterialButton
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:id="@+id/sensor_setup_btn_open_wifi"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="32dp"
+                android:text="Open Wi-Fi Settings"
+                app:icon="@drawable/wifi"
+                app:iconGravity="textStart"
+                app:iconTint="#43A047"
+                app:cornerRadius="32dp"
+                app:strokeColor="#43A047"
+                app:strokeWidth="2dp"
+                app:backgroundTint="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="#43A047" />
+
         </LinearLayout>
     </ScrollView>
 

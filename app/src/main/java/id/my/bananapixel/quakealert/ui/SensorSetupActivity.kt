@@ -334,6 +334,7 @@ class SensorSetupActivity : BaseActivity() {
         wifiHolder?.apply {
             progressBar.visibility = View.GONE
             ssidContainer.visibility = View.VISIBLE
+            btnOpenWifi.visibility = View.GONE
         }
         setNextButtonEnabled(true)
         updateDots(0)
@@ -343,6 +344,7 @@ class SensorSetupActivity : BaseActivity() {
         wifiHolder?.apply {
             progressBar.visibility = View.VISIBLE
             ssidContainer.visibility = View.GONE
+            btnOpenWifi.visibility = View.VISIBLE
         }
         setNextButtonEnabled(false)
     }
@@ -658,7 +660,21 @@ class SensorSetupActivity : BaseActivity() {
             val titleText: TextView = view.findViewById(R.id.sensor_setup_instruction_title)
             val progressBar: LinearProgressIndicator = view.findViewById(R.id.sensor_setup_progress_bar)
             val ssidContainer: View = view.findViewById(R.id.sensor_setup_ssid_container)
-            init { view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() } }
+            val btnOpenWifi: com.google.android.material.button.MaterialButton = view.findViewById(R.id.sensor_setup_btn_open_wifi)
+            init { 
+                view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() } 
+                btnOpenWifi.setOnClickListener {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        try {
+                            startActivity(android.content.Intent(android.provider.Settings.Panel.ACTION_WIFI))
+                        } catch (e: Exception) {
+                            startActivity(android.content.Intent(android.provider.Settings.ACTION_WIFI_SETTINGS))
+                        }
+                    } else {
+                        startActivity(android.content.Intent(android.provider.Settings.ACTION_WIFI_SETTINGS))
+                    }
+                }
+            }
         }
 
         inner class LocationViewHolder(view: View) : RecyclerView.ViewHolder(view) {
