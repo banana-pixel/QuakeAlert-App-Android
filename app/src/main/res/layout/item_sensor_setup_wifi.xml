@@ -22,27 +22,26 @@
             android:paddingTop="56dp"
             android:paddingBottom="16dp">
 
-            <!-- 3D icon circle — smaller sizing -->
+            <!-- 3D icon circle — perfectly centered -->
             <FrameLayout
                 android:layout_width="100dp"
-                android:layout_height="104dp"
+                android:layout_height="100dp"
                 android:layout_gravity="center">
 
                 <View
                     android:layout_width="100dp"
                     android:layout_height="100dp"
-                    android:layout_gravity="bottom"
                     android:background="@drawable/bg_onboarding_icon_3d" />
 
                 <ImageView
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
                     android:layout_gravity="center"
-                    android:layout_marginBottom="3dp"
+                    android:layout_marginBottom="5dp"
                     android:contentDescription="@null"
                     android:importantForAccessibility="no"
                     android:src="@drawable/wifi"
-                    app:tint="?attr/colorPrimary"
+                    app:tint="#FFFFFF"
                     android:scaleType="fitCenter" />
 
             </FrameLayout>

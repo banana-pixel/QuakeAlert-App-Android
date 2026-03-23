@@ -10,10 +10,13 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AutoCompleteTextView
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -23,14 +26,18 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.progressindicator.LinearProgressIndicator
+import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.databinding.ActivitySensorSetupBinding
+import id.my.bananapixel.quakealert.util.systemDarkThemeOn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -44,6 +51,13 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.Locale
 import kotlin.coroutines.resume
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.XYTileSource
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.events.MapListener
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 
 @Serializable
 data class SensorConfigPayload(val ssid: String, val password: String, val lat: Double, val lon: Double)
@@ -62,6 +76,11 @@ class SensorSetupActivity : BaseActivity() {
     private var currentLat: Double? = null
     private var currentLon: Double? = null
     private var currentCity: String? = null
+
+    // State for Wi-Fi Bottom Sheet
+    private var scannedNetworks: List<String>? = null
+    private var activeBottomSheetDialog: BottomSheetDialog? = null
+    private var activeBottomSheetView: View? = null
 
     // Step index — blocks swipe forward from a step until its prerequisite is met
     private val stepCount = 3
@@ -86,6 +105,10 @@ class SensorSetupActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize OSMDroid configuration
+        Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
+
         binding = ActivitySensorSetupBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -238,7 +261,7 @@ class SensorSetupActivity : BaseActivity() {
                     return
                 }
                 stepUnlocked[1] = true
-                fetchLocation()
+                fetchLocation(forceGps = false)
                 binding.sensorSetupViewpager.setCurrentItem(1, true)
             }
             1 -> {
@@ -328,7 +351,27 @@ class SensorSetupActivity : BaseActivity() {
     // Location
     // ────────────────────────────────────────
 
-    private fun fetchLocation() {
+    private fun fetchLocation(forceGps: Boolean = false) {
+        if (!forceGps) {
+            val prefs = getSharedPreferences("MainPreferences", 0)
+            if (prefs.contains("UserLatitude") && prefs.contains("UserLongitude")) {
+                val lat = Double.fromBits(prefs.getLong("UserLatitude", 0L))
+                val lon = Double.fromBits(prefs.getLong("UserLongitude", 0L))
+                val city = prefs.getString("UserCityName", "") ?: "Offline (Coordinates saved)"
+                currentLat = lat
+                currentLon = lon
+                currentCity = city
+                locationHolder?.apply {
+                    setLocationProgrammatically(lat, lon)
+                    cityValue.text = city
+                    titleText.text = "Location Found (Cached)"
+                    subtitleText.text = "Confirm coordinates for your sensor."
+                }
+                if (binding.sensorSetupViewpager.currentItem == 1) setNextButtonEnabled(true)
+                return
+            }
+        }
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
             && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             locationHolder?.titleText?.text = "Permission Denied"
@@ -348,7 +391,7 @@ class SensorSetupActivity : BaseActivity() {
 
     private fun processLocation(lat: Double, lon: Double) {
         currentLat = lat; currentLon = lon
-        locationHolder?.latLonValue?.text = "${String.format(Locale.getDefault(), "%.4f", lat)}, ${String.format(Locale.getDefault(), "%.4f", lon)}"
+        locationHolder?.setLocationProgrammatically(lat, lon)
         resolveCityName(lat, lon)
     }
 
@@ -387,6 +430,8 @@ class SensorSetupActivity : BaseActivity() {
     // ────────────────────────────────────────
 
     private fun fetchAvailableNetworksFromEsp32() {
+        scannedNetworks = null
+        updateBottomSheetState()
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val clientBuilder = OkHttpClient.Builder()
@@ -406,24 +451,122 @@ class SensorSetupActivity : BaseActivity() {
                             val s = arr.getString(i)
                             if (s.isNotBlank() && !list.contains(s)) list.add(s)
                         }
-                        credentialsHolder?.ssidInput?.let { acv ->
-                            val adapter = android.widget.ArrayAdapter(this@SensorSetupActivity, android.R.layout.simple_dropdown_item_1line, list)
-                            acv.setAdapter(adapter)
-                            if (list.isNotEmpty()) acv.showDropDown()
-                            acv.setOnClickListener { acv.showDropDown() }
-                            acv.setOnFocusChangeListener { _, f -> if (f) acv.showDropDown() }
-                        }
+                        scannedNetworks = list
                     } else {
                         Toast.makeText(this@SensorSetupActivity, "Scan failed — type SSID manually", Toast.LENGTH_SHORT).show()
+                        scannedNetworks = emptyList()
                     }
+                    updateBottomSheetState()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "ESP32 scan error", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@SensorSetupActivity, "Network error — type SSID manually", Toast.LENGTH_SHORT).show()
+                    scannedNetworks = emptyList()
+                    updateBottomSheetState()
                 }
             }
         }
+    }
+
+    private fun setupWifiSelector() {
+        credentialsHolder?.ssidInput?.setOnClickListener {
+            showWifiBottomSheet()
+        }
+    }
+
+    private fun showWifiBottomSheet() {
+        if (activeBottomSheetDialog == null) {
+            val dialog = BottomSheetDialog(this)
+            val view = layoutInflater.inflate(R.layout.bottom_sheet_wifi_networks, null)
+            dialog.setContentView(view)
+
+            val manualEntry = view.findViewById<View>(R.id.bottom_sheet_wifi_manual_entry)
+            manualEntry.setOnClickListener {
+                dialog.dismiss()
+                credentialsHolder?.ssidInput?.apply {
+                    isCursorVisible = true
+                    isFocusable = true
+                    isFocusableInTouchMode = true
+                    inputType = android.text.InputType.TYPE_CLASS_TEXT
+                    
+                    setOnClickListener(null)
+                    setCompoundDrawablesWithIntrinsicBounds(0, 0, 0, 0)
+                    
+                    requestFocus()
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.showSoftInput(this, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                }
+            }
+
+            dialog.setOnDismissListener {
+                activeBottomSheetDialog = null
+                activeBottomSheetView = null
+            }
+
+            activeBottomSheetDialog = dialog
+            activeBottomSheetView = view
+        }
+
+        updateBottomSheetState()
+        activeBottomSheetDialog?.show()
+    }
+
+    private fun updateBottomSheetState() {
+        val view = activeBottomSheetView ?: return
+        val dialog = activeBottomSheetDialog ?: return
+
+        val loadingView = view.findViewById<View>(R.id.bottom_sheet_wifi_loading)
+        val emptyView = view.findViewById<View>(R.id.bottom_sheet_wifi_empty)
+        val recyclerView = view.findViewById<RecyclerView>(R.id.bottom_sheet_wifi_recycler)
+
+        val networks = scannedNetworks
+        if (networks == null) {
+            // Still loading
+            loadingView.visibility = View.VISIBLE
+            emptyView.visibility = View.GONE
+            recyclerView.visibility = View.GONE
+        } else if (networks.isEmpty()) {
+            // Loaded but empty
+            loadingView.visibility = View.GONE
+            emptyView.visibility = View.VISIBLE
+            recyclerView.visibility = View.GONE
+        } else {
+            // Loaded with data
+            loadingView.visibility = View.GONE
+            emptyView.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
+
+            if (recyclerView.layoutManager == null) {
+                recyclerView.layoutManager = LinearLayoutManager(this)
+            }
+            recyclerView.adapter = WifiNetworkAdapter(networks) { selectedSsid ->
+                credentialsHolder?.ssidInput?.setText(selectedSsid)
+                dialog.dismiss()
+                credentialsHolder?.passInput?.requestFocus()
+            }
+        }
+    }
+
+    private inner class WifiNetworkAdapter(
+        private val networks: List<String>,
+        private val onNetworkClick: (String) -> Unit
+    ) : RecyclerView.Adapter<WifiNetworkAdapter.ViewHolder>() {
+
+        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val ssidText: TextView = view.findViewById(R.id.item_wifi_ssid_text)
+            init { view.setOnClickListener { onNetworkClick(networks[adapterPosition]) } }
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            return ViewHolder(layoutInflater.inflate(R.layout.item_wifi_network, parent, false))
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.ssidText.text = networks[position]
+        }
+
+        override fun getItemCount() = networks.size
     }
 
     // ────────────────────────────────────────
@@ -465,6 +608,18 @@ class SensorSetupActivity : BaseActivity() {
         }
     }
 
+    private fun getCartoTileSource(context: android.content.Context): XYTileSource {
+        val isDark = context.systemDarkThemeOn()
+        val path = if (isDark) "dark_all" else "light_all"
+        return XYTileSource(
+            if (isDark) "Carto Dark Matter" else "Carto Positron",
+            0, 20, 256, ".png",
+            arrayOf("a", "b", "c", "d").map { subdomain ->
+                "https://$subdomain.basemaps.cartocdn.com/rastertiles/$path/"
+            }.toTypedArray()
+        )
+    }
+
     // ────────────────────────────────────────
     // ViewPager2 Adapter
     // ────────────────────────────────────────
@@ -486,7 +641,10 @@ class SensorSetupActivity : BaseActivity() {
                 }
                 else -> {
                     val v = inflater.inflate(R.layout.item_sensor_setup_credentials, parent, false)
-                    CredentialsViewHolder(v).also { credentialsHolder = it }
+                    CredentialsViewHolder(v).also {
+                        credentialsHolder = it
+                        setupWifiSelector()
+                    }
                 }
             }
         }
@@ -506,14 +664,112 @@ class SensorSetupActivity : BaseActivity() {
         inner class LocationViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val titleText: TextView    = view.findViewById(R.id.sensor_setup_location_title)
             val subtitleText: TextView = view.findViewById(R.id.sensor_setup_location_subtitle)
-            val latLonValue: TextView  = view.findViewById(R.id.sensor_setup_latlon_value)
+            val latInput: EditText     = view.findViewById(R.id.sensor_setup_lat_input)
+            val lonInput: EditText     = view.findViewById(R.id.sensor_setup_lon_input)
             val cityValue: TextView    = view.findViewById(R.id.sensor_setup_city_value)
-            init { view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() } }
+            val mapView: MapView       = view.findViewById(R.id.sensor_setup_mapview)
+
+            private var isUpdatingFromMap = false
+            private var isUpdatingFromText = false
+
+            fun setLocationProgrammatically(lat: Double, lon: Double) {
+                isUpdatingFromMap = true
+                latInput.setText(String.format(Locale.US, "%.5f", lat))
+                lonInput.setText(String.format(Locale.US, "%.5f", lon))
+                mapView.controller.setCenter(GeoPoint(lat, lon))
+                isUpdatingFromMap = false
+            }
+
+            init { 
+                view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() }
+
+                // Configure MapView
+                mapView.setTileSource(getCartoTileSource(this@SensorSetupActivity))
+                mapView.setMultiTouchControls(true)
+                mapView.setBuiltInZoomControls(false)
+                mapView.setTilesScaledToDpi(true)
+                mapView.isHorizontalMapRepetitionEnabled = false
+                mapView.isVerticalMapRepetitionEnabled = false
+                val worldBox = org.osmdroid.util.BoundingBox(85.0, 180.0, -85.0, -180.0)
+                mapView.setScrollableAreaLimitDouble(worldBox)
+                mapView.minZoomLevel = 3.0
+                mapView.controller.setZoom(7.0)
+                
+                // CRUCIAL: Force OSMDroid to ignore the active (but offline) Wi-Fi connection and read strictly from its internal SQLite settings cache.
+                mapView.setUseDataConnection(false)
+                
+                mapView.onResume() // Force MapView to start rendering immediately since ViewPager lazily loads it
+
+                // Refresh Location button
+                view.findViewById<View>(R.id.sensor_setup_btn_refresh_location)?.setOnClickListener {
+                    Toast.makeText(this@SensorSetupActivity, "Fetching GPS...", Toast.LENGTH_SHORT).show()
+                    fetchLocation(forceGps = true)
+                }
+
+                // Prevent ViewPager from swiping when dragging the map
+                mapView.setOnTouchListener { v, _ ->
+                    v.parent.requestDisallowInterceptTouchEvent(true)
+                    latInput.clearFocus()
+                    lonInput.clearFocus()
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                    false
+                }
+
+                // Sync Map dragging -> EditTexts
+                mapView.addMapListener(object : MapListener {
+                    override fun onScroll(event: ScrollEvent?): Boolean {
+                        if (latInput.hasFocus() || lonInput.hasFocus()) return true
+                        val center = mapView.mapCenter
+                        if (!isUpdatingFromText) {
+                            isUpdatingFromMap = true
+                            latInput.setText(String.format(Locale.US, "%.5f", center.latitude))
+                            lonInput.setText(String.format(Locale.US, "%.5f", center.longitude))
+                            currentLat = center.latitude
+                            currentLon = center.longitude
+                            
+                            val nextBtnEnabled = currentLat != null && currentLon != null
+                            if (binding.sensorSetupViewpager.currentItem == 1) setNextButtonEnabled(nextBtnEnabled)
+
+                            isUpdatingFromMap = false
+                        }
+                        return true
+                    }
+                    override fun onZoom(event: ZoomEvent?) = false
+                })
+
+                val textWatcher = object : TextWatcher {
+                    override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                    override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                    override fun afterTextChanged(s: Editable?) {
+                        if (isUpdatingFromMap) return
+                        if (!latInput.hasFocus() && !lonInput.hasFocus()) return
+                        
+                        val latStr = latInput.text.toString()
+                        val lonStr = lonInput.text.toString()
+                        val lat = latStr.toDoubleOrNull()
+                        val lon = lonStr.toDoubleOrNull()
+                        if (lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0) {
+                            isUpdatingFromText = true
+                            currentLat = lat
+                            currentLon = lon
+                            mapView.controller.setCenter(GeoPoint(lat, lon))
+
+                            val nextBtnEnabled = currentLat != null && currentLon != null
+                            if (binding.sensorSetupViewpager.currentItem == 1) setNextButtonEnabled(nextBtnEnabled)
+
+                            isUpdatingFromText = false
+                        }
+                    }
+                }
+                latInput.addTextChangedListener(textWatcher)
+                lonInput.addTextChangedListener(textWatcher)
+            }
         }
 
         inner class CredentialsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val ssidInput: AutoCompleteTextView = view.findViewById(R.id.sensor_setup_ssid_input)
-            val passInput: EditText             = view.findViewById(R.id.sensor_setup_pass_input)
+            val ssidInput: EditText = view.findViewById(R.id.sensor_setup_ssid_input)
+            val passInput: EditText = view.findViewById(R.id.sensor_setup_pass_input)
             init { view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() } }
         }
     }
@@ -525,6 +781,12 @@ class SensorSetupActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         checkWiFiConnection()
+        locationHolder?.mapView?.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        locationHolder?.mapView?.onPause()
     }
 
     override fun onDestroy() {
