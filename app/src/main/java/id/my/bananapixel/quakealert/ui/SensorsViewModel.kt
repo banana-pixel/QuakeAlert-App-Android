@@ -53,17 +53,23 @@ class SensorsViewModel(
     private suspend fun fetchData() {
         val startTime = System.currentTimeMillis()
         try {
-            val stations = api.getStations()
+            // Fetch raw list from API and sort immediately: Online sensors bubble to the top, tied elements are sorted alphabetically.
+            val rawStations = api.getStations()
+            val sortedStations = rawStations.sortedWith(
+                compareByDescending<Sensor> { it.status.equals("online", ignoreCase = true) }
+                    .thenBy { it.stationId ?: "" }
+            )
+            
             val latency = (System.currentTimeMillis() - startTime).toInt()
             val status = if (latency > 300) ServerHealthStatus.WARNING else ServerHealthStatus.HEALTHY
 
             _uiState.update {
                 it.copy(
-                    stations = stations,
+                    stations = sortedStations,
                     status = status,
                     latency = latency,
                     isError = false,
-                    isEmpty = stations.isEmpty(),
+                    isEmpty = sortedStations.isEmpty(),
                     hasReceivedFirstResult = true
                 )
             }

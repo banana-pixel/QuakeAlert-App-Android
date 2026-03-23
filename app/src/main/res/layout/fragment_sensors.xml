@@ -11,17 +11,17 @@
         android:id="@+id/health_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
         android:background="@drawable/bg_pill_3d_blue"
-        android:paddingStart="20dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="20dp">
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp">
 
         <View
             android:id="@+id/view_health_dot"
-            android:layout_width="12dp"
-            android:layout_height="12dp"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
             android:background="@drawable/badge_circle"
             android:backgroundTint="#FFFFFF"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -32,11 +32,12 @@
             android:id="@+id/tv_health_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
+            android:layout_marginStart="8dp"
             android:text="Server Healthy"
             android:textColor="#FFFFFF"
-            android:textSize="16sp"
+            android:textSize="13sp"
             android:textStyle="bold"
+            android:letterSpacing="0.03"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/view_health_dot"
             app:layout_constraintTop_toTopOf="parent" />
@@ -47,7 +48,7 @@
             android:layout_height="wrap_content"
             android:text="0 ms"
             android:textColor="#E1F5FE"
-            android:textSize="14sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             app:layout_constraintBaseline_toBaselineOf="@id/tv_health_status"
             app:layout_constraintEnd_toEndOf="parent" />

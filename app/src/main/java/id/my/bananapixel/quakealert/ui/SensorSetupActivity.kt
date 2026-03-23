@@ -786,7 +786,31 @@ class SensorSetupActivity : BaseActivity() {
         inner class CredentialsViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val ssidInput: EditText = view.findViewById(R.id.sensor_setup_ssid_input)
             val passInput: EditText = view.findViewById(R.id.sensor_setup_pass_input)
-            init { view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() } }
+            val passToggle: ImageView = view.findViewById(R.id.sensor_setup_pass_toggle)
+            
+            init { 
+                view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() } 
+                
+                // Force Android to respect the monospace width constraint (overriding default textPassword behaviors)
+                passInput.typeface = android.graphics.Typeface.MONOSPACE
+                ssidInput.typeface = android.graphics.Typeface.MONOSPACE
+                
+                var isPasswordVisible = false
+                passToggle.setOnClickListener {
+                    isPasswordVisible = !isPasswordVisible
+                    if (isPasswordVisible) {
+                        // Flawlessly reveal text without breaking custom typefaces or InputType
+                        passInput.transformationMethod = android.text.method.HideReturnsTransformationMethod.getInstance()
+                        passToggle.setImageResource(R.drawable.ic_visibility)
+                    } else {
+                        // Restore the password dots natively
+                        passInput.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+                        passToggle.setImageResource(R.drawable.ic_visibility_off)
+                    }
+                    
+                    passInput.setSelection(passInput.text.length)
+                }
+            }
         }
     }
 
