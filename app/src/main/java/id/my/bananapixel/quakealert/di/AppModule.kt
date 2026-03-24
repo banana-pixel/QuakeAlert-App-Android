@@ -17,6 +17,7 @@ import id.my.bananapixel.quakealert.ui.QuakeHistoryViewModel
 import id.my.bananapixel.quakealert.ui.ChatViewModel
 import id.my.bananapixel.quakealert.ui.SubscriptionsViewModel
 import id.my.bananapixel.quakealert.ui.SensorsViewModel
+import id.my.bananapixel.quakealert.ui.SensorSetupViewModel
 import id.my.bananapixel.quakealert.ui.SettingsViewModel
 import id.my.bananapixel.quakealert.ui.WarningViewModel
 import id.my.bananapixel.quakealert.msg.ApiService
@@ -116,6 +117,7 @@ val uiModule = module {
     viewModel { SubscriptionsViewModel(get<Repository>()) }
     viewModel { QuakeViewModel(androidContext(), get<QuakeRepository>(), get<Database>(), get()) }
     viewModel { SensorsViewModel(get()) }
+    viewModel { SensorSetupViewModel(androidContext() as android.app.Application, get()) }
     viewModel { WarningViewModel(get()) }
     viewModel { SettingsViewModel(get()) }
 }

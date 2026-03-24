@@ -2,19 +2,13 @@ package id.my.bananapixel.quakealert.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.location.Geocoder
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
-import android.view.LayoutInflater
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AutoCompleteTextView
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -25,94 +19,68 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.databinding.ActivitySensorSetupBinding
 import id.my.bananapixel.quakealert.util.systemDarkThemeOn
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.Locale
-import kotlin.coroutines.resume
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.XYTileSource
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import org.osmdroid.events.MapListener
 import org.osmdroid.events.ScrollEvent
 import org.osmdroid.events.ZoomEvent
-
-@Serializable
-data class SensorConfigPayload(val ssid: String, val password: String, val lat: Double, val lon: Double)
+import org.osmdroid.tileprovider.tilesource.XYTileSource
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import java.util.Locale
 
 class SensorSetupActivity : BaseActivity() {
 
     private lateinit var binding: ActivitySensorSetupBinding
-    private val connectivityManager by lazy { getSystemService(ConnectivityManager::class.java) }
-    private val wifiManager by lazy { getSystemService(WIFI_SERVICE) as WifiManager }
-
-    private var networkCallback: ConnectivityManager.NetworkCallback? = null
-    private var isConnectedToQuakeSetup = false
-    private var esp32Network: android.net.Network? = null
-
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private var currentLat: Double? = null
-    private var currentLon: Double? = null
-    private var currentCity: String? = null
+    private val viewModel: SensorSetupViewModel by viewModel()
 
     // State for Wi-Fi Bottom Sheet
-    private var scannedNetworks: List<String>? = null
     private var activeBottomSheetDialog: BottomSheetDialog? = null
     private var activeBottomSheetView: View? = null
 
-    // Step index — blocks swipe forward from a step until its prerequisite is met
+    // Step index
     private val stepCount = 3
     private val stepUnlocked = BooleanArray(stepCount) { false }.also { it[0] = true }
 
     // Views inside page holders (resolved lazily after pager inflates)
-    private var wifiHolder: SensorSetupAdapter.WifiViewHolder? = null
-    private var locationHolder: SensorSetupAdapter.LocationViewHolder? = null
     private var credentialsHolder: SensorSetupAdapter.CredentialsViewHolder? = null
+    private var locationHolder: SensorSetupAdapter.LocationViewHolder? = null
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            checkWiFiConnection()
-            startNetworkMonitoring()
+            viewModel.startNetworkMonitoring()
         } else {
             Toast.makeText(this, "Location permission required to verify Wi-Fi on Android 10+", Toast.LENGTH_LONG).show()
-            startNetworkMonitoring()
+            viewModel.markLocationPermissionDenied()
+            viewModel.startNetworkMonitoring()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Initialize OSMDroid configuration
         Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
 
         binding = ActivitySensorSetupBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Hide bottom buttons and dots when keyboard is open
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
             if (imeVisible) {
@@ -125,14 +93,11 @@ class SensorSetupActivity : BaseActivity() {
             insets
         }
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
         val adapter = SensorSetupAdapter()
         binding.sensorSetupViewpager.adapter = adapter
         binding.sensorSetupViewpager.offscreenPageLimit = 2
         binding.sensorSetupViewpager.getChildAt(0)?.overScrollMode = View.OVER_SCROLL_NEVER
 
-        // Block user from swiping forward past a locked step, and close keyboard on swipe
         binding.sensorSetupViewpager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageScrollStateChanged(state: Int) {
                 if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
@@ -148,12 +113,11 @@ class SensorSetupActivity : BaseActivity() {
                 }
             }
             override fun onPageSelected(position: Int) {
-                updateUI(position)
+                updateUI(position, viewModel.uiState.value)
             }
         })
 
         setupDots()
-        updateUI(0)
 
         binding.sensorSetupBtnNext.setOnClickListener { onNextClicked() }
         binding.sensorSetupBtnBack.setOnClickListener {
@@ -161,26 +125,69 @@ class SensorSetupActivity : BaseActivity() {
             if (cur > 0) binding.sensorSetupViewpager.setCurrentItem(cur - 1, true)
         }
 
+        observeViewModel()
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             } else {
-                checkWiFiConnection()
-                startNetworkMonitoring()
+                viewModel.startNetworkMonitoring()
             }
         } else {
-            checkWiFiConnection()
-            startNetworkMonitoring()
+            viewModel.startNetworkMonitoring()
         }
     }
 
-    // ────────────────────────────────────────
-    // UI helpers
-    // ────────────────────────────────────────
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.uiState.collectLatest { state ->
+                    updateUI(binding.sensorSetupViewpager.currentItem, state)
+                    
+                    if (state.setupComplete) {
+                        showSuccessDialog()
+                    }
+                    if (state.errorString != null) {
+                        Toast.makeText(this@SensorSetupActivity, state.errorString, Toast.LENGTH_LONG).show()
+                        viewModel.clearError()
+                    }
 
-    private fun updateUI(position: Int) {
+                    updateBottomSheetState(state)
+
+                    locationHolder?.apply {
+                        if (state.currentLat != null && state.currentLon != null) {
+                            if (!isUpdatingFromMap && !isUpdatingFromText) {
+                                setLocationProgrammatically(state.currentLat, state.currentLon)
+                            }
+                            if (state.currentCity != null) {
+                                cityValue.text = state.currentCity
+                                titleText.text = "Location Found"
+                                subtitleText.text = "Confirm coordinates for your sensor."
+                            }
+                        } else if (state.locationErrorString != null) {
+                            titleText.text = state.locationErrorString
+                        } else if (state.locationPermissionDenied) {
+                            titleText.text = "Permission Denied"
+                            subtitleText.text = "Enable location permission to continue."
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun showSuccessDialog() {
+        if (isFinishing || isDestroyed) return
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Success")
+            .setMessage("Sensor Configured Successfully")
+            .setPositiveButton("Done") { _, _ -> finish() }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun updateUI(position: Int, state: SensorSetupUiState) {
         val isFirst = position == 0
-        val isLast  = position == stepCount - 1
 
         binding.sensorSetupBtnBack.visibility = if (isFirst) View.GONE else View.VISIBLE
 
@@ -194,20 +201,25 @@ class SensorSetupActivity : BaseActivity() {
         binding.sensorSetupBtnNext.text = when (position) {
             0 -> getString(R.string.sensor_setup_next)
             1 -> "Next: Wi-Fi Config"
-            else -> "Finish & Configure Sensor"
+            else -> if (state.savingConfig) "Configuring…" else "Finish & Configure Sensor"
         }
 
-        // Enabled state driven by stepUnlocked of NEXT step
-        val nextStep = position + 1
-        val canAdvance = if (isLast) stepUnlocked[position] else (nextStep < stepCount && stepUnlocked[nextStep]) || stepUnlocked[position]
-        setNextButtonEnabled(stepUnlocked[position] && (position < stepCount - 1 || stepUnlocked[position]))
+        var canAdvance = false
         when (position) {
-            0 -> setNextButtonEnabled(isConnectedToQuakeSetup)
-            1 -> setNextButtonEnabled(currentLat != null && currentLon != null)
-            2 -> setNextButtonEnabled(true)
+            0 -> canAdvance = state.isConnectedToQuakeSetup
+            1 -> canAdvance = state.currentLat != null && state.currentLon != null
+            2 -> canAdvance = !state.savingConfig
         }
+
+        if (canAdvance) {
+            stepUnlocked[position] = true
+        }
+        
+        setNextButtonEnabled(canAdvance)
 
         updateDots(position)
+        
+        (binding.sensorSetupViewpager.adapter as? SensorSetupAdapter)?.updateViews(state, position)
     }
 
     private fun setNextButtonEnabled(enabled: Boolean) {
@@ -248,225 +260,34 @@ class SensorSetupActivity : BaseActivity() {
         }
     }
 
-    // ────────────────────────────────────────
-    // Navigation
-    // ────────────────────────────────────────
-
     private fun onNextClicked() {
         val current = binding.sensorSetupViewpager.currentItem
         when (current) {
             0 -> {
-                if (!isConnectedToQuakeSetup) {
+                if (!viewModel.uiState.value.isConnectedToQuakeSetup) {
                     Toast.makeText(this, "Connect to QuakeSetup first", Toast.LENGTH_SHORT).show()
                     return
                 }
                 stepUnlocked[1] = true
-                fetchLocation(forceGps = false)
+                viewModel.fetchLocation(forceGps = false)
                 binding.sensorSetupViewpager.setCurrentItem(1, true)
             }
             1 -> {
-                if (currentLat == null || currentLon == null) {
+                if (viewModel.uiState.value.currentLat == null || viewModel.uiState.value.currentLon == null) {
                     Toast.makeText(this, "Still fetching location…", Toast.LENGTH_SHORT).show()
                     return
                 }
                 stepUnlocked[2] = true
                 binding.sensorSetupViewpager.setCurrentItem(2, true)
-                fetchAvailableNetworksFromEsp32()
+                viewModel.fetchAvailableNetworksFromEsp32()
             }
             2 -> {
                 val ssid = credentialsHolder?.ssidInput?.text?.toString() ?: ""
                 val pass = credentialsHolder?.passInput?.text?.toString() ?: ""
                 if (ssid.isBlank()) { Toast.makeText(this, "Enter Wi-Fi SSID", Toast.LENGTH_SHORT).show(); return }
                 if (pass.isBlank()) { Toast.makeText(this, "Enter Wi-Fi password", Toast.LENGTH_SHORT).show(); return }
-                binding.sensorSetupBtnNext.isEnabled = false
-                binding.sensorSetupBtnNext.text = "Configuring…"
-                lifecycleScope.launch(Dispatchers.IO) {
-                    pushConfigToEsp32(currentLat!!, currentLon!!, currentCity ?: "", ssid, pass)
-                }
-            }
-        }
-    }
-
-    // ────────────────────────────────────────
-    // Wi-Fi monitoring
-    // ────────────────────────────────────────
-
-    private fun startNetworkMonitoring() {
-        networkCallback?.let { connectivityManager.unregisterNetworkCallback(it) }
-        networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: android.net.Network) {
-                esp32Network = network; checkWiFiConnection()
-            }
-            override fun onCapabilitiesChanged(network: android.net.Network, caps: NetworkCapabilities) {
-                esp32Network = network; checkWiFiConnection()
-            }
-            override fun onLost(network: android.net.Network) {
-                if (network == esp32Network) esp32Network = null
-                if (isConnectedToQuakeSetup) {
-                    isConnectedToQuakeSetup = false
-                    runOnUiThread { showDisconnectedState() }
-                }
-            }
-        }
-        try {
-            val req = android.net.NetworkRequest.Builder()
-                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build()
-            connectivityManager.registerNetworkCallback(req, networkCallback!!)
-        } catch (e: Exception) { e.printStackTrace() }
-    }
-
-    private fun checkWiFiConnection() {
-        try {
-            val info = wifiManager.connectionInfo ?: return
-            val ssid = info.ssid?.trim('"') ?: ""
-            val connected = ssid.equals("QuakeSetup", ignoreCase = true)
-            if (connected != isConnectedToQuakeSetup) {
-                isConnectedToQuakeSetup = connected
-                runOnUiThread { if (connected) showSuccessState() else showDisconnectedState() }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            runOnUiThread { setNextButtonEnabled(false) }
-        }
-    }
-
-    private fun showSuccessState() {
-        wifiHolder?.apply {
-            progressBar.visibility = View.GONE
-            ssidContainer.visibility = View.VISIBLE
-            btnOpenWifi.visibility = View.GONE
-        }
-        setNextButtonEnabled(true)
-        updateDots(0)
-    }
-
-    private fun showDisconnectedState() {
-        wifiHolder?.apply {
-            progressBar.visibility = View.VISIBLE
-            ssidContainer.visibility = View.GONE
-            btnOpenWifi.visibility = View.VISIBLE
-        }
-        setNextButtonEnabled(false)
-    }
-
-    // ────────────────────────────────────────
-    // Location
-    // ────────────────────────────────────────
-
-    private fun fetchLocation(forceGps: Boolean = false) {
-        if (!forceGps) {
-            val prefs = getSharedPreferences("MainPreferences", 0)
-            if (prefs.contains("UserLatitude") && prefs.contains("UserLongitude")) {
-                val lat = Double.fromBits(prefs.getLong("UserLatitude", 0L))
-                val lon = Double.fromBits(prefs.getLong("UserLongitude", 0L))
-                val city = prefs.getString("UserCityName", "") ?: "Offline (Coordinates saved)"
-                currentLat = lat
-                currentLon = lon
-                currentCity = city
-                locationHolder?.apply {
-                    setLocationProgrammatically(lat, lon)
-                    cityValue.text = city
-                    titleText.text = "Location Found (Cached)"
-                    subtitleText.text = "Confirm coordinates for your sensor."
-                }
-                if (binding.sensorSetupViewpager.currentItem == 1) setNextButtonEnabled(true)
-                return
-            }
-        }
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-            && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            locationHolder?.titleText?.text = "Permission Denied"
-            locationHolder?.subtitleText?.text = "Enable location permission to continue."
-            return
-        }
-        fusedLocationClient.lastLocation.addOnSuccessListener { loc ->
-            if (loc != null) processLocation(loc.latitude, loc.longitude)
-            else fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                .addOnSuccessListener { l -> if (l != null) processLocation(l.latitude, l.longitude) else locationHolder?.titleText?.text = "Location Unknown" }
-                .addOnFailureListener { locationHolder?.titleText?.text = "Location Error" }
-        }.addOnFailureListener {
-            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-                .addOnSuccessListener { l -> if (l != null) processLocation(l.latitude, l.longitude) }
-        }
-    }
-
-    private fun processLocation(lat: Double, lon: Double) {
-        currentLat = lat; currentLon = lon
-        locationHolder?.setLocationProgrammatically(lat, lon)
-        resolveCityName(lat, lon)
-    }
-
-    private fun resolveCityName(lat: Double, lon: Double) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val city = try {
-                kotlinx.coroutines.withTimeoutOrNull(3000L) {
-                    val geo = Geocoder(this@SensorSetupActivity, Locale.getDefault())
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        suspendCancellableCoroutine { cont ->
-                            geo.getFromLocation(lat, lon, 1) { addrs ->
-                                if (cont.isActive) cont.resume(addrs.firstOrNull()?.locality ?: "Unknown City")
-                            }
-                        }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        geo.getFromLocation(lat, lon, 1)?.firstOrNull()?.locality ?: "Unknown City"
-                    }
-                } ?: "Offline (Coordinates saved)"
-            } catch (e: Exception) { "Offline (Coordinates saved)" }
-
-            withContext(Dispatchers.Main) {
-                currentCity = city
-                locationHolder?.apply {
-                    cityValue.text = city
-                    titleText.text = "Location Found"
-                    subtitleText.text = "Confirm coordinates for your sensor."
-                }
-                if (binding.sensorSetupViewpager.currentItem == 1) setNextButtonEnabled(true)
-            }
-        }
-    }
-
-    // ────────────────────────────────────────
-    // ESP32 network scan
-    // ────────────────────────────────────────
-
-    private fun fetchAvailableNetworksFromEsp32() {
-        scannedNetworks = null
-        updateBottomSheetState()
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val clientBuilder = OkHttpClient.Builder()
-                esp32Network?.let { clientBuilder.socketFactory(it.socketFactory) }
-                val client = clientBuilder
-                    .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-                    .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS).build()
-
-                val response = client.newCall(Request.Builder().url("http://192.168.4.1/scan").get().build()).execute()
-                val body = response.body?.string()
-
-                withContext(Dispatchers.Main) {
-                    if (response.isSuccessful && body != null) {
-                        val arr = org.json.JSONArray(body)
-                        val list = mutableListOf<String>()
-                        for (i in 0 until arr.length()) {
-                            val s = arr.getString(i)
-                            if (s.isNotBlank() && !list.contains(s)) list.add(s)
-                        }
-                        scannedNetworks = list
-                    } else {
-                        Toast.makeText(this@SensorSetupActivity, "Scan failed — type SSID manually", Toast.LENGTH_SHORT).show()
-                        scannedNetworks = emptyList()
-                    }
-                    updateBottomSheetState()
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "ESP32 scan error", e)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@SensorSetupActivity, "Network error — type SSID manually", Toast.LENGTH_SHORT).show()
-                    scannedNetworks = emptyList()
-                    updateBottomSheetState()
-                }
+                
+                viewModel.pushConfigToEsp32(ssid, pass)
             }
         }
     }
@@ -510,11 +331,11 @@ class SensorSetupActivity : BaseActivity() {
             activeBottomSheetView = view
         }
 
-        updateBottomSheetState()
+        updateBottomSheetState(viewModel.uiState.value)
         activeBottomSheetDialog?.show()
     }
 
-    private fun updateBottomSheetState() {
+    private fun updateBottomSheetState(state: SensorSetupUiState) {
         val view = activeBottomSheetView ?: return
         val dialog = activeBottomSheetDialog ?: return
 
@@ -522,19 +343,16 @@ class SensorSetupActivity : BaseActivity() {
         val emptyView = view.findViewById<View>(R.id.bottom_sheet_wifi_empty)
         val recyclerView = view.findViewById<RecyclerView>(R.id.bottom_sheet_wifi_recycler)
 
-        val networks = scannedNetworks
+        val networks = state.scannedNetworks
         if (networks == null) {
-            // Still loading
             loadingView.visibility = View.VISIBLE
             emptyView.visibility = View.GONE
             recyclerView.visibility = View.GONE
         } else if (networks.isEmpty()) {
-            // Loaded but empty
             loadingView.visibility = View.GONE
             emptyView.visibility = View.VISIBLE
             recyclerView.visibility = View.GONE
         } else {
-            // Loaded with data
             loadingView.visibility = View.GONE
             emptyView.visibility = View.GONE
             recyclerView.visibility = View.VISIBLE
@@ -571,45 +389,6 @@ class SensorSetupActivity : BaseActivity() {
         override fun getItemCount() = networks.size
     }
 
-    // ────────────────────────────────────────
-    // Push config to ESP32
-    // ────────────────────────────────────────
-
-    private suspend fun pushConfigToEsp32(lat: Double, lon: Double, city: String, wifiSsid: String, wifiPass: String) {
-        try {
-            val json = Json.encodeToString(SensorConfigPayload(wifiSsid, wifiPass, lat, lon))
-            val body = json.toRequestBody("application/json".toMediaType())
-            val clientBuilder = OkHttpClient.Builder()
-            esp32Network?.let { clientBuilder.socketFactory(it.socketFactory) }
-            val client = clientBuilder.build()
-            val response = client.newCall(Request.Builder().url("http://192.168.4.1/config").post(body).build()).execute()
-
-            withContext(Dispatchers.Main) {
-                if (response.isSuccessful) {
-                    binding.sensorSetupBtnNext.setBackgroundResource(R.drawable.bg_badge_3d_green_small)
-                    binding.sensorSetupBtnNext.text = "Setup Complete! ✓"
-                    Toast.makeText(this@SensorSetupActivity, "Sensor configured successfully!", Toast.LENGTH_LONG).show()
-                } else {
-                    Toast.makeText(this@SensorSetupActivity, "ESP32 Error: ${response.code}", Toast.LENGTH_LONG).show()
-                    binding.sensorSetupBtnNext.isEnabled = true
-                    binding.sensorSetupBtnNext.text = "Finish & Configure Sensor"
-                }
-            }
-
-            if (response.isSuccessful) {
-                kotlinx.coroutines.delay(1500)
-                withContext(Dispatchers.Main) { finish() }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Push config failed", e)
-            withContext(Dispatchers.Main) {
-                Toast.makeText(this@SensorSetupActivity, "Connection failed. Make sure you are on QuakeSetup.", Toast.LENGTH_LONG).show()
-                binding.sensorSetupBtnNext.isEnabled = true
-                binding.sensorSetupBtnNext.text = "Finish & Configure Sensor"
-            }
-        }
-    }
-
     private fun getCartoTileSource(context: android.content.Context): XYTileSource {
         val isDark = context.systemDarkThemeOn()
         val path = if (isDark) "dark_all" else "light_all"
@@ -622,11 +401,34 @@ class SensorSetupActivity : BaseActivity() {
         )
     }
 
-    // ────────────────────────────────────────
-    // ViewPager2 Adapter
-    // ────────────────────────────────────────
-
     inner class SensorSetupAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+        private var wifiHolder: WifiViewHolder? = null
+        private val mapViewRefs = mutableListOf<MapView>()
+
+        fun resumeMaps() {
+            mapViewRefs.forEach { it.onResume() }
+        }
+
+        fun pauseMaps() {
+            mapViewRefs.forEach { it.onPause() }
+        }
+        
+        fun updateViews(state: SensorSetupUiState, position: Int) {
+            if (position == 0) {
+                wifiHolder?.apply {
+                    if (state.isConnectedToQuakeSetup) {
+                        progressBar.visibility = View.GONE
+                        ssidContainer.visibility = View.VISIBLE
+                        btnOpenWifi.visibility = View.GONE
+                    } else {
+                        progressBar.visibility = View.VISIBLE
+                        ssidContainer.visibility = View.GONE
+                        btnOpenWifi.visibility = View.VISIBLE
+                    }
+                }
+            }
+        }
+
         override fun getItemCount() = stepCount
         override fun getItemViewType(position: Int) = position
 
@@ -652,8 +454,7 @@ class SensorSetupActivity : BaseActivity() {
         }
 
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-            // Views are live-bound via the holder references above
-            if (position == 0 && isConnectedToQuakeSetup) showSuccessState()
+            updateViews(viewModel.uiState.value, position)
         }
 
         inner class WifiViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -685,8 +486,8 @@ class SensorSetupActivity : BaseActivity() {
             val cityValue: TextView    = view.findViewById(R.id.sensor_setup_city_value)
             val mapView: MapView       = view.findViewById(R.id.sensor_setup_mapview)
 
-            private var isUpdatingFromMap = false
-            private var isUpdatingFromText = false
+            var isUpdatingFromMap = false
+            var isUpdatingFromText = false
 
             fun setLocationProgrammatically(lat: Double, lon: Double) {
                 isUpdatingFromMap = true
@@ -697,9 +498,9 @@ class SensorSetupActivity : BaseActivity() {
             }
 
             init { 
+                mapViewRefs.add(mapView)
                 view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() }
 
-                // Configure MapView
                 mapView.setTileSource(getCartoTileSource(this@SensorSetupActivity))
                 mapView.setMultiTouchControls(true)
                 mapView.setBuiltInZoomControls(false)
@@ -711,18 +512,15 @@ class SensorSetupActivity : BaseActivity() {
                 mapView.minZoomLevel = 3.0
                 mapView.controller.setZoom(7.0)
                 
-                // CRUCIAL: Force OSMDroid to ignore the active (but offline) Wi-Fi connection and read strictly from its internal SQLite settings cache.
                 mapView.setUseDataConnection(false)
                 
-                mapView.onResume() // Force MapView to start rendering immediately since ViewPager lazily loads it
+                mapView.onResume()
 
-                // Refresh Location button
                 view.findViewById<View>(R.id.sensor_setup_btn_refresh_location)?.setOnClickListener {
                     Toast.makeText(this@SensorSetupActivity, "Fetching GPS...", Toast.LENGTH_SHORT).show()
-                    fetchLocation(forceGps = true)
+                    viewModel.fetchLocation(forceGps = true)
                 }
 
-                // Prevent ViewPager from swiping when dragging the map
                 mapView.setOnTouchListener { v, _ ->
                     v.parent.requestDisallowInterceptTouchEvent(true)
                     latInput.clearFocus()
@@ -732,7 +530,6 @@ class SensorSetupActivity : BaseActivity() {
                     false
                 }
 
-                // Sync Map dragging -> EditTexts
                 mapView.addMapListener(object : MapListener {
                     override fun onScroll(event: ScrollEvent?): Boolean {
                         if (latInput.hasFocus() || lonInput.hasFocus()) return true
@@ -741,12 +538,7 @@ class SensorSetupActivity : BaseActivity() {
                             isUpdatingFromMap = true
                             latInput.setText(String.format(Locale.US, "%.5f", center.latitude))
                             lonInput.setText(String.format(Locale.US, "%.5f", center.longitude))
-                            currentLat = center.latitude
-                            currentLon = center.longitude
-                            
-                            val nextBtnEnabled = currentLat != null && currentLon != null
-                            if (binding.sensorSetupViewpager.currentItem == 1) setNextButtonEnabled(nextBtnEnabled)
-
+                            viewModel.processLocation(center.latitude, center.longitude)
                             isUpdatingFromMap = false
                         }
                         return true
@@ -767,13 +559,8 @@ class SensorSetupActivity : BaseActivity() {
                         val lon = lonStr.toDoubleOrNull()
                         if (lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0) {
                             isUpdatingFromText = true
-                            currentLat = lat
-                            currentLon = lon
+                            viewModel.processLocation(lat, lon)
                             mapView.controller.setCenter(GeoPoint(lat, lon))
-
-                            val nextBtnEnabled = currentLat != null && currentLon != null
-                            if (binding.sensorSetupViewpager.currentItem == 1) setNextButtonEnabled(nextBtnEnabled)
-
                             isUpdatingFromText = false
                         }
                     }
@@ -791,19 +578,17 @@ class SensorSetupActivity : BaseActivity() {
             init { 
                 view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() } 
                 
-                // Force Android to respect the monospace width constraint (overriding default textPassword behaviors)
                 passInput.typeface = android.graphics.Typeface.MONOSPACE
                 ssidInput.typeface = android.graphics.Typeface.MONOSPACE
                 
                 var isPasswordVisible = false
                 passToggle.setOnClickListener {
                     isPasswordVisible = !isPasswordVisible
+
                     if (isPasswordVisible) {
-                        // Flawlessly reveal text without breaking custom typefaces or InputType
                         passInput.transformationMethod = android.text.method.HideReturnsTransformationMethod.getInstance()
                         passToggle.setImageResource(R.drawable.ic_visibility)
                     } else {
-                        // Restore the password dots natively
                         passInput.transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
                         passToggle.setImageResource(R.drawable.ic_visibility_off)
                     }
@@ -814,26 +599,20 @@ class SensorSetupActivity : BaseActivity() {
         }
     }
 
-    // ────────────────────────────────────────
-    // Lifecycle
-    // ────────────────────────────────────────
-
     override fun onResume() {
         super.onResume()
-        checkWiFiConnection()
-        locationHolder?.mapView?.onResume()
+        viewModel.checkWiFiConnection()
+        (binding.sensorSetupViewpager.adapter as? SensorSetupAdapter)?.resumeMaps()
     }
 
     override fun onPause() {
         super.onPause()
-        locationHolder?.mapView?.onPause()
+        (binding.sensorSetupViewpager.adapter as? SensorSetupAdapter)?.pauseMaps()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        networkCallback?.let {
-            try { connectivityManager.unregisterNetworkCallback(it) } catch (_: Exception) {}
-        }
+        viewModel.stopNetworkMonitoring()
     }
 
     companion object { const val TAG = "SensorSetup" }
