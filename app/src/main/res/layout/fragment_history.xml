@@ -1,66 +1,130 @@
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/md_theme_background"
-    android:orientation="vertical">
+    android:background="@color/md_theme_background">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/history_error_container"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginTop="8dp"
-        android:background="@drawable/bg_pill_3d_red"
-        android:paddingStart="20dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="20dp"
-        android:paddingBottom="12dp"
-        android:visibility="gone">
+        android:background="@color/md_theme_background"
+        app:elevation="0dp"
+        app:liftOnScroll="false">
 
-        <ImageView
-            android:id="@+id/history_error_icon"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:contentDescription="@null"
-            app:srcCompat="@drawable/ic_error_red_24dp"
-            app:tint="@android:color/white"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-
-        <TextView
-            android:id="@+id/history_error_message"
-            android:layout_width="0dp"
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/history_error_container"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="8dp"
-            android:textColor="@android:color/white"
-            android:textSize="14sp"
-            app:layout_constraintEnd_toStartOf="@id/history_error_retry"
-            app:layout_constraintStart_toEndOf="@id/history_error_icon"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            tools:text="Couldn't load. Check your connection." />
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_pill_3d_red"
+            android:paddingStart="20dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="12dp"
+            android:visibility="gone"
+            app:layout_scrollFlags="scroll|enterAlways">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/history_error_retry"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
+            <ImageView
+                android:id="@+id/history_error_icon"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:contentDescription="@null"
+                app:srcCompat="@drawable/ic_error_red_24dp"
+                app:tint="@android:color/white"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <TextView
+                android:id="@+id/history_error_message"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="8dp"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                app:layout_constraintEnd_toStartOf="@id/history_error_retry"
+                app:layout_constraintStart_toEndOf="@id/history_error_icon"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                tools:text="Couldn't load. Check your connection." />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/history_error_retry"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/error_retry"
+                android:textColor="@android:color/white"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <LinearLayout
+            android:id="@+id/history_filter_container"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/error_retry"
-            android:textColor="@android:color/white"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
-    </androidx.constraintlayout.widget.ConstraintLayout>
+            android:background="@color/md_theme_background"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:layout_marginBottom="0dp"
+            app:layout_scrollFlags="scroll|enterAlways">
+
+            <TextView
+                android:id="@+id/btn_filter_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minHeight="38dp"
+                android:text="Semua"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/bg_pill_3d_white"
+                android:textColor="@android:color/black"
+                android:gravity="center" />
+
+            <TextView
+                android:id="@+id/btn_filter_nearby"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:minHeight="38dp"
+                android:text="Dekat"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/bg_pill_3d_white"
+                android:textColor="@android:color/black"
+                app:drawableStartCompat="@drawable/ic_location_small"
+                android:drawablePadding="8dp"
+                android:drawableTint="@android:color/black"
+                android:gravity="center" />
+        </LinearLayout>
+    </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/history_swipe_refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -72,7 +136,8 @@
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
                 android:paddingBottom="8dp"
-                android:paddingTop="8dp" />
+                android:paddingTop="0dp"
+                android:layout_marginTop="0dp" />
 
             <LinearLayout
                 android:id="@+id/history_empty_container"
@@ -105,4 +170,4 @@
             </LinearLayout>
         </FrameLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

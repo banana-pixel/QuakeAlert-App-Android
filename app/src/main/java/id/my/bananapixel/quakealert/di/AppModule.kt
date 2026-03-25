@@ -11,6 +11,7 @@ import id.my.bananapixel.quakealert.domain.FetchQuakesUseCase
 import id.my.bananapixel.quakealert.domain.ClearQuakesUseCase
 import id.my.bananapixel.quakealert.domain.SaveChatMessagesUseCase
 import id.my.bananapixel.quakealert.domain.PruneChatMessagesUseCase
+import android.content.SharedPreferences
 import id.my.bananapixel.quakealert.ui.DetailViewModel
 import id.my.bananapixel.quakealert.ui.QuakeViewModel
 import id.my.bananapixel.quakealert.ui.QuakeHistoryViewModel
@@ -111,12 +112,12 @@ val domainModule = module {
  * UI layer module: ViewModels with modern lambda syntax.
  */
 val uiModule = module {
-    viewModel { QuakeHistoryViewModel(get<QuakeRepository>()) }
+    viewModel { QuakeHistoryViewModel(get<QuakeRepository>(), get<Repository>(), get<SharedPreferences>()) }
     viewModel { ChatViewModel(get<ChatRepository>()) }
     viewModel { DetailViewModel(get<Repository>()) }
     viewModel { SubscriptionsViewModel(get<Repository>()) }
     viewModel { QuakeViewModel(androidContext(), get<QuakeRepository>(), get<Database>(), get()) }
-    viewModel { SensorsViewModel(get()) }
+    viewModel { SensorsViewModel(get(), get(), get()) }
     viewModel { SensorSetupViewModel(androidContext() as android.app.Application, get()) }
     viewModel { WarningViewModel(get()) }
     viewModel { SettingsViewModel(get()) }

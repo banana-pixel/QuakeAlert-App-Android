@@ -340,6 +340,10 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
     fun isUserLocationSet(): Boolean =
         sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE) && sharedPrefs.contains(SHARED_PREFS_USER_LONGITUDE)
 
+    fun getAlertRadius(): Int {
+        return sharedPrefs.getInt(SHARED_PREFS_ALERT_RADIUS, 500)
+    }
+
     /** Returns user latitude, or [Double.NaN] when location has never been set. */
     fun getUserLatitude(): Double {
         if (!sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE)) return Double.NaN

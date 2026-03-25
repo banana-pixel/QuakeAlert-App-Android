@@ -30,7 +30,7 @@ class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activi
             "Sensors",
             "Warning",
             "Chat",
-            "Settings"
+            "Coverage"
         )
 
         /** Bottom nav menu item ids in ViewPager order (index -> id). */

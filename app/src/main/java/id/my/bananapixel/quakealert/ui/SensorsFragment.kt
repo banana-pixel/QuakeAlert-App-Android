@@ -20,6 +20,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import id.my.bananapixel.quakealert.domain.ServerHealthStatus
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -64,6 +65,37 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
 
         swipeRefreshLayout.setOnRefreshListener {
             viewModel.refresh()
+        }
+
+        val btnFilterAll = view.findViewById<TextView>(R.id.btn_filter_all)
+        val btnFilterNearby = view.findViewById<TextView>(R.id.btn_filter_nearby)
+
+        btnFilterAll.setOnClickListener { viewModel.setNearbyFilter(false) }
+        btnFilterNearby.setOnClickListener { viewModel.setNearbyFilter(true) }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(viewModel.isNearbyFilterActive, viewModel.currentAlertRadius) { active, radius ->
+                    active to radius
+                }.collect { (active, radius) ->
+                    btnFilterNearby.text = "Dekat ${radius}km"
+                    if (active) {
+                        btnFilterNearby.setBackgroundResource(R.drawable.bg_pill_3d_red)
+                        btnFilterNearby.setTextColor(Color.WHITE)
+                        btnFilterNearby.compoundDrawableTintList = ColorStateList.valueOf(Color.WHITE)
+
+                        btnFilterAll.setBackgroundResource(R.drawable.bg_pill_3d_white)
+                        btnFilterAll.setTextColor(Color.BLACK)
+                    } else {
+                        btnFilterAll.setBackgroundResource(R.drawable.bg_pill_3d_blue)
+                        btnFilterAll.setTextColor(Color.WHITE)
+
+                        btnFilterNearby.setBackgroundResource(R.drawable.bg_pill_3d_white)
+                        btnFilterNearby.setTextColor(Color.BLACK)
+                        btnFilterNearby.compoundDrawableTintList = ColorStateList.valueOf(Color.BLACK)
+                    }
+                }
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
