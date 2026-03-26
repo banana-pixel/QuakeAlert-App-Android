@@ -344,6 +344,10 @@ class Repository(private val sharedPrefs: SharedPreferences, database: Database)
         return sharedPrefs.getInt(SHARED_PREFS_ALERT_RADIUS, 500)
     }
 
+    fun setAlertRadius(radius: Int) {
+        sharedPrefs.edit { putInt(SHARED_PREFS_ALERT_RADIUS, radius) }
+    }
+
     /** Returns user latitude, or [Double.NaN] when location has never been set. */
     fun getUserLatitude(): Double {
         if (!sharedPrefs.contains(SHARED_PREFS_USER_LATITUDE)) return Double.NaN

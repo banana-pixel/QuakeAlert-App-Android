@@ -19,7 +19,7 @@ import id.my.bananapixel.quakealert.ui.ChatViewModel
 import id.my.bananapixel.quakealert.ui.SubscriptionsViewModel
 import id.my.bananapixel.quakealert.ui.SensorsViewModel
 import id.my.bananapixel.quakealert.ui.SensorSetupViewModel
-import id.my.bananapixel.quakealert.ui.SettingsViewModel
+import id.my.bananapixel.quakealert.ui.CoverageViewModel
 import id.my.bananapixel.quakealert.ui.WarningViewModel
 import id.my.bananapixel.quakealert.msg.ApiService
 import id.my.bananapixel.quakealert.msg.NotificationDispatcher
@@ -120,7 +120,7 @@ val uiModule = module {
     viewModel { SensorsViewModel(get(), get(), get()) }
     viewModel { SensorSetupViewModel(androidContext() as android.app.Application, get()) }
     viewModel { WarningViewModel(get()) }
-    viewModel { SettingsViewModel(get()) }
+    viewModel { CoverageViewModel(get(), get()) }
 }
 
 /**

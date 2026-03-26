@@ -21,7 +21,7 @@ import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.msg.Sensor
-import id.my.bananapixel.quakealert.ui.SettingsViewModel
+import id.my.bananapixel.quakealert.ui.CoverageViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import android.content.Context
@@ -41,8 +41,8 @@ import android.view.ViewTreeObserver
 import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.android.inject
 
-class SettingsFragment : Fragment(R.layout.fragment_settings) {
-    private val viewModel: SettingsViewModel by viewModel()
+class CoverageFragment : Fragment(R.layout.fragment_coverage) {
+    private val viewModel: CoverageViewModel by viewModel()
     private val repository: Repository by inject()
     private lateinit var mapView: MapView
     private lateinit var tvLocationName: TextView
@@ -75,7 +75,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         // 1. FIND VIEWS
         mapView = view.findViewById(R.id.mapview)
         bottomPanel = view.findViewById(R.id.bottom_floating_ui)
-        val valueView = view.findViewById<TextView>(R.id.alert_radius_value)
+        val valueView = view.findViewById<TextView>(R.id.tv_distance_value)
         val slider = view.findViewById<SeekBar>(R.id.alert_radius_slider)
         tvLocationName = view.findViewById(R.id.tv_location_name)
         val btnRefresh = view.findViewById<MaterialButton>(R.id.btn_refresh_location)
@@ -135,27 +135,10 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         })
 
         // --- SLIDER LOGIC ---
-        val sharedPrefs = requireContext().getSharedPreferences(Repository.SHARED_PREFS_ID, 0)
-        val initialRadius = sharedPrefs.getInt(Repository.SHARED_PREFS_ALERT_RADIUS, DEFAULT_ALERT_RADIUS_KM)
-        val initialProgress = (initialRadius / STEP_KM).coerceIn(0, MAX_PROGRESS)
-
-        slider.progress = initialProgress
-        updateRadiusLabel(valueView, initialProgress)
-        updateMapCircle(initialRadius, startPoint)
-
         slider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                val radius = progress * STEP_KM
-                updateRadiusLabel(valueView, progress)
-                val (lat, lon) = if (repository.isUserLocationSet()) {
-                    Pair(repository.getUserLatitude(), repository.getUserLongitude())
-                } else {
-                    Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
-                }
-                val currentCenter = GeoPoint(lat, lon)
-                updateMapCircle(radius, currentCenter)
                 if (fromUser) {
-                    sharedPrefs.edit { putInt(Repository.SHARED_PREFS_ALERT_RADIUS, radius) }
+                    viewModel.updateRadius(progress)
                 }
             }
 
@@ -183,6 +166,20 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
                     addSensorMarkers(state.stations)
+                    
+                    // Update slider and label from state
+                    if (slider.progress != state.alertRadiusKm) {
+                        slider.progress = state.alertRadiusKm
+                    }
+                    valueView.text = state.distanceLabel
+                    
+                    // Update map circle from state
+                    val (lat, lon) = if (repository.isUserLocationSet()) {
+                        Pair(repository.getUserLatitude(), repository.getUserLongitude())
+                    } else {
+                        Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
+                    }
+                    updateMapCircle(state.alertRadiusKm, GeoPoint(lat, lon))
                 }
             }
         }
@@ -271,7 +268,7 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                     updateCenterMarker(newPoint)
                     val slider = view?.findViewById<SeekBar>(R.id.alert_radius_slider)
                     val progress = slider?.progress ?: 0
-                    updateMapCircle(progress * STEP_KM, newPoint)
+                    updateMapCircle(progress, newPoint)
                     updateCityName(lat, lon)
                 } else {
                     Toast.makeText(requireContext(), "Could not get current location", Toast.LENGTH_SHORT).show()
@@ -301,22 +298,13 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
         }
     }
 
-    private fun updateRadiusLabel(valueView: TextView, progress: Int) {
-        val radius = progress * STEP_KM
-        valueView.text = if (radius >= MAX_RADIUS_KM) {
-            getString(R.string.settings_earthquake_radius_global)
-        } else {
-            getString(R.string.settings_earthquake_radius_km, radius)
-        }
-    }
 
     private fun updateMapCircle(radiusKm: Int, center: GeoPoint) {
         // 1. Remove the old circle
         mapCircle?.let { mapView.overlays.remove(it) }
 
-        if (radiusKm < MAX_RADIUS_KM) {
-            // 2. Create the new circle
-            mapCircle = Polygon(mapView).apply {
+        // 2. Create the new circle
+        mapCircle = Polygon(mapView).apply {
                 points = Polygon.pointsAsCircle(center, radiusKm * 1000.0)
                 fillPaint.color = 0x22FF0000
                 outlinePaint.color = 0x88FF0000.toInt()
@@ -326,9 +314,8 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
                 // Fix: allow clicks to pass through to overlays underneath
                 setOnClickListener { _, _, _ -> false }
             }
-            // 3. Insert at index 0 to ensure it's behind markers and crosshair
             mapView.overlays.add(0, mapCircle)
-        }
+        
 
         // 4. Update crosshair position
         centerMarker?.let {
@@ -371,11 +358,6 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
     }
 
     companion object {
-        private const val DEFAULT_ALERT_RADIUS_KM = 500
-        private const val STEP_KM = 100
-        private const val MAX_PROGRESS = 50
-        private const val MAX_RADIUS_KM = MAX_PROGRESS * STEP_KM
-
         // Map tile server configuration
         private const val MAP_TILE_BASE_URL = "basemaps.cartocdn.com/rastertiles"
         private val MAP_TILE_SUBDOMAINS = arrayOf("a", "b", "c", "d")

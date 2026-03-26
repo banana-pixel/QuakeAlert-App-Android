@@ -18,7 +18,7 @@ class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activi
         1 -> SensorsFragment()
         2 -> WarningFragment()
         3 -> TelegramChatFragment()
-        4 -> SettingsFragment()
+        4 -> CoverageFragment()
         else -> throw IllegalArgumentException("Unknown position: $position")
     }
 
