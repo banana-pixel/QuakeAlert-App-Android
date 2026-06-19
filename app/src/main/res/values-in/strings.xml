@@ -487,6 +487,7 @@
     <!-- Sensors -->
     <string name="sensors_empty_text">Belum ada sensor terdeteksi.\nTarik ke bawah untuk memuat ulang.</string>
     <string name="error_sensors_hint">Tidak dapat memuat. Tarik ke bawah untuk coba lagi.</string>
+    <string name="error_connection_message">Tidak dapat memuat. Periksa koneksi Anda.</string>
     <string name="error_retry">Coba lagi</string>
 
     <!-- Chat -->
@@ -604,4 +605,6 @@
     <string name="mmi_desc_ix">Kerusakan hebat, pondasi geser.</string>
     <string name="mmi_desc_x">Hancur total.</string>
     <string name="mmi_desc_unknown">Tidak ada data.</string>
+    <string name="filter_all">Semua</string>
+    <string name="filter_nearby">Dekat</string>
 </resources>

@@ -110,7 +110,7 @@
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="@android:color/transparent">
 
-                        <org.osmdroid.views.MapView
+                        <org.maplibre.android.maps.MapView
                             android:id="@+id/sensor_setup_mapview"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent" />
@@ -279,7 +279,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Location data is entirely anonymous. Your ESP32 broadcasts a generic Station ID and mathematically masks your GPS coordinates to a 1.1km box. Your exact house address and IP are permanently hidden from the network."
-                        android:textColor="#E0FFFFFF"
+                        android:textColor="?attr/colorOnSurface"
                         android:textSize="12sp"
                         android:lineSpacingMultiplier="1.2" />
                 </LinearLayout>

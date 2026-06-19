@@ -32,10 +32,11 @@ import id.my.bananapixel.quakealert.util.HttpUtil
 import id.my.bananapixel.quakealert.util.Log
 import id.my.bananapixel.quakealert.util.PRIORITY_HIGH
 import id.my.bananapixel.quakealert.util.topicUrl
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -71,7 +72,8 @@ import java.util.concurrent.ConcurrentHashMap
 class SubscriberService : Service(), KoinComponent {
     private var wakeLock: PowerManager.WakeLock? = null
     private var isServiceStarted = false
-    private val scope = MainScope()
+    private val serviceJob = SupervisorJob()
+    private val scope = CoroutineScope(serviceJob + Dispatchers.IO)
     private val repository: Repository by inject()
     private val dispatcher: NotificationDispatcher by inject()
     private val api: ApiService by inject()
@@ -152,7 +154,7 @@ class SubscriberService : Service(), KoinComponent {
 
     override fun onDestroy() {
         Log.d(TAG, "Subscriber service has been destroyed")
-        scope.coroutineContext.cancel() // Cancel all pending coroutines
+        serviceJob.cancel() // Cancel all pending coroutines
         stopService()
         sendBroadcast(Intent(this, AutoRestartReceiver::class.java)) // Restart it if necessary!
         super.onDestroy()

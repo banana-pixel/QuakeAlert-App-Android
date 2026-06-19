@@ -144,7 +144,7 @@ val ts = payload.timestamp * 1000L  // Correct!
 ## 🌐 Server Configuration
 
 **Port:** 3000 (0.0.0.0 for Docker compatibility)  
-**CORS Origin:** `https://quakealert.bananapixel.my.id` (configurable via env)  
+**CORS Origin:** `https://quakealert.web.id` (configurable via env)  
 **Socket.IO Path:** `/socket.io/`  
 **Protocol:** WebSocket with fallback
 

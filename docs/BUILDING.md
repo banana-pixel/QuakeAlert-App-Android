@@ -1,6 +1,6 @@
 # Building QuakeAlert for Your Own Server
 
-The app connects to a QuakeAlert backend for history, sensors, notifications, and chat. By default it uses `https://quakealert.bananapixel.my.id`. To build for your own server (e.g. self-hosted QuakeAlert-Server), override the base URL at build time. This changes `BuildConfig.APP_BASE_URL` used by all features.
+The app connects to a QuakeAlert backend for history, sensors, notifications, and chat. By default it uses `https://quakealert.web.id`. To build for your own server (e.g. self-hosted QuakeAlert-Server), override the base URL at build time. This changes `BuildConfig.APP_BASE_URL` used by all features.
 
 ## Option A: Edit gradle.properties
 

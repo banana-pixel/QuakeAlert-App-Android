@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.android.material.button.MaterialButton
 import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import androidx.lifecycle.Lifecycle
@@ -35,6 +36,7 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
     private lateinit var healthStatus: TextView
     private lateinit var appLatency: TextView
     private lateinit var errorContainer: View
+    private lateinit var errorRetry: MaterialButton
     private lateinit var emptyContainer: View
     private lateinit var addSensorButton: ImageButton
 
@@ -55,12 +57,17 @@ class SensorsFragment : Fragment(R.layout.fragment_sensors) {
         healthStatus = view.findViewById(R.id.tv_health_status)
         appLatency = view.findViewById(R.id.tv_app_latency)
         errorContainer = view.findViewById(R.id.sensors_error_container)
+        errorRetry = view.findViewById(R.id.sensors_error_retry)
         emptyContainer = view.findViewById(R.id.sensors_empty_container)
         addSensorButton = view.findViewById(R.id.btn_add_sensor)
 
         // Set up Add Sensor button click listener
         addSensorButton.setOnClickListener {
             launchSensorSetup()
+        }
+
+        errorRetry.setOnClickListener {
+            viewModel.refresh()
         }
 
         swipeRefreshLayout.setOnRefreshListener {

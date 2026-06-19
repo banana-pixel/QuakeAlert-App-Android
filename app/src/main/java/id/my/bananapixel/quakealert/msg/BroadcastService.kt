@@ -9,8 +9,9 @@ import id.my.bananapixel.quakealert.db.Notification
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.util.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.koin.java.KoinJavaComponent.getKoin
 
@@ -85,10 +86,11 @@ class BroadcastService(private val ctx: Context) {
                 else -> 0
             }
             val delay = getStringExtra(intent,"delay") ?: ""
-            MainScope().launch(Dispatchers.IO) {
-                val repository = getKoin().get<Repository>()
-                val user = repository.getUser(baseUrl) // May be null
+            val pendingResult = goAsync()
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 try {
+                    val repository = getKoin().get<Repository>()
+                    val user = repository.getUser(baseUrl) // May be null
                     Log.d(TAG, "Publishing message $intent")
                     api.publish(
                         baseUrl = baseUrl,
@@ -102,6 +104,8 @@ class BroadcastService(private val ctx: Context) {
                     )
                 } catch (e: Exception) {
                     Log.w(TAG, "Unable to publish message: ${e.message}", e)
+                } finally {
+                    pendingResult.finish()
                 }
             }
         }

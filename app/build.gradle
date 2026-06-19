@@ -51,7 +51,7 @@ android {
         }
 
         /* Server base URL: override via gradle.properties or local.properties (quakealert.base.url) */
-        def baseUrl = project.findProperty('quakealert.base.url') ?: 'https://quakealert.bananapixel.my.id'
+        def baseUrl = project.findProperty('quakealert.base.url') ?: 'https://quakealert.web.id'
         buildConfigField 'String', 'APP_BASE_URL', "\"${baseUrl}\""
 
         buildFeatures {
@@ -210,8 +210,8 @@ dependencies {
     implementation "pl.droidsonroids.gif:android-gif-drawable:1.2.31"
     implementation "com.caverock:androidsvg:1.4"
 
-    // OpenStreetMap
-    implementation 'org.osmdroid:osmdroid-android:6.1.18'
+    // MapLibre Native (replaces osmdroid)
+    implementation 'org.maplibre.gl:android-sdk:11.6.1'
 
     // Socket.IO Client (Exclude JSON to avoid Android conflicts)
     implementation('io.socket:socket.io-client:2.1.0') {
@@ -229,11 +229,14 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit:1.9.24'
     testImplementation 'org.json:json:20231013' // Real org.json on JVM (Android jar only stubs)
-    
+
     // Coroutine testing
     testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3'
-    
+
     // Mocking for unit tests
     testImplementation 'io.mockk:mockk:1.13.8'
     testImplementation 'io.insert-koin:koin-test:3.5.6'
+
+    // LiveData testing — provides InstantTaskExecutorRule
+    testImplementation 'androidx.arch.core:core-testing:2.2.0'
 }

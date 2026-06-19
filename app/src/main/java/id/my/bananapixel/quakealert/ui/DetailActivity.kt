@@ -52,7 +52,6 @@ import id.my.bananapixel.quakealert.util.randomSubscriptionId
 import id.my.bananapixel.quakealert.util.topicShortUrl
 import id.my.bananapixel.quakealert.util.topicUrl
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch

@@ -696,4 +696,6 @@
     <string name="onboarding_toast_permission_required">%1$s is required to continue</string>
     <string name="onboarding_toast_grant_first">Please grant %1$s first</string>
     <string name="sensors_empty_text">No sensors found.\nPull down to refresh.</string>
+    <string name="filter_all">All</string>
+    <string name="filter_nearby">Nearby</string>
 </resources>

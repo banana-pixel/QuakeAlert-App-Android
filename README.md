@@ -211,7 +211,7 @@ See [docs/TEST_COVERAGE.md](docs/TEST_COVERAGE.md) for what’s covered and how 
 
 ## Backend
 
-The app is designed to work with the QuakeAlert backend (e.g. `quakealert.bananapixel.my.id`). Base URL and endpoints are configured in the app.
+The app is designed to work with the QuakeAlert backend (e.g. `quakealert.web.id`). Base URL and endpoints are configured in the app.
 
 ### Building for your own server
 

@@ -2,70 +2,122 @@ package id.my.bananapixel.quakealert.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.location.Geocoder
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.core.content.edit
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.material.button.MaterialButton
-import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.msg.Sensor
-import id.my.bananapixel.quakealert.ui.CoverageViewModel
+import id.my.bananapixel.quakealert.util.systemDarkThemeOn
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.content.Context
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
-import org.koin.androidx.viewmodel.ext.android.viewModel
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.XYTileSource
-import id.my.bananapixel.quakealert.util.systemDarkThemeOn
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Polygon
-import java.io.IOException
-import java.util.Locale
-import android.graphics.Point
-import android.view.ViewTreeObserver
-import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.maplibre.android.MapLibre
+import org.maplibre.android.camera.CameraPosition
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.CircleLayer
+import org.maplibre.android.style.layers.LineLayer
+import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.LineString
+import org.maplibre.geojson.Point
+import java.util.Locale
+import kotlin.math.asin
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
 class CoverageFragment : Fragment(R.layout.fragment_coverage) {
+
     private val viewModel: CoverageViewModel by viewModel()
     private val repository: Repository by inject()
-    private lateinit var mapView: MapView
-    private lateinit var tvLocationName: TextView
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private var mapCircle: Polygon? = null
-    private var centerMarker: org.osmdroid.views.overlay.Marker? = null
-    private var lastCenter: GeoPoint? = null
 
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            refreshLocation()
-        } else {
-            Toast.makeText(requireContext(), "Location permission denied", Toast.LENGTH_SHORT).show()
-        }
+    // ---------------------------------------------------------------------------
+    // MapLibre
+    // ---------------------------------------------------------------------------
+    private lateinit var mapView: MapView
+    private var mapLibreMap: MapLibreMap? = null
+
+    /** Source/layer IDs — must be unique and stable across style reloads. */
+    private companion object {
+        const val SOURCE_SENSORS   = "source-sensors"
+        const val SOURCE_CIRCLE    = "source-circle"
+        const val SOURCE_USER_LOCATION = "source-user-location"
+        const val LAYER_SENSORS    = "layer-sensors"
+        const val LAYER_CIRCLE     = "layer-circle"
+        const val LAYER_USER_LOCATION = "layer-user-location"
+        const val IMAGE_SENSOR_DOT = "image-sensor-dot"
+
+        // CARTO raster tile base
+        const val MAP_TILE_BASE_URL = "basemaps.cartocdn.com/rastertiles"
+        val MAP_TILE_SUBDOMAINS = arrayOf("a", "b", "c", "d")
     }
 
+    // ---------------------------------------------------------------------------
+    // Popup
+    // ---------------------------------------------------------------------------
+    private lateinit var statusCard: MapStatusCard
+    private var popupView: View? = null
+    private var popupContainer: FrameLayout? = null
+
+    // ---------------------------------------------------------------------------
+    // Other UI
+    // ---------------------------------------------------------------------------
+    private lateinit var tvLocationName: TextView
     private lateinit var bottomPanel: View
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    private var currentCenter = LatLng(
+        Repository.DEFAULT_MAP_CENTER_LAT,
+        Repository.DEFAULT_MAP_CENTER_LON
+    )
+
+    // ---------------------------------------------------------------------------
+    // Permission
+    // ---------------------------------------------------------------------------
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) refreshLocation() else
+            Toast.makeText(requireContext(), "Location permission denied", Toast.LENGTH_SHORT).show()
+    }
+
+    // ---------------------------------------------------------------------------
+    // Lifecycle
+    // ---------------------------------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
+        // MapLibre.getInstance() must be called before any MapView is inflated.
+        // An empty string is fine for raster tile sources (no API key required).
+        MapLibre.getInstance(requireContext())
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireActivity())
     }
 
@@ -73,75 +125,67 @@ class CoverageFragment : Fragment(R.layout.fragment_coverage) {
         super.onViewCreated(view, savedInstanceState)
 
         // 1. FIND VIEWS
-        mapView = view.findViewById(R.id.mapview)
-        bottomPanel = view.findViewById(R.id.bottom_floating_ui)
-        val valueView = view.findViewById<TextView>(R.id.tv_distance_value)
-        val slider = view.findViewById<SeekBar>(R.id.alert_radius_slider)
+        mapView        = view.findViewById(R.id.mapview)
+        bottomPanel    = view.findViewById(R.id.bottom_floating_ui)
         tvLocationName = view.findViewById(R.id.tv_location_name)
-        val btnRefresh = view.findViewById<MaterialButton>(R.id.btn_refresh_location)
+        val valueView  = view.findViewById<TextView>(R.id.tv_distance_value)
+        val slider     = view.findViewById<SeekBar>(R.id.alert_radius_slider)
+        val btnRefresh  = view.findViewById<MaterialButton>(R.id.btn_refresh_location)
         val btnRecenter = view.findViewById<MaterialButton>(R.id.btn_recenter)
-        val btnZoomIn = view.findViewById<MaterialButton>(R.id.btn_zoom_in)
-        val btnZoomOut = view.findViewById<MaterialButton>(R.id.btn_zoom_out)
+        val btnZoomIn   = view.findViewById<MaterialButton>(R.id.btn_zoom_in)
+        val btnZoomOut  = view.findViewById<MaterialButton>(R.id.btn_zoom_out)
 
-        // 2. CONFIGURE MAP BASICS
-        mapView.setTileSource(getCartoTileSource(requireContext()))
-        mapView.setMultiTouchControls(true)
-        mapView.setBuiltInZoomControls(false)
-        mapView.setTilesScaledToDpi(true)
-        mapView.isHorizontalMapRepetitionEnabled = false
-        mapView.isVerticalMapRepetitionEnabled = false
+        // 2. POPUP SUPPORT — a FrameLayout overlay on top of the MapView
+        statusCard = MapStatusCard(requireContext())
+        popupContainer = FrameLayout(requireContext()).also { fl ->
+            fl.layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            fl.isClickable = false  // let touches fall through when popup is hidden
+            (mapView.parent as? ViewGroup)?.addView(fl)
+        }
 
-        // 3. APPLY LIMITS
-        val worldBox = org.osmdroid.util.BoundingBox(85.0, 180.0, -85.0, -180.0)
-        mapView.setScrollableAreaLimitDouble(worldBox)
-        mapView.minZoomLevel = 3.0
+        // 3. RESOLVE SAVED LOCATION
+        if (repository.isUserLocationSet()) {
+            currentCenter = LatLng(repository.getUserLatitude(), repository.getUserLongitude())
+        }
+        val currentCity = repository.getUserCityName()
+        tvLocationName.text = when {
+            !repository.isUserLocationSet() -> getString(R.string.settings_earthquake_location_not_set)
+            currentCity.isNotEmpty() && currentCity != "Unknown" -> currentCity
+            else -> "%.4f, %.4f".format(currentCenter.latitude, currentCenter.longitude)
+        }
 
-        // 5. TOUCH & GESTURES
+        // 4. INITIALISE MAP
+        mapView.onCreate(savedInstanceState)
+        mapView.getMapAsync { map ->
+            mapLibreMap = map
+            applyStyle(map)
+
+            val density = resources.displayMetrics.density
+            val bottomPadding = (180 * density).toInt()
+            map.setPadding(0, 0, 0, bottomPadding)
+
+            // Initial camera position — offset upwards so the bottom panel doesn't cover it
+            map.cameraPosition = CameraPosition.Builder()
+                .target(currentCenter)
+                .zoom(6.0)
+                .build()
+        }
+
+        // 5. TOUCH — prevent ViewPager2 from stealing horizontal swipes
         mapView.setOnTouchListener { v, _ ->
             v.parent.requestDisallowInterceptTouchEvent(true)
             false
         }
-
         bottomPanel.setOnTouchListener { _, _ -> true }
 
-        // 6. INITIAL DATA LOAD
-        val (currentLat, currentLon) = if (repository.isUserLocationSet()) {
-            Pair(repository.getUserLatitude(), repository.getUserLongitude())
-        } else {
-            Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
-        }
-        val startPoint = GeoPoint(currentLat, currentLon)
-        lastCenter = startPoint
-        val currentCity = repository.getUserCityName()
-
-        if (!repository.isUserLocationSet()) {
-            tvLocationName.text = getString(R.string.settings_earthquake_location_not_set)
-        } else if (currentCity.isNotEmpty() && currentCity != "Unknown") {
-            tvLocationName.text = currentCity
-        } else {
-            tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", currentLat, currentLon)
-        }
-
-        mapView.controller.setZoom(7.0)
-        mapView.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                mapView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                mapView.controller.setCenter(startPoint)
-                val targetCenter = getOffsetCenter(startPoint)
-                mapView.controller.setCenter(targetCenter)
-                mapView.controller.setZoom(6.0)
-                mapView.controller.animateTo(targetCenter, 7.0, 450L)
-            }
-        })
-
-        // --- SLIDER LOGIC ---
+        // 6. SLIDER
         slider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    viewModel.updateRadius(progress)
-                }
+                if (fromUser) viewModel.updateRadius(progress)
             }
-
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
                 seekBar?.parent?.requestDisallowInterceptTouchEvent(true)
             }
@@ -150,112 +194,277 @@ class CoverageFragment : Fragment(R.layout.fragment_coverage) {
             }
         })
 
+        // 7. BUTTONS
         btnRefresh.setOnClickListener { checkPermissionAndRefresh() }
         btnRecenter.setOnClickListener {
-            val (lat, lon) = if (repository.isUserLocationSet()) {
-                Pair(repository.getUserLatitude(), repository.getUserLongitude())
-            } else {
-                Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
-            }
-            animateToOffset(GeoPoint(lat, lon))
+            mapLibreMap?.animateCamera(
+                CameraUpdateFactory.newCameraPosition(
+                    CameraPosition.Builder().target(currentCenter).build()
+                ), 400
+            )
         }
-        btnZoomIn.setOnClickListener { mapView.controller.zoomIn() }
-        btnZoomOut.setOnClickListener { mapView.controller.zoomOut() }
+        btnZoomIn.setOnClickListener {
+            mapLibreMap?.animateCamera(CameraUpdateFactory.zoomIn())
+        }
+        btnZoomOut.setOnClickListener {
+            mapLibreMap?.animateCamera(CameraUpdateFactory.zoomOut())
+        }
 
+        // 8. OBSERVE UI STATE
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    addSensorMarkers(state.stations)
-                    
-                    // Update slider and label from state
+                    updateSensorMarkers(state.stations)
+
                     if (slider.progress != state.alertRadiusKm) {
                         slider.progress = state.alertRadiusKm
                     }
                     valueView.text = state.distanceLabel
-                    
-                    // Update map circle from state
-                    val (lat, lon) = if (repository.isUserLocationSet()) {
-                        Pair(repository.getUserLatitude(), repository.getUserLongitude())
-                    } else {
-                        Pair(Repository.DEFAULT_MAP_CENTER_LAT, Repository.DEFAULT_MAP_CENTER_LON)
-                    }
-                    updateMapCircle(state.alertRadiusKm, GeoPoint(lat, lon))
+                    updateRadiusCircle(state.alertRadiusKm, currentCenter)
+                    updateUserLocationMarker(currentCenter)
                 }
             }
         }
     }
 
+    // ---------------------------------------------------------------------------
+    // MapLibre style
+    // ---------------------------------------------------------------------------
 
-    private fun addSensorMarkers(stations: List<Sensor>) {
-        val sensorMarkers = mapView.overlays.filterIsInstance<org.osmdroid.views.overlay.Marker>()
-            .filter { it.relatedObject is Sensor }
-        sensorMarkers.forEach { mapView.overlays.remove(it) }
+    /**
+     * Applies a CARTO raster tile style and registers all sources and layers.
+     * Also called on configuration change (dark/light mode switch).
+     */
+    private fun applyStyle(map: MapLibreMap) {
+        val isDark   = requireContext().systemDarkThemeOn()
+        val path     = if (isDark) "dark_all" else "light_all"
+        val tileUrls = MAP_TILE_SUBDOMAINS.map { "https://$it.$MAP_TILE_BASE_URL/$path/{z}/{x}/{y}.png" }
 
-        val statusCard = MapStatusCard(R.layout.map_status_card, mapView)
-        val dotIcon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_sensor_marker)
+        map.setStyle(Style.Builder().fromJson(buildCartoStyleJson(tileUrls, isDark))) { style ->
+            addSensorDotImage(style)
+            registerSources(style)
+            registerLayers(style)
+            setupMarkerClickListener(map, style)
 
-        for (sensor in stations) {
-            val lat = sensor.latitude ?: continue
-            val lon = sensor.longitude ?: continue
-            if (lat !in -90.0..90.0 || lon !in -180.0..180.0) continue
-
-            val marker = org.osmdroid.views.overlay.Marker(mapView).apply {
-                position = GeoPoint(lat, lon)
-                setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
-                icon = dotIcon
-                setPanToView(false)
-                relatedObject = sensor
-                setInfoWindow(statusCard)
-            }
-            mapView.overlays.add(marker)
+            // Populate on style load
+            updateSensorMarkers(viewModel.uiState.value.stations)
+            updateRadiusCircle(viewModel.uiState.value.alertRadiusKm, currentCenter)
+            updateUserLocationMarker(currentCenter)
         }
-
-        lastCenter?.let { updateCenterMarker(it) }
-        mapView.invalidate()
     }
 
-    private fun getOffsetCenter(target: GeoPoint): GeoPoint {
-        val panelHeight = bottomPanel.height.takeIf { it > 0 } ?: (resources.displayMetrics.heightPixels / 3)
-        val baseOffset = panelHeight / 2
-        // Use a more aggressive negative offset to move crosshair LOWER on the screen
-        val extraUp = ((-36) * resources.displayMetrics.density).toInt()
-        val offsetPixels = (baseOffset + extraUp).coerceAtLeast(0)
-        
-        val projection = mapView.projection
-        val targetPointPixels = projection.toPixels(target, null)
-        val newCenterPixels = Point(targetPointPixels.x, targetPointPixels.y + offsetPixels)
-        return projection.fromPixels(newCenterPixels.x, newCenterPixels.y) as GeoPoint
+    /**
+     * Builds a minimal MapLibre style JSON string that uses CARTO raster tiles.
+     */
+    private fun buildCartoStyleJson(tileUrls: List<String>, isDark: Boolean): String {
+        val urlsJson = tileUrls.joinToString(",") { "\"$it\"" }
+        val bgColor  = if (isDark) "#121212" else "#F0F0F0"
+        return """
+        {
+          "version": 8,
+          "name": "${if (isDark) "Carto Dark" else "Carto Light"}",
+          "sources": {
+            "carto-raster": {
+              "type": "raster",
+              "tiles": [$urlsJson],
+              "tileSize": 256,
+              "attribution": "© CARTO © OpenStreetMap contributors"
+            }
+          },
+          "layers": [
+            {
+              "id": "background",
+              "type": "background",
+              "paint": { "background-color": "$bgColor" }
+            },
+            {
+              "id": "carto-tiles",
+              "type": "raster",
+              "source": "carto-raster"
+            }
+          ]
+        }
+        """.trimIndent()
     }
 
-    private fun animateToOffset(target: GeoPoint) {
-        val targetCenter = getOffsetCenter(target)
-        mapView.controller.animateTo(targetCenter, mapView.zoomLevelDouble, 400L)
+    /** Generates a small filled circle bitmap and registers it as a symbol image. */
+    private fun addSensorDotImage(style: Style) {
+        val size = 28
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#EF5350") // red dot
+        }
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f - 2, paint)
+        style.addImage(IMAGE_SENSOR_DOT, bmp)
     }
+
+    /** Registers empty GeoJSON sources for sensors and the radius circle. */
+    private fun registerSources(style: Style) {
+        style.addSource(GeoJsonSource(SOURCE_SENSORS, FeatureCollection.fromFeatures(emptyList())))
+        style.addSource(GeoJsonSource(SOURCE_CIRCLE,  FeatureCollection.fromFeatures(emptyList())))
+        style.addSource(GeoJsonSource(SOURCE_USER_LOCATION, FeatureCollection.fromFeatures(emptyList())))
+    }
+
+    /** Adds rendering layers on top of the base raster tiles. */
+    private fun registerLayers(style: Style) {
+        // Radius circle outline
+        style.addLayer(
+            LineLayer(LAYER_CIRCLE, SOURCE_CIRCLE).withProperties(
+                PropertyFactory.lineColor(Color.parseColor("#F44336")),
+                PropertyFactory.lineWidth(3f),
+                PropertyFactory.lineOpacity(0.7f)
+            )
+        )
+        // Sensor dot layer
+        style.addLayer(
+            CircleLayer(LAYER_SENSORS, SOURCE_SENSORS).withProperties(
+                PropertyFactory.circleRadius(8f),
+                PropertyFactory.circleColor(Color.parseColor("#EF5350")),
+                PropertyFactory.circleStrokeWidth(2f),
+                PropertyFactory.circleStrokeColor(Color.WHITE)
+            )
+        )
+        // User location dot layer
+        style.addLayer(
+            CircleLayer(LAYER_USER_LOCATION, SOURCE_USER_LOCATION).withProperties(
+                PropertyFactory.circleRadius(9f),
+                PropertyFactory.circleColor(Color.parseColor("#2196F3")), // Blue dot
+                PropertyFactory.circleStrokeWidth(2f),
+                PropertyFactory.circleStrokeColor(Color.WHITE)
+            )
+        )
+    }
+
+    // ---------------------------------------------------------------------------
+    // Sensor markers
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Replaces the sensor GeoJSON source with fresh [stations] data.
+     * Each station is a GeoJSON Feature with properties for click handling.
+     */
+    private fun updateSensorMarkers(stations: List<Sensor>) {
+        val style = mapLibreMap?.style ?: return
+        val features = stations.mapNotNull { sensor ->
+            val lat = sensor.latitude ?: return@mapNotNull null
+            val lon = sensor.longitude ?: return@mapNotNull null
+            if (lat !in -90.0..90.0 || lon !in -180.0..180.0) return@mapNotNull null
+            Feature.fromGeometry(Point.fromLngLat(lon, lat)).also { f ->
+                f.addStringProperty("stationId", sensor.stationId ?: "")
+                f.addStringProperty("status",    sensor.status    ?: "")
+                f.addNumberProperty("lastPing",  (sensor.lastPing ?: 0L).toDouble())
+            }
+        }
+        (style.getSource(SOURCE_SENSORS) as? GeoJsonSource)
+            ?.setGeoJson(FeatureCollection.fromFeatures(features))
+    }
+
+    // ---------------------------------------------------------------------------
+    // Radius circle (GeoJSON LineString approximation)
+    // ---------------------------------------------------------------------------
+
+    private fun updateRadiusCircle(radiusKm: Int, center: LatLng) {
+        val style = mapLibreMap?.style ?: return
+        val points      = buildCirclePoints(center, radiusKm * 1000.0)
+        val lineString  = LineString.fromLngLats(points)
+        val feature     = Feature.fromGeometry(lineString)
+        (style.getSource(SOURCE_CIRCLE) as? GeoJsonSource)
+            ?.setGeoJson(FeatureCollection.fromFeatures(listOf(feature)))
+    }
+
+    private fun updateUserLocationMarker(center: LatLng) {
+        val style = mapLibreMap?.style ?: return
+        val feature = Feature.fromGeometry(Point.fromLngLat(center.longitude, center.latitude))
+        (style.getSource(SOURCE_USER_LOCATION) as? GeoJsonSource)
+            ?.setGeoJson(FeatureCollection.fromFeatures(listOf(feature)))
+    }
+
+    /**
+     * Approximates a geodesic circle with [steps] points at [radiusMeters] from [center].
+     */
+    private fun buildCirclePoints(center: LatLng, radiusMeters: Double, steps: Int = 64): List<Point> {
+        val lat = Math.toRadians(center.latitude)
+        val lon = Math.toRadians(center.longitude)
+        val d   = radiusMeters / 6_371_000.0 // angular distance in radians
+
+        return (0..steps).map { i ->
+            val bearing = Math.toRadians(i * 360.0 / steps)
+            val pLat = asin(sin(lat) * cos(d) + cos(lat) * sin(d) * cos(bearing))
+            val pLon = lon + atan2(
+                sin(bearing) * sin(d) * cos(lat),
+                cos(d) - sin(lat) * sin(pLat)
+            )
+            Point.fromLngLat(Math.toDegrees(pLon), Math.toDegrees(pLat))
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Marker click → popup
+    // ---------------------------------------------------------------------------
+
+    private fun setupMarkerClickListener(map: MapLibreMap, @Suppress("UNUSED_PARAMETER") style: Style) {
+        map.addOnMapClickListener { latLng ->
+            val screenPoint = map.projection.toScreenLocation(latLng)
+            val features    = map.queryRenderedFeatures(screenPoint, LAYER_SENSORS)
+            if (features.isNotEmpty()) {
+                val f = features[0]
+                val sensor = Sensor(
+                    stationId = f.getStringProperty("stationId"),
+                    status    = f.getStringProperty("status"),
+                    lastPing  = f.getNumberProperty("lastPing")?.toLong(),
+                    latitude  = latLng.latitude,
+                    longitude = latLng.longitude
+                )
+                showPopup(sensor)
+                true
+            } else {
+                hidePopup()
+                false
+            }
+        }
+    }
+
+    private fun showPopup(sensor: Sensor) {
+        val container = popupContainer ?: return
+        hidePopup() // remove any stale popup first
+
+        val cardView = statusCard.inflate()
+        statusCard.bind(cardView, sensor) { hidePopup() }
+
+        popupView = cardView
+        container.addView(cardView, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = android.view.Gravity.CENTER
+        })
+        container.isClickable = true
+    }
+
+    private fun hidePopup() {
+        popupView?.let { popupContainer?.removeView(it) }
+        popupView = null
+        popupContainer?.isClickable = false
+    }
+
+    // ---------------------------------------------------------------------------
+    // Location
+    // ---------------------------------------------------------------------------
 
     private fun checkPermissionAndRefresh() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED) {
             refreshLocation()
         } else {
             requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
 
-    private fun updateCenterMarker(center: GeoPoint) {
-        lastCenter = center
-        centerMarker?.let { mapView.overlays.remove(it) }
-        centerMarker = org.osmdroid.views.overlay.Marker(mapView).apply {
-            position = center
-            setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER)
-            icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_custom_crosshair)
-            setInfoWindow(null)
-            setOnMarkerClickListener { _, _ -> false }
-        }
-        mapView.overlays.add(centerMarker)
-        mapView.invalidate()
-    }
-
     private fun refreshLocation() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) return
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) return
+
         fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
             .addOnSuccessListener { location ->
                 if (location != null) {
@@ -263,12 +472,13 @@ class CoverageFragment : Fragment(R.layout.fragment_coverage) {
                     val lon = location.longitude
                     repository.setUserLatitude(lat)
                     repository.setUserLongitude(lon)
-                    val newPoint = GeoPoint(lat, lon)
-                    animateToOffset(newPoint)
-                    updateCenterMarker(newPoint)
-                    val slider = view?.findViewById<SeekBar>(R.id.alert_radius_slider)
-                    val progress = slider?.progress ?: 0
-                    updateMapCircle(progress, newPoint)
+                    currentCenter = LatLng(lat, lon)
+                    mapLibreMap?.animateCamera(
+                        CameraUpdateFactory.newLatLng(currentCenter), 400
+                    )
+                    val progress = view?.findViewById<SeekBar>(R.id.alert_radius_slider)?.progress ?: 0
+                    updateRadiusCircle(progress, currentCenter)
+                    updateUserLocationMarker(currentCenter)
                     updateCityName(lat, lon)
                 } else {
                     Toast.makeText(requireContext(), "Could not get current location", Toast.LENGTH_SHORT).show()
@@ -293,38 +503,27 @@ class CoverageFragment : Fragment(R.layout.fragment_coverage) {
                 tvLocationName.text = cityName
             } else {
                 repository.setUserCityName("")
-                tvLocationName.text = String.format(Locale.getDefault(), "%.4f, %.4f", lat, lon)
+                tvLocationName.text = "%.4f, %.4f".format(lat, lon)
             }
         }
     }
 
+    // ---------------------------------------------------------------------------
+    // Dark/light mode switch → re-apply tile source
+    // ---------------------------------------------------------------------------
 
-    private fun updateMapCircle(radiusKm: Int, center: GeoPoint) {
-        // 1. Remove the old circle
-        mapCircle?.let { mapView.overlays.remove(it) }
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        mapLibreMap?.let { applyStyle(it) }
+    }
 
-        // 2. Create the new circle
-        mapCircle = Polygon(mapView).apply {
-                points = Polygon.pointsAsCircle(center, radiusKm * 1000.0)
-                fillPaint.color = 0x22FF0000
-                outlinePaint.color = 0x88FF0000.toInt()
-                outlinePaint.strokeWidth = 8.0f
-                // Fix: disable the default white bubble
-                setInfoWindow(null)
-                // Fix: allow clicks to pass through to overlays underneath
-                setOnClickListener { _, _, _ -> false }
-            }
-            mapView.overlays.add(0, mapCircle)
-        
+    // ---------------------------------------------------------------------------
+    // MapLibre lifecycle forwarding — ALL 8 hooks are required
+    // ---------------------------------------------------------------------------
 
-        // 4. Update crosshair position
-        centerMarker?.let {
-            it.position = center
-        } ?: run {
-            updateCenterMarker(center)
-        }
-
-        mapView.invalidate()
+    override fun onStart() {
+        super.onStart()
+        mapView.onStart()
     }
 
     override fun onResume() {
@@ -337,29 +536,23 @@ class CoverageFragment : Fragment(R.layout.fragment_coverage) {
         mapView.onPause()
     }
 
-    private fun getCartoTileSource(context: Context): XYTileSource {
-        val isDark = context.systemDarkThemeOn()
-        val path = if (isDark) "dark_all" else "light_all"
-        return XYTileSource(
-            if (isDark) "Carto Dark Matter" else "Carto Positron",
-            0, 20, 256, ".png",
-            MAP_TILE_SUBDOMAINS.map { subdomain ->
-                "https://$subdomain.$MAP_TILE_BASE_URL/$path/"
-            }.toTypedArray()
-        )
+    override fun onStop() {
+        super.onStop()
+        mapView.onStop()
     }
 
-    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
-        super.onConfigurationChanged(newConfig)
-        if (::mapView.isInitialized) {
-            mapView.setTileSource(getCartoTileSource(requireContext()))
-            mapView.invalidate()
-        }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        mapView.onDestroy()
     }
 
-    companion object {
-        // Map tile server configuration
-        private const val MAP_TILE_BASE_URL = "basemaps.cartocdn.com/rastertiles"
-        private val MAP_TILE_SUBDOMAINS = arrayOf("a", "b", "c", "d")
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        mapView.onSaveInstanceState(outState)
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        mapView.onLowMemory()
     }
 }

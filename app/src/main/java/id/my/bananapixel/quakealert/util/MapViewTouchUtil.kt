@@ -3,7 +3,7 @@ package id.my.bananapixel.quakealert.util
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewParent
-import org.osmdroid.views.MapView
+import org.maplibre.android.maps.MapView
 
 /**
  * Prevents ViewPager2 (or any horizontal pager) from intercepting touch events when the user
@@ -19,8 +19,8 @@ object MapViewTouchUtil {
      * the view requests its parents (up to and including ViewPager2) to disallow touch
      * interception. This allows the map to receive horizontal swipes for panning.
      *
-     * @param mapView The MapView instance (e.g. osmdroid MapView) that should receive
-     *   horizontal touches without the parent ViewPager2 intercepting them.
+     * @param mapView The MapLibre [MapView] instance that should receive horizontal touches
+     *   without the parent ViewPager2 intercepting them.
      */
     @JvmStatic
     fun allowMapToConsumeHorizontalTouches(mapView: MapView) {

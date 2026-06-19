@@ -28,20 +28,18 @@ import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
-import id.my.bananapixel.quakealert.BuildConfig
 import id.my.bananapixel.quakealert.R
 import id.my.bananapixel.quakealert.databinding.ActivitySensorSetupBinding
 import id.my.bananapixel.quakealert.util.systemDarkThemeOn
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
-import org.osmdroid.config.Configuration
-import org.osmdroid.events.MapListener
-import org.osmdroid.events.ScrollEvent
-import org.osmdroid.events.ZoomEvent
-import org.osmdroid.tileprovider.tilesource.XYTileSource
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
+import org.maplibre.android.MapLibre
+import org.maplibre.android.camera.CameraUpdateFactory
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapView
+import org.maplibre.android.maps.Style
 import java.util.Locale
 
 class SensorSetupActivity : BaseActivity() {
@@ -55,7 +53,6 @@ class SensorSetupActivity : BaseActivity() {
 
     // Step index
     private val stepCount = 3
-    private val stepUnlocked = BooleanArray(stepCount) { false }.also { it[0] = true }
 
     // Views inside page holders (resolved lazily after pager inflates)
     private var credentialsHolder: SensorSetupAdapter.CredentialsViewHolder? = null
@@ -76,7 +73,7 @@ class SensorSetupActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
+        MapLibre.getInstance(this)
 
         binding = ActivitySensorSetupBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -106,8 +103,19 @@ class SensorSetupActivity : BaseActivity() {
                 }
                 if (state == ViewPager2.SCROLL_STATE_IDLE) {
                     val current = binding.sensorSetupViewpager.currentItem
-                    if (!stepUnlocked[current]) {
-                        binding.sensorSetupViewpager.setCurrentItem(current - 1, true)
+                    val uiState = viewModel.uiState.value
+                    
+                    // Find the first blocked step based on actual state
+                    val firstBlockedIndex = when {
+                        !uiState.isConnectedToQuakeSetup -> 0
+                        uiState.currentLat == null || uiState.currentLon == null -> 1
+                        uiState.savingConfig -> 2
+                        else -> 3
+                    }
+                    
+                    // If user swiped past a blocked page, snap back
+                    if (current > firstBlockedIndex) {
+                        binding.sensorSetupViewpager.setCurrentItem(firstBlockedIndex, true)
                         Toast.makeText(this@SensorSetupActivity, "Complete this step first", Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -211,11 +219,8 @@ class SensorSetupActivity : BaseActivity() {
             2 -> canAdvance = !state.savingConfig
         }
 
-        if (canAdvance) {
-            stepUnlocked[position] = true
-        }
-        
         setNextButtonEnabled(canAdvance)
+
 
         updateDots(position)
         
@@ -268,7 +273,6 @@ class SensorSetupActivity : BaseActivity() {
                     Toast.makeText(this, "Connect to QuakeSetup first", Toast.LENGTH_SHORT).show()
                     return
                 }
-                stepUnlocked[1] = true
                 viewModel.fetchLocation(forceGps = false)
                 binding.sensorSetupViewpager.setCurrentItem(1, true)
             }
@@ -277,7 +281,6 @@ class SensorSetupActivity : BaseActivity() {
                     Toast.makeText(this, "Still fetching location…", Toast.LENGTH_SHORT).show()
                     return
                 }
-                stepUnlocked[2] = true
                 binding.sensorSetupViewpager.setCurrentItem(2, true)
                 viewModel.fetchAvailableNetworksFromEsp32()
             }
@@ -389,21 +392,22 @@ class SensorSetupActivity : BaseActivity() {
         override fun getItemCount() = networks.size
     }
 
-    private fun getCartoTileSource(context: android.content.Context): XYTileSource {
+    private fun buildCartoStyleJson(context: android.content.Context): String {
         val isDark = context.systemDarkThemeOn()
         val path = if (isDark) "dark_all" else "light_all"
-        return XYTileSource(
-            if (isDark) "Carto Dark Matter" else "Carto Positron",
-            0, 20, 256, ".png",
-            arrayOf("a", "b", "c", "d").map { subdomain ->
-                "https://$subdomain.basemaps.cartocdn.com/rastertiles/$path/"
-            }.toTypedArray()
-        )
+        val tiles = arrayOf("a", "b", "c", "d")
+            .joinToString(",") { "\"https://$it.basemaps.cartocdn.com/rastertiles/$path/{z}/{x}/{y}.png\"" }
+        val bg = if (isDark) "#121212" else "#F0F0F0"
+        return """{"version":8,"sources":{"carto":{"type":"raster","tiles":[$tiles],"tileSize":256}},"layers":[{"id":"bg","type":"background","paint":{"background-color":"$bg"}},{"id":"tiles","type":"raster","source":"carto"}]}"""
     }
 
     inner class SensorSetupAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private var wifiHolder: WifiViewHolder? = null
         private val mapViewRefs = mutableListOf<MapView>()
+
+        fun startMaps() {
+            mapViewRefs.forEach { it.onStart() }
+        }
 
         fun resumeMaps() {
             mapViewRefs.forEach { it.onResume() }
@@ -411,6 +415,15 @@ class SensorSetupActivity : BaseActivity() {
 
         fun pauseMaps() {
             mapViewRefs.forEach { it.onPause() }
+        }
+
+        fun stopMaps() {
+            mapViewRefs.forEach { it.onStop() }
+        }
+
+        fun destroyMaps() {
+            mapViewRefs.forEach { it.onDestroy() }
+            mapViewRefs.clear()
         }
         
         fun updateViews(state: SensorSetupUiState, position: Int) {
@@ -484,7 +497,8 @@ class SensorSetupActivity : BaseActivity() {
             val latInput: EditText     = view.findViewById(R.id.sensor_setup_lat_input)
             val lonInput: EditText     = view.findViewById(R.id.sensor_setup_lon_input)
             val cityValue: TextView    = view.findViewById(R.id.sensor_setup_city_value)
-            val mapView: MapView       = view.findViewById(R.id.sensor_setup_mapview)
+            val mapView: MapView = view.findViewById(R.id.sensor_setup_mapview)
+            private var mapLibreMap: MapLibreMap? = null
 
             var isUpdatingFromMap = false
             var isUpdatingFromText = false
@@ -493,28 +507,40 @@ class SensorSetupActivity : BaseActivity() {
                 isUpdatingFromMap = true
                 latInput.setText(String.format(Locale.US, "%.5f", lat))
                 lonInput.setText(String.format(Locale.US, "%.5f", lon))
-                mapView.controller.setCenter(GeoPoint(lat, lon))
+                mapLibreMap?.moveCamera(CameraUpdateFactory.newLatLng(LatLng(lat, lon)))
                 isUpdatingFromMap = false
             }
 
-            init { 
+            init {
                 mapViewRefs.add(mapView)
                 view.findViewById<View>(R.id.sensor_setup_btn_close)?.setOnClickListener { finish() }
 
-                mapView.setTileSource(getCartoTileSource(this@SensorSetupActivity))
-                mapView.setMultiTouchControls(true)
-                mapView.setBuiltInZoomControls(false)
-                mapView.setTilesScaledToDpi(true)
-                mapView.isHorizontalMapRepetitionEnabled = false
-                mapView.isVerticalMapRepetitionEnabled = false
-                val worldBox = org.osmdroid.util.BoundingBox(85.0, 180.0, -85.0, -180.0)
-                mapView.setScrollableAreaLimitDouble(worldBox)
-                mapView.minZoomLevel = 3.0
-                mapView.controller.setZoom(7.0)
-                
-                mapView.setUseDataConnection(false)
-                
-                mapView.onResume()
+                mapView.onCreate(null)
+                mapView.getMapAsync { map ->
+                    mapLibreMap = map
+                    map.setStyle(Style.Builder().fromJson(buildCartoStyleJson(this@SensorSetupActivity))) {
+                        map.uiSettings.setCompassEnabled(false)
+                        // Start at the user's saved location, or fall back to Indonesia centre
+                        val savedLat = viewModel.uiState.value.currentLat
+                        val savedLon = viewModel.uiState.value.currentLon
+                        val startLatLng = if (savedLat != null && savedLon != null)
+                            LatLng(savedLat, savedLon)
+                        else
+                            LatLng(-2.5, 118.0) // Indonesia geographic centre
+                        map.moveCamera(CameraUpdateFactory.newLatLngZoom(startLatLng, 5.0))
+                        map.addOnCameraIdleListener {
+                            if (latInput.hasFocus() || lonInput.hasFocus()) return@addOnCameraIdleListener
+                            val target = map.cameraPosition.target ?: return@addOnCameraIdleListener
+                            if (!isUpdatingFromText) {
+                                isUpdatingFromMap = true
+                                latInput.setText(String.format(Locale.US, "%.5f", target.latitude))
+                                lonInput.setText(String.format(Locale.US, "%.5f", target.longitude))
+                                viewModel.processLocation(target.latitude, target.longitude)
+                                isUpdatingFromMap = false
+                            }
+                        }
+                    }
+                }
 
                 view.findViewById<View>(R.id.sensor_setup_btn_refresh_location)?.setOnClickListener {
                     Toast.makeText(this@SensorSetupActivity, "Fetching GPS...", Toast.LENGTH_SHORT).show()
@@ -530,29 +556,12 @@ class SensorSetupActivity : BaseActivity() {
                     false
                 }
 
-                mapView.addMapListener(object : MapListener {
-                    override fun onScroll(event: ScrollEvent?): Boolean {
-                        if (latInput.hasFocus() || lonInput.hasFocus()) return true
-                        val center = mapView.mapCenter
-                        if (!isUpdatingFromText) {
-                            isUpdatingFromMap = true
-                            latInput.setText(String.format(Locale.US, "%.5f", center.latitude))
-                            lonInput.setText(String.format(Locale.US, "%.5f", center.longitude))
-                            viewModel.processLocation(center.latitude, center.longitude)
-                            isUpdatingFromMap = false
-                        }
-                        return true
-                    }
-                    override fun onZoom(event: ZoomEvent?) = false
-                })
-
                 val textWatcher = object : TextWatcher {
                     override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                     override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                     override fun afterTextChanged(s: Editable?) {
                         if (isUpdatingFromMap) return
                         if (!latInput.hasFocus() && !lonInput.hasFocus()) return
-                        
                         val latStr = latInput.text.toString()
                         val lonStr = lonInput.text.toString()
                         val lat = latStr.toDoubleOrNull()
@@ -560,7 +569,7 @@ class SensorSetupActivity : BaseActivity() {
                         if (lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0) {
                             isUpdatingFromText = true
                             viewModel.processLocation(lat, lon)
-                            mapView.controller.setCenter(GeoPoint(lat, lon))
+                            mapLibreMap?.moveCamera(CameraUpdateFactory.newLatLng(LatLng(lat, lon)))
                             isUpdatingFromText = false
                         }
                     }
@@ -599,6 +608,11 @@ class SensorSetupActivity : BaseActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        (binding.sensorSetupViewpager.adapter as? SensorSetupAdapter)?.startMaps()
+    }
+
     override fun onResume() {
         super.onResume()
         viewModel.checkWiFiConnection()
@@ -610,8 +624,14 @@ class SensorSetupActivity : BaseActivity() {
         (binding.sensorSetupViewpager.adapter as? SensorSetupAdapter)?.pauseMaps()
     }
 
+    override fun onStop() {
+        super.onStop()
+        (binding.sensorSetupViewpager.adapter as? SensorSetupAdapter)?.stopMaps()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        (binding.sensorSetupViewpager.adapter as? SensorSetupAdapter)?.destroyMaps()
         viewModel.stopNetworkMonitoring()
     }
 

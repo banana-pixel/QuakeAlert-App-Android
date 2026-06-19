@@ -13,8 +13,9 @@ import id.my.bananapixel.quakealert.db.Repository
 import id.my.bananapixel.quakealert.db.Subscription
 import id.my.bananapixel.quakealert.service.SubscriberServiceManager
 import id.my.bananapixel.quakealert.util.*
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -53,65 +54,69 @@ class BroadcastReceiver : android.content.BroadcastReceiver() {
             Log.w(TAG, "Refusing registration: Empty application")
             return
         }
-        MainScope().launch(Dispatchers.IO) {
-            // We're doing all of this inside a critical section, because of possible races.
-            // See https://github.com/binwiederhier/ntfy/issues/230 for details.
-
-            mutex.withLock {
-                val existingSubscription = repository.getSubscriptionByConnectorToken(connectorToken)
-                if (existingSubscription != null) {
-                    if (existingSubscription.upAppId == appId) {
-                        val endpoint = topicUrlUp(existingSubscription.baseUrl, existingSubscription.topic)
-                        Log.d(TAG, "Subscription with connectorToken $connectorToken exists. Sending endpoint $endpoint.")
-                        distributor.sendEndpoint(appId, connectorToken, endpoint)
-                    } else {
-                        Log.d(TAG, "Subscription with connectorToken $connectorToken exists for a different app. Refusing registration.")
-                        // Internal_error: try again with a new token
-                        distributor.sendRegistrationFailed(appId, connectorToken, FailedReason.INTERNAL_ERROR)
+        val pendingResult = goAsync()
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                // We're doing all of this inside a critical section, because of possible races.
+                // See https://github.com/binwiederhier/ntfy/issues/230 for details.
+                mutex.withLock {
+                    val existingSubscription = repository.getSubscriptionByConnectorToken(connectorToken)
+                    if (existingSubscription != null) {
+                        if (existingSubscription.upAppId == appId) {
+                            val endpoint = topicUrlUp(existingSubscription.baseUrl, existingSubscription.topic)
+                            Log.d(TAG, "Subscription with connectorToken $connectorToken exists. Sending endpoint $endpoint.")
+                            distributor.sendEndpoint(appId, connectorToken, endpoint)
+                        } else {
+                            Log.d(TAG, "Subscription with connectorToken $connectorToken exists for a different app. Refusing registration.")
+                            // Internal_error: try again with a new token
+                            distributor.sendRegistrationFailed(appId, connectorToken, FailedReason.INTERNAL_ERROR)
+                        }
+                        return@withLock
                     }
-                    return@launch
+
+                    // Add subscription
+                    val baseUrl = repository.getDefaultBaseUrl() ?: BuildConfig.APP_BASE_URL
+                    val topic = UP_PREFIX + randomString(TOPIC_RANDOM_ID_LENGTH)
+                    val endpoint = topicUrlUp(baseUrl, topic)
+                    val subscription = Subscription(
+                        id = randomSubscriptionId(),
+                        baseUrl = baseUrl,
+                        topic = topic,
+                        instant = true, // No Firebase, always instant!
+                        dedicatedChannels = false,
+                        mutedUntil = 0,
+                        minPriority = Repository.MIN_PRIORITY_USE_GLOBAL,
+                        autoDelete = Repository.AUTO_DELETE_USE_GLOBAL,
+                        insistent = Repository.INSISTENT_MAX_PRIORITY_USE_GLOBAL,
+                        lastNotificationId = null,
+                        icon = null,
+                        upAppId = appId,
+                        upConnectorToken = connectorToken,
+                        displayName = null,
+                        totalCount = 0,
+                        newCount = 0,
+                        lastActive = Date().time/1000
+                    )
+                    Log.d(TAG, "Adding subscription with for app $appId (connectorToken $connectorToken): $subscription")
+                    try {
+                        // Note, this may fail due to a SQL constraint exception, see https://github.com/binwiederhier/ntfy/issues/185
+                        repository.addSubscription(subscription)
+                        distributor.sendEndpoint(appId, connectorToken, endpoint)
+
+                        // Refresh (and maybe start) foreground service
+                        SubscriberServiceManager.refresh(app)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to add subscription", e)
+                        // Try again when there is network
+                        distributor.sendRegistrationFailed(appId, connectorToken, FailedReason.NETWORK)
+                    }
+
+                    // Add to log scrubber
+                    Log.addScrubTerm(shortUrl(baseUrl), Log.TermType.Domain)
+                    Log.addScrubTerm(topic)
                 }
-
-                // Add subscription
-                val baseUrl = repository.getDefaultBaseUrl() ?: BuildConfig.APP_BASE_URL
-                val topic = UP_PREFIX + randomString(TOPIC_RANDOM_ID_LENGTH)
-                val endpoint = topicUrlUp(baseUrl, topic)
-                val subscription = Subscription(
-                    id = randomSubscriptionId(),
-                    baseUrl = baseUrl,
-                    topic = topic,
-                    instant = true, // No Firebase, always instant!
-                    dedicatedChannels = false,
-                    mutedUntil = 0,
-                    minPriority = Repository.MIN_PRIORITY_USE_GLOBAL,
-                    autoDelete = Repository.AUTO_DELETE_USE_GLOBAL,
-                    insistent = Repository.INSISTENT_MAX_PRIORITY_USE_GLOBAL,
-                    lastNotificationId = null,
-                    icon = null,
-                    upAppId = appId,
-                    upConnectorToken = connectorToken,
-                    displayName = null,
-                    totalCount = 0,
-                    newCount = 0,
-                    lastActive = Date().time/1000
-                )
-                Log.d(TAG, "Adding subscription with for app $appId (connectorToken $connectorToken): $subscription")
-                try {
-                    // Note, this may fail due to a SQL constraint exception, see https://github.com/binwiederhier/ntfy/issues/185
-                    repository.addSubscription(subscription)
-                    distributor.sendEndpoint(appId, connectorToken, endpoint)
-
-                    // Refresh (and maybe start) foreground service
-                    SubscriberServiceManager.refresh(app)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to add subscription", e)
-                    // Try again when there is network
-                    distributor.sendRegistrationFailed(appId, connectorToken, FailedReason.NETWORK)
-                }
-
-                // Add to log scrubber
-                Log.addScrubTerm(shortUrl(baseUrl), Log.TermType.Domain)
-                Log.addScrubTerm(topic)
+            } finally {
+                pendingResult.finish()
             }
         }
     }
@@ -197,24 +202,28 @@ class BroadcastReceiver : android.content.BroadcastReceiver() {
         val repository = app.repository
         val distributor = Distributor(app)
         Log.d(TAG, "UNREGISTER received (connectorToken=$connectorToken)")
-        MainScope().launch(Dispatchers.IO) {
-            // We're doing all of this inside a critical section, because of possible races.
-            // See https://github.com/binwiederhier/ntfy/issues/230 for details.
+        val pendingResult = goAsync()
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                // We're doing all of this inside a critical section, because of possible races.
+                // See https://github.com/binwiederhier/ntfy/issues/230 for details.
+                mutex.withLock {
+                    val existingSubscription = repository.getSubscriptionByConnectorToken(connectorToken)
+                    if (existingSubscription == null) {
+                        Log.d(TAG, "Subscription with connectorToken $connectorToken does not exist. Ignoring.")
+                        return@withLock
+                    }
 
-            mutex.withLock {
-                val existingSubscription = repository.getSubscriptionByConnectorToken(connectorToken)
-                if (existingSubscription == null) {
-                    Log.d(TAG, "Subscription with connectorToken $connectorToken does not exist. Ignoring.")
-                    return@launch
+                    // Remove subscription
+                    Log.d(TAG, "Removing subscription ${existingSubscription.id} with connectorToken $connectorToken")
+                    repository.removeSubscription(existingSubscription)
+                    existingSubscription.upAppId?.let { appId -> distributor.sendUnregistered(appId, connectorToken) }
+
+                    // Refresh (and maybe stop) foreground service
+                    SubscriberServiceManager.refresh(context)
                 }
-
-                // Remove subscription
-                Log.d(TAG, "Removing subscription ${existingSubscription.id} with connectorToken $connectorToken")
-                repository.removeSubscription(existingSubscription)
-                existingSubscription.upAppId?.let { appId -> distributor.sendUnregistered(appId, connectorToken) }
-
-                // Refresh (and maybe stop) foreground service
-                SubscriberServiceManager.refresh(context)
+            } finally {
+                pendingResult.finish()
             }
         }
     }
